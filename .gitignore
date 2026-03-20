@@ -3,3 +3,4 @@ wodbuddy_cnn_weights.pth
 wodbuddy_label_encoder.pkl
 wodbuddy_model.onnx
 *.png
+.idea
