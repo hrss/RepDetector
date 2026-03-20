@@ -63,7 +63,7 @@ def plot_latent_space():
 
     # 3. Load the dataset
     # We use a large batch size because we just want to push everything through quickly
-    dataset = WodDataset(data_dir="dataset", config=CONFIG)
+    dataset = WodDataset(data_dir="data", config=CONFIG)
     dataloader = DataLoader(dataset, batch_size=128, shuffle=False)
 
     # 4. Extract the 128-Dimensional Embeddings

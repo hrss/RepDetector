@@ -33,8 +33,8 @@ def calculate_kinematics(df):
 
 def generate_dashboard(section_dir, apply_filter=False, cutoff_hz=3.0):
     """Reads raw CSV, optionally filters, calculates kinematics, and generates UI."""
-    csv_path = os.path.join(section_dir, "imu_data.csv")
-    json_path = os.path.join(section_dir, "metadata.json")
+    csv_path = os.path.join(section_dir, "imu.csv")
+    json_path = os.path.join(section_dir, "data.json")
 
     if not os.path.exists(csv_path) or not os.path.exists(json_path):
         print(f"Error: Missing CSV or JSON in {section_dir}")

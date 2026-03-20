@@ -52,7 +52,7 @@ def extract_raw_fit_data(fit_path):
     return pd.DataFrame(data_points)
 
 
-def slice_and_save_raw(fit_df, section_json, output_base_dir):
+def slice_and_save_raw(fit_df, section_json, section_dir):
     """Cuts the continuous dataframe and saves the isolated raw unit."""
     section_id = section_json.get("sectionId", "unknown_id")
     start_time = section_json.get("startTime")
@@ -62,10 +62,10 @@ def slice_and_save_raw(fit_df, section_json, output_base_dir):
         print(f"Skipping section {section_id}: Missing start or end time.")
         return False
 
-    # -1 usually means unfinished; keep the old behavior safe by skipping incomplete sections
-    if start_time < 0 or end_time < 0 or end_time <= start_time:
-        print(f"Skipping section {section_id}: invalid time range ({start_time}, {end_time}).")
-        return False
+    # -1 usually means unfinished; skip those
+    # if start_time < 0 or end_time < 0 or end_time <= start_time:
+    #     print(f"Skipping section {section_id}: invalid time range ({start_time}, {end_time}).")
+    #     return False
 
     section_df = fit_df[(fit_df['rel_time'] >= start_time) & (fit_df['rel_time'] <= end_time)].copy()
 
@@ -73,21 +73,14 @@ def slice_and_save_raw(fit_df, section_json, output_base_dir):
         print(f"Warning: No data found for section {section_id} ({start_time}s - {end_time}s)")
         return False
 
-    section_dir = os.path.join(output_base_dir, f"section_{section_id}")
-    os.makedirs(section_dir, exist_ok=True)
-
     csv_path = os.path.join(section_dir, "imu.csv")
-    json_path = os.path.join(section_dir, "data.json")
-
     section_df.to_csv(csv_path, index=False)
-    with open(json_path, 'w', encoding="utf-8") as f:
-        json.dump(section_json, f, indent=4)
 
-    print(f"  -> Saved {len(section_df)} raw rows to: {section_dir}")
+    print(f"  -> Saved {len(section_df)} raw rows to: {csv_path}")
     return True
 
 
-def process_workout_directory(workout_dir, output_base_dir="data"):
+def process_workout_directory(workout_dir):
     """
     Processes one workout_result directory:
       workout_dir/
@@ -131,10 +124,10 @@ def process_workout_directory(workout_dir, output_base_dir="data"):
                 section_data = json.load(f)
 
             if "sectionId" in section_data and "startTime" in section_data:
-                if slice_and_save_raw(full_df, section_data, workout_dir):
+                if slice_and_save_raw(full_df, section_data, section_dir):
                     success_count += 1
             else:
-                print(f"Skipping {section_dir}: invalid section data.json")
+                print(f"Skipping {section_dir}: invalid data.json")
 
         except Exception as e:
             print(f"Failed to process {section_dir}: {e}")
@@ -143,5 +136,5 @@ def process_workout_directory(workout_dir, output_base_dir="data"):
 
 
 if __name__ == "__main__":
-    process_workout_directory(workout_dir="data/2026-03-05-19-31-06", output_base_dir="data")
+    process_workout_directory(workout_dir="data/1797")
     pass

@@ -15,19 +15,6 @@
             "restDuration": 60,
             "exerciseResults": [
                 {
-                    "name": "Ring Muscle Up",
-                    "unit": "reps",
-                    "result": 3,
-                    "endTime": 3053,
-                    "loadUnit": "",
-                    "loadUsed": 0,
-                    "startTime": 3043,
-                    "avgHeartRate": 106,
-                    "peakHeartRate": 109,
-                    "lowestHeartRate": 104,
-                    "setWeightResult": false
-                },
-                {
                     "name": "Row",
                     "unit": "seconds",
                     "result": 60,

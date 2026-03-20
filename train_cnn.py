@@ -65,20 +65,20 @@ class WodDataset(Dataset):
 
     def _load_and_window_data(self, data_dir):
         print(f"Loading training data from {data_dir}...")
-        section_dirs = glob.glob(os.path.join(data_dir, "section_*"))
+        section_dirs = glob.glob(os.path.join(data_dir, "**", "section_*"), recursive=True)
 
         window_pts = int(self.cfg['window_size_sec'] * self.cfg['sample_rate'])
         step_pts = int(self.cfg['step_size_sec'] * self.cfg['sample_rate'])
 
         for s_dir in section_dirs:
-            csv_path = os.path.join(s_dir, "imu_data.csv")
-            json_path = os.path.join(s_dir, "metadata.json")
+            csv_path = os.path.join(s_dir, "imu.csv")
+            json_path = os.path.join(s_dir, "data.json")
 
             if not os.path.exists(csv_path) or not os.path.exists(json_path):
                 continue
 
             df = pd.read_csv(csv_path)
-            with open(json_path, 'r') as f:
+            with open(json_path, 'r', encoding="utf-8") as f:
                 metadata = json.load(f)
 
             # 1. Apply Filtering to all 6 axes
@@ -155,8 +155,8 @@ def test_and_plot_section(section_dir, model, label_encoder, config):
     """Runs inference on a pre-sliced section directory and plots the results."""
     print(f"\nTesting Inference on Section: {os.path.basename(section_dir)}")
 
-    csv_path = os.path.join(section_dir, "imu_data.csv")
-    json_path = os.path.join(section_dir, "metadata.json")
+    csv_path = os.path.join(section_dir, "imu.csv")
+    json_path = os.path.join(section_dir, "data.json")
 
     if not os.path.exists(csv_path) or not os.path.exists(json_path):
         print(f"Error: Missing files in {section_dir}")
@@ -309,7 +309,7 @@ if __name__ == "__main__":
     print(f"Training on device: {device}")
 
     # 1. Load Data
-    dataset = WodDataset(data_dir="dataset", config=CONFIG)
+    dataset = WodDataset(data_dir="data", config=CONFIG)
     dataloader = DataLoader(dataset, batch_size=CONFIG['batch_size'], shuffle=True)
     num_classes = len(dataset.le.classes_)
 
@@ -341,7 +341,7 @@ if __name__ == "__main__":
     save_model()
 
     # Pick one of your sliced sections to test against
-    test_target_dir = "dataset/section_c11b7a06-0606-444f-b598-8343665bc5a5"
+    test_target_dir = "data/1797/section_3109"
 
     # Make sure to pass model, not model.cpu() if x_tensor is sent to device
     test_and_plot_section(test_target_dir, model, dataset.le, CONFIG)

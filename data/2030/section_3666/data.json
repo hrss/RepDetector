@@ -61,7 +61,7 @@
                 {
                     "name": "V-Up",
                     "unit": "reps",
-                    "result": 20,
+                    "result": 10,
                     "endTime": 984,
                     "loadUnit": "kg",
                     "loadUsed": 0,
@@ -83,7 +83,7 @@
                 {
                     "name": "V-Up",
                     "unit": "reps",
-                    "result": 20,
+                    "result": 10,
                     "endTime": 1159,
                     "loadUnit": "kg",
                     "loadUsed": 0,
@@ -105,7 +105,7 @@
                 {
                     "name": "V-Up",
                     "unit": "reps",
-                    "result": 20,
+                    "result": 10,
                     "endTime": 1335,
                     "loadUnit": "kg",
                     "loadUsed": 0,
