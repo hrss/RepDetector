@@ -1,0 +1,49 @@
+{
+    "id": 3228,
+    "score": 96.0,
+    "score_type": "INTERVAL",
+    "section_id": "77908138-d3b1-42cc-8055-b23df7d11e90",
+    "workout_result_id": 1846,
+    "section_title": "INTERVAL: Shoulder Press",
+    "section_data": {
+        "id": "77908138-d3b1-42cc-8055-b23df7d11e90",
+        "type": "INTERVAL",
+        "title": "INTERVAL: Shoulder Press",
+        "rounds": 5,
+        "duration": 900,
+        "autoStart": false,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Shoulder Press",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "",
+                "description": "",
+                "canonicalName": "DUMBBELL_SHOULDER_PRESS",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    10,
+                    10,
+                    10,
+                    10,
+                    10
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": true,
+        "intervalDuration": 180,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "9a6d3949d52d4fe74b82bdb8422c48658bd02434eb04894d09960c6f1539ae30",
+    "section_canonical_fingerprint": "f14eb717160ee7127ebc3eda7e87a5d22f018341db5c76ee03eca9e8a823e2c8"
+}

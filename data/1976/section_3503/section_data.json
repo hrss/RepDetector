@@ -1,0 +1,49 @@
+{
+    "id": 3503,
+    "score": 171.0,
+    "score_type": "INTERVAL",
+    "section_id": "82393156-0ba0-468e-ac81-6e1dd51ebdf5",
+    "workout_result_id": 1976,
+    "section_title": "INTERVAL: Front Squat",
+    "section_data": {
+        "id": "82393156-0ba0-468e-ac81-6e1dd51ebdf5",
+        "type": "INTERVAL",
+        "title": "INTERVAL: Front Squat",
+        "rounds": 5,
+        "duration": 900,
+        "autoStart": true,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Front Squat",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "kg",
+                "description": "",
+                "canonicalName": "FRONT_SQUAT",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    10,
+                    10,
+                    10,
+                    10,
+                    10
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": true,
+        "intervalDuration": 180,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "052f39927024778747109d306c8a6b315d045e65d7b3d754f1429a956de5fa4e",
+    "section_canonical_fingerprint": "6a73957471dfd7c0226802a90d6c3c1ab30e5bafd1eeb6ce7e5d2b4a65d15998"
+}

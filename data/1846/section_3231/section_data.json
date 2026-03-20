@@ -1,0 +1,49 @@
+{
+    "id": 3231,
+    "score": 300.0,
+    "score_type": "INTERVAL",
+    "section_id": "ea925249-a59d-4c94-bde2-08e9c8a53a78",
+    "workout_result_id": 1846,
+    "section_title": "INTERVAL: Row",
+    "section_data": {
+        "id": "ea925249-a59d-4c94-bde2-08e9c8a53a78",
+        "type": "INTERVAL",
+        "title": "INTERVAL: Row",
+        "rounds": 5,
+        "duration": 600,
+        "autoStart": false,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Row",
+                "type": "time",
+                "unit": "seconds",
+                "loadUnit": "",
+                "description": "",
+                "canonicalName": "ROW",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    60,
+                    60,
+                    60,
+                    60,
+                    60
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": false,
+        "intervalDuration": 120,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "84ef1787dbaa6f51b39a7f8f3bc66254a81bd3abb6f7cae68316a142b89d3f76",
+    "section_canonical_fingerprint": "419f7427f9323ccee4fa5cd7e2939d0c5e11b83689bd14af3b70b46bc05dfa3c"
+}

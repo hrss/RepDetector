@@ -1,0 +1,127 @@
+{
+    "id": 0,
+    "score": 188,
+    "endTime": 1847,
+    "scoreType": "INTERVAL",
+    "sectionId": "e5f100ca-899c-4383-a116-854b042c4d48",
+    "startTime": 947,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 1127,
+            "startTime": 947,
+            "roundNumber": 0,
+            "restDuration": 37,
+            "exerciseResults": [
+                {
+                    "name": "Clean",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 984,
+                    "loadUnit": "",
+                    "loadUsed": 30,
+                    "startTime": 947,
+                    "avgHeartRate": 121,
+                    "peakHeartRate": 152,
+                    "lowestHeartRate": 86,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 984
+        },
+        {
+            "endTime": 1307,
+            "startTime": 1127,
+            "roundNumber": 1,
+            "restDuration": 38,
+            "exerciseResults": [
+                {
+                    "name": "Clean",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1165,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 1127,
+                    "avgHeartRate": 132,
+                    "peakHeartRate": 157,
+                    "lowestHeartRate": 101,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1165
+        },
+        {
+            "endTime": 1487,
+            "startTime": 1307,
+            "roundNumber": 2,
+            "restDuration": 40,
+            "exerciseResults": [
+                {
+                    "name": "Clean",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1347,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 1307,
+                    "avgHeartRate": 138,
+                    "peakHeartRate": 159,
+                    "lowestHeartRate": 117,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1347
+        },
+        {
+            "endTime": 1667,
+            "startTime": 1487,
+            "roundNumber": 3,
+            "restDuration": 40,
+            "exerciseResults": [
+                {
+                    "name": "Clean",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1527,
+                    "loadUnit": "",
+                    "loadUsed": 30,
+                    "startTime": 1487,
+                    "avgHeartRate": 138,
+                    "peakHeartRate": 161,
+                    "lowestHeartRate": 118,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 1527
+        },
+        {
+            "endTime": 1847,
+            "startTime": 1667,
+            "roundNumber": 4,
+            "restDuration": 33,
+            "exerciseResults": [
+                {
+                    "name": "Clean",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1700,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 1667,
+                    "avgHeartRate": 136,
+                    "peakHeartRate": 164,
+                    "lowestHeartRate": 111,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1700
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

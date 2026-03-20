@@ -1,0 +1,140 @@
+{
+    "id": 0,
+    "score": 300,
+    "endTime": 4069,
+    "scoreType": "INTERVAL",
+    "sectionId": "ea925249-a59d-4c94-bde2-08e9c8a53a78",
+    "startTime": 3469,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 3589,
+            "startTime": 3469,
+            "roundNumber": 0,
+            "restDuration": 60,
+            "exerciseResults": [
+                {
+                    "name": "Ring Muscle Up",
+                    "unit": "reps",
+                    "result": 3,
+                    "endTime": 3053,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 3043,
+                    "avgHeartRate": 106,
+                    "peakHeartRate": 109,
+                    "lowestHeartRate": 104,
+                    "setWeightResult": false
+                },
+                {
+                    "name": "Row",
+                    "unit": "seconds",
+                    "result": 60,
+                    "endTime": 3529,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 3469,
+                    "avgHeartRate": 133,
+                    "peakHeartRate": 149,
+                    "lowestHeartRate": 111,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 3529
+        },
+        {
+            "endTime": 3709,
+            "startTime": 3589,
+            "roundNumber": 1,
+            "restDuration": 60,
+            "exerciseResults": [
+                {
+                    "name": "Row",
+                    "unit": "seconds",
+                    "result": 60,
+                    "endTime": 3649,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 3589,
+                    "avgHeartRate": 143,
+                    "peakHeartRate": 157,
+                    "lowestHeartRate": 124,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 3649
+        },
+        {
+            "endTime": 3829,
+            "startTime": 3709,
+            "roundNumber": 2,
+            "restDuration": 60,
+            "exerciseResults": [
+                {
+                    "name": "Row",
+                    "unit": "seconds",
+                    "result": 60,
+                    "endTime": 3769,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 3709,
+                    "avgHeartRate": 135,
+                    "peakHeartRate": 147,
+                    "lowestHeartRate": 121,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 3769
+        },
+        {
+            "endTime": 3949,
+            "startTime": 3829,
+            "roundNumber": 3,
+            "restDuration": 60,
+            "exerciseResults": [
+                {
+                    "name": "Row",
+                    "unit": "seconds",
+                    "result": 60,
+                    "endTime": 3889,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 3829,
+                    "avgHeartRate": 147,
+                    "peakHeartRate": 164,
+                    "lowestHeartRate": 127,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 3889
+        },
+        {
+            "endTime": 4069,
+            "startTime": 3949,
+            "roundNumber": 4,
+            "restDuration": 60,
+            "exerciseResults": [
+                {
+                    "name": "Row",
+                    "unit": "seconds",
+                    "result": 60,
+                    "endTime": 4009,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 3949,
+                    "avgHeartRate": 151,
+                    "peakHeartRate": 164,
+                    "lowestHeartRate": 138,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 4009
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

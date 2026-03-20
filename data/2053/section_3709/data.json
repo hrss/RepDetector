@@ -1,0 +1,127 @@
+{
+    "id": 0,
+    "score": 130,
+    "endTime": 2671,
+    "scoreType": "INTERVAL",
+    "sectionId": "eb89a3c9-fc69-4634-9938-540448a36ead",
+    "startTime": 1771,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 1951,
+            "startTime": 1771,
+            "roundNumber": 0,
+            "restDuration": 25,
+            "exerciseResults": [
+                {
+                    "name": "Push Press",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1797,
+                    "loadUnit": "kg",
+                    "loadUsed": 20,
+                    "startTime": 1771,
+                    "avgHeartRate": 123,
+                    "peakHeartRate": 132,
+                    "lowestHeartRate": 118,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 1797
+        },
+        {
+            "endTime": 2131,
+            "startTime": 1951,
+            "roundNumber": 1,
+            "restDuration": 22,
+            "exerciseResults": [
+                {
+                    "name": "Push Press",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1974,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1951,
+                    "avgHeartRate": 117,
+                    "peakHeartRate": 127,
+                    "lowestHeartRate": 111,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1974
+        },
+        {
+            "endTime": 2311,
+            "startTime": 2131,
+            "roundNumber": 2,
+            "restDuration": 22,
+            "exerciseResults": [
+                {
+                    "name": "Push Press",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 2154,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 2131,
+                    "avgHeartRate": 104,
+                    "peakHeartRate": 110,
+                    "lowestHeartRate": 99,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2154
+        },
+        {
+            "endTime": 2491,
+            "startTime": 2311,
+            "roundNumber": 3,
+            "restDuration": 28,
+            "exerciseResults": [
+                {
+                    "name": "Push Press",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 2339,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 2311,
+                    "avgHeartRate": 121,
+                    "peakHeartRate": 129,
+                    "lowestHeartRate": 115,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2339
+        },
+        {
+            "endTime": 2671,
+            "startTime": 2491,
+            "roundNumber": 4,
+            "restDuration": 30,
+            "exerciseResults": [
+                {
+                    "name": "Push Press",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 2521,
+                    "loadUnit": "kg",
+                    "loadUsed": 40,
+                    "startTime": 2491,
+                    "avgHeartRate": 117,
+                    "peakHeartRate": 125,
+                    "lowestHeartRate": 113,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 2521
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

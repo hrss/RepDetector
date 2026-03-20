@@ -1,0 +1,49 @@
+{
+    "id": 3110,
+    "score": 182.0,
+    "score_type": "INTERVAL",
+    "section_id": "d8fd4f09-fc21-49ba-a87a-ea35ccde391e",
+    "workout_result_id": 1797,
+    "section_title": "Snatch Intervals",
+    "section_data": {
+        "id": "d8fd4f09-fc21-49ba-a87a-ea35ccde391e",
+        "type": "INTERVAL",
+        "title": "Snatch Intervals",
+        "rounds": 5,
+        "duration": 900,
+        "autoStart": true,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Snatch",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "kg",
+                "description": "",
+                "canonicalName": "SNATCH",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    10,
+                    10,
+                    10,
+                    10,
+                    10
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": true,
+        "intervalDuration": 180,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "729856a30368c7c313fd5f1fb49b93da7d5bc643ff30b6b0265b27b872d0681b",
+    "section_canonical_fingerprint": "7e2f9f1f4f3ffbd581c0cca2a729d9be124782d1894254bfe1a3fdf747eadc0c"
+}

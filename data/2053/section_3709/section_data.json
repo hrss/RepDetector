@@ -1,0 +1,49 @@
+{
+    "id": 3709,
+    "score": 130.0,
+    "score_type": "INTERVAL",
+    "section_id": "eb89a3c9-fc69-4634-9938-540448a36ead",
+    "workout_result_id": 2053,
+    "section_title": "Push Press Intervals",
+    "section_data": {
+        "id": "eb89a3c9-fc69-4634-9938-540448a36ead",
+        "type": "INTERVAL",
+        "title": "Push Press Intervals",
+        "rounds": 5,
+        "duration": 900,
+        "autoStart": false,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Push Press",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "kg",
+                "description": "10 reps every 3:00",
+                "canonicalName": "DB_PUSH_PRESS",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    10,
+                    10,
+                    10,
+                    10,
+                    10
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": true,
+        "intervalDuration": 180,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "a8f4792ca0d434896de4df6c0da5031701d160b05be420a14901e837ad9cc68f",
+    "section_canonical_fingerprint": "1747f9d047c1449f0d8625890eebadb10c15ff2109a5c9a3dd2ba68738098b84"
+}

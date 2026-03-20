@@ -1,0 +1,49 @@
+{
+    "id": 3109,
+    "score": 149.0,
+    "score_type": "INTERVAL",
+    "section_id": "c11b7a06-0606-444f-b598-8343665bc5a5",
+    "workout_result_id": 1797,
+    "section_title": "Air Squat Intervals",
+    "section_data": {
+        "id": "c11b7a06-0606-444f-b598-8343665bc5a5",
+        "type": "INTERVAL",
+        "title": "Air Squat Intervals",
+        "rounds": 5,
+        "duration": 900,
+        "autoStart": false,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Air Squat",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "kg",
+                "description": "",
+                "canonicalName": "AIR_SQUAT",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    20,
+                    20,
+                    20,
+                    20,
+                    20
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": false,
+        "intervalDuration": 180,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "7cd68e33fa6367c5e527f93aa0e50a7687339949dc604798c01e9e369a688ff8",
+    "section_canonical_fingerprint": "1fd0cc7947bd2c42d368739d401b9afa84e425664d72e0c47ef8c5b4681163a7"
+}

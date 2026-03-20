@@ -1,0 +1,140 @@
+{
+    "id": 0,
+    "score": 171,
+    "endTime": 2100,
+    "scoreType": "INTERVAL",
+    "sectionId": "82393156-0ba0-468e-ac81-6e1dd51ebdf5",
+    "startTime": 1200,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 1380,
+            "startTime": 1200,
+            "roundNumber": 0,
+            "restDuration": 30,
+            "exerciseResults": [
+                {
+                    "name": "Front Squat",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1230,
+                    "loadUnit": "kg",
+                    "loadUsed": 30,
+                    "startTime": 1200,
+                    "avgHeartRate": 115,
+                    "peakHeartRate": 141,
+                    "lowestHeartRate": 97,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 1230
+        },
+        {
+            "endTime": 1560,
+            "startTime": 1380,
+            "roundNumber": 1,
+            "restDuration": 37,
+            "exerciseResults": [
+                {
+                    "name": "Front Squat",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1417,
+                    "loadUnit": "kg",
+                    "loadUsed": 50,
+                    "startTime": 1380,
+                    "avgHeartRate": 119,
+                    "peakHeartRate": 150,
+                    "lowestHeartRate": 87,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 1417
+        },
+        {
+            "endTime": 1740,
+            "startTime": 1560,
+            "roundNumber": 2,
+            "restDuration": 36,
+            "exerciseResults": [
+                {
+                    "name": "Front Squat",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1596,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1560,
+                    "avgHeartRate": 134,
+                    "peakHeartRate": 158,
+                    "lowestHeartRate": 114,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1596
+        },
+        {
+            "endTime": 1920,
+            "startTime": 1740,
+            "roundNumber": 3,
+            "restDuration": 34,
+            "exerciseResults": [
+                {
+                    "name": "Front Squat",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1775,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1740,
+                    "avgHeartRate": 133,
+                    "peakHeartRate": 159,
+                    "lowestHeartRate": 106,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1775
+        },
+        {
+            "endTime": 2100,
+            "startTime": 1920,
+            "roundNumber": 4,
+            "restDuration": 33,
+            "exerciseResults": [
+                {
+                    "name": "Front Squat",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1953,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1920,
+                    "avgHeartRate": 121,
+                    "peakHeartRate": 146,
+                    "lowestHeartRate": 94,
+                    "setWeightResult": false
+                },
+                {
+                    "name": "Front Squat",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 2100,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1920,
+                    "avgHeartRate": 119,
+                    "peakHeartRate": 147,
+                    "lowestHeartRate": 94,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1953
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

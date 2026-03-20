@@ -1,0 +1,49 @@
+{
+    "id": 3665,
+    "score": 117.0,
+    "score_type": "INTERVAL",
+    "section_id": "28fcc94f-c96b-4d10-a008-db77c1db116d",
+    "workout_result_id": 2030,
+    "section_title": "Interval: Double Under",
+    "section_data": {
+        "id": "28fcc94f-c96b-4d10-a008-db77c1db116d",
+        "type": "INTERVAL",
+        "title": "Interval: Double Under",
+        "rounds": 5,
+        "duration": 600,
+        "autoStart": true,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Double Under",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "kg",
+                "description": "",
+                "canonicalName": "DOUBLE_UNDER",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    30,
+                    30,
+                    30,
+                    30,
+                    30
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": true,
+        "intervalDuration": 120,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "3867bb309f0d47cad3773080e0355d4c1e313e74aca814ff76e3bd4e9d03d793",
+    "section_canonical_fingerprint": "fcc90fc7bf39da955e35d03e292ec1da81ce78cb0e8ca3a11d62f8f580ca8a54"
+}

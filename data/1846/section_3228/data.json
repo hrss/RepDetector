@@ -1,0 +1,127 @@
+{
+    "id": 0,
+    "score": 96,
+    "endTime": 900,
+    "scoreType": "INTERVAL",
+    "sectionId": "77908138-d3b1-42cc-8055-b23df7d11e90",
+    "startTime": 0,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 180,
+            "startTime": 0,
+            "roundNumber": 0,
+            "restDuration": 19,
+            "exerciseResults": [
+                {
+                    "name": "Shoulder Press",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 19,
+                    "loadUnit": "",
+                    "loadUsed": 20,
+                    "startTime": 0,
+                    "avgHeartRate": 98,
+                    "peakHeartRate": 111,
+                    "lowestHeartRate": 78,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 19
+        },
+        {
+            "endTime": 360,
+            "startTime": 180,
+            "roundNumber": 1,
+            "restDuration": 20,
+            "exerciseResults": [
+                {
+                    "name": "Shoulder Press",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 200,
+                    "loadUnit": "",
+                    "loadUsed": 30,
+                    "startTime": 180,
+                    "avgHeartRate": 84,
+                    "peakHeartRate": 106,
+                    "lowestHeartRate": 68,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 200
+        },
+        {
+            "endTime": 540,
+            "startTime": 360,
+            "roundNumber": 2,
+            "restDuration": 16,
+            "exerciseResults": [
+                {
+                    "name": "Shoulder Press",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 376,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 360,
+                    "avgHeartRate": 104,
+                    "peakHeartRate": 119,
+                    "lowestHeartRate": 86,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 376
+        },
+        {
+            "endTime": 720,
+            "startTime": 540,
+            "roundNumber": 3,
+            "restDuration": 21,
+            "exerciseResults": [
+                {
+                    "name": "Shoulder Press",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 561,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 540,
+                    "avgHeartRate": 108,
+                    "peakHeartRate": 123,
+                    "lowestHeartRate": 92,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 561
+        },
+        {
+            "endTime": 900,
+            "startTime": 720,
+            "roundNumber": 4,
+            "restDuration": 20,
+            "exerciseResults": [
+                {
+                    "name": "Shoulder Press",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 740,
+                    "loadUnit": "",
+                    "loadUsed": 30,
+                    "startTime": 720,
+                    "avgHeartRate": 107,
+                    "peakHeartRate": 128,
+                    "lowestHeartRate": 84,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 740
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

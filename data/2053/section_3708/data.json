@@ -1,0 +1,149 @@
+{
+    "id": 0,
+    "score": 270,
+    "endTime": 1593,
+    "scoreType": "INTERVAL",
+    "sectionId": "8fb54a81-ef74-437f-b4b2-e60beee304f0",
+    "startTime": 1053,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 1143,
+            "startTime": 1053,
+            "roundNumber": 0,
+            "restDuration": 45,
+            "exerciseResults": [
+                {
+                    "name": "Shuttle Run",
+                    "unit": "seconds",
+                    "result": 45,
+                    "endTime": 1098,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1053,
+                    "avgHeartRate": 119,
+                    "peakHeartRate": 140,
+                    "lowestHeartRate": 97,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1098
+        },
+        {
+            "endTime": 1233,
+            "startTime": 1143,
+            "roundNumber": 1,
+            "restDuration": 45,
+            "exerciseResults": [
+                {
+                    "name": "Shuttle Run",
+                    "unit": "seconds",
+                    "result": 45,
+                    "endTime": 1188,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1143,
+                    "avgHeartRate": 130,
+                    "peakHeartRate": 140,
+                    "lowestHeartRate": 122,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1188
+        },
+        {
+            "endTime": 1323,
+            "startTime": 1233,
+            "roundNumber": 2,
+            "restDuration": 45,
+            "exerciseResults": [
+                {
+                    "name": "Shuttle Run",
+                    "unit": "seconds",
+                    "result": 45,
+                    "endTime": 1278,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1233,
+                    "avgHeartRate": 140,
+                    "peakHeartRate": 162,
+                    "lowestHeartRate": 131,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1278
+        },
+        {
+            "endTime": 1413,
+            "startTime": 1323,
+            "roundNumber": 3,
+            "restDuration": 45,
+            "exerciseResults": [
+                {
+                    "name": "Shuttle Run",
+                    "unit": "seconds",
+                    "result": 45,
+                    "endTime": 1368,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1323,
+                    "avgHeartRate": 151,
+                    "peakHeartRate": 158,
+                    "lowestHeartRate": 148,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1368
+        },
+        {
+            "endTime": 1503,
+            "startTime": 1413,
+            "roundNumber": 4,
+            "restDuration": 45,
+            "exerciseResults": [
+                {
+                    "name": "Shuttle Run",
+                    "unit": "seconds",
+                    "result": 45,
+                    "endTime": 1458,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1413,
+                    "avgHeartRate": 143,
+                    "peakHeartRate": 151,
+                    "lowestHeartRate": 138,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1458
+        },
+        {
+            "endTime": 1593,
+            "startTime": 1503,
+            "roundNumber": 5,
+            "restDuration": 45,
+            "exerciseResults": [
+                {
+                    "name": "Shuttle Run",
+                    "unit": "seconds",
+                    "result": 45,
+                    "endTime": 1548,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1503,
+                    "avgHeartRate": 147,
+                    "peakHeartRate": 155,
+                    "lowestHeartRate": 142,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1548
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

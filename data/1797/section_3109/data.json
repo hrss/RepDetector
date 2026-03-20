@@ -1,0 +1,127 @@
+{
+    "id": 0,
+    "score": 149,
+    "endTime": 900,
+    "scoreType": "INTERVAL",
+    "sectionId": "c11b7a06-0606-444f-b598-8343665bc5a5",
+    "startTime": 0,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 180,
+            "startTime": 0,
+            "roundNumber": 0,
+            "restDuration": 29,
+            "exerciseResults": [
+                {
+                    "name": "Air Squat",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 29,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 0,
+                    "avgHeartRate": 110,
+                    "peakHeartRate": 123,
+                    "lowestHeartRate": 101,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 29
+        },
+        {
+            "endTime": 360,
+            "startTime": 180,
+            "roundNumber": 1,
+            "restDuration": 27,
+            "exerciseResults": [
+                {
+                    "name": "Air Squat",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 208,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 180,
+                    "avgHeartRate": 109,
+                    "peakHeartRate": 122,
+                    "lowestHeartRate": 102,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 208
+        },
+        {
+            "endTime": 540,
+            "startTime": 360,
+            "roundNumber": 2,
+            "restDuration": 35,
+            "exerciseResults": [
+                {
+                    "name": "Air Squat",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 395,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 360,
+                    "avgHeartRate": 112,
+                    "peakHeartRate": 123,
+                    "lowestHeartRate": 98,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 395
+        },
+        {
+            "endTime": 720,
+            "startTime": 540,
+            "roundNumber": 3,
+            "restDuration": 28,
+            "exerciseResults": [
+                {
+                    "name": "Air Squat",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 568,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 540,
+                    "avgHeartRate": 108,
+                    "peakHeartRate": 122,
+                    "lowestHeartRate": 95,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 568
+        },
+        {
+            "endTime": 900,
+            "startTime": 720,
+            "roundNumber": 4,
+            "restDuration": 29,
+            "exerciseResults": [
+                {
+                    "name": "Air Squat",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 749,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 720,
+                    "avgHeartRate": 109,
+                    "peakHeartRate": 126,
+                    "lowestHeartRate": 90,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 749
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

@@ -1,0 +1,127 @@
+{
+    "id": 0,
+    "score": 117,
+    "endTime": 600,
+    "scoreType": "INTERVAL",
+    "sectionId": "28fcc94f-c96b-4d10-a008-db77c1db116d",
+    "startTime": 0,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 120,
+            "startTime": 0,
+            "roundNumber": 0,
+            "restDuration": 24,
+            "exerciseResults": [
+                {
+                    "name": "Double Under",
+                    "unit": "reps",
+                    "result": 30,
+                    "endTime": 24,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 0,
+                    "avgHeartRate": 135,
+                    "peakHeartRate": 155,
+                    "lowestHeartRate": 121,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 24
+        },
+        {
+            "endTime": 240,
+            "startTime": 120,
+            "roundNumber": 1,
+            "restDuration": 24,
+            "exerciseResults": [
+                {
+                    "name": "Double Under",
+                    "unit": "reps",
+                    "result": 30,
+                    "endTime": 144,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 120,
+                    "avgHeartRate": 132,
+                    "peakHeartRate": 157,
+                    "lowestHeartRate": 114,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 144
+        },
+        {
+            "endTime": 360,
+            "startTime": 240,
+            "roundNumber": 2,
+            "restDuration": 28,
+            "exerciseResults": [
+                {
+                    "name": "Double Under",
+                    "unit": "reps",
+                    "result": 30,
+                    "endTime": 269,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 240,
+                    "avgHeartRate": 142,
+                    "peakHeartRate": 163,
+                    "lowestHeartRate": 124,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 269
+        },
+        {
+            "endTime": 480,
+            "startTime": 360,
+            "roundNumber": 3,
+            "restDuration": 22,
+            "exerciseResults": [
+                {
+                    "name": "Double Under",
+                    "unit": "reps",
+                    "result": 30,
+                    "endTime": 382,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 360,
+                    "avgHeartRate": 140,
+                    "peakHeartRate": 155,
+                    "lowestHeartRate": 130,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 382
+        },
+        {
+            "endTime": 600,
+            "startTime": 480,
+            "roundNumber": 4,
+            "restDuration": 18,
+            "exerciseResults": [
+                {
+                    "name": "Double Under",
+                    "unit": "reps",
+                    "result": 30,
+                    "endTime": 498,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 480,
+                    "avgHeartRate": 138,
+                    "peakHeartRate": 154,
+                    "lowestHeartRate": 125,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 498
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

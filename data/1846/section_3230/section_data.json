@@ -1,0 +1,49 @@
+{
+    "id": 3230,
+    "score": 72.0,
+    "score_type": "INTERVAL",
+    "section_id": "1d8f0dfc-599d-4b4f-b5e4-cbda98ba4dea",
+    "workout_result_id": 1846,
+    "section_title": "Interval: Ring Muscle Up",
+    "section_data": {
+        "id": "1d8f0dfc-599d-4b4f-b5e4-cbda98ba4dea",
+        "type": "INTERVAL",
+        "title": "Interval: Ring Muscle Up",
+        "rounds": 5,
+        "duration": 900,
+        "autoStart": false,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Ring Muscle Up",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "",
+                "description": "",
+                "canonicalName": "MUSCLE_UP",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    3,
+                    3,
+                    3,
+                    3,
+                    3
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": true,
+        "intervalDuration": 180,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "039b9caab5d26a73db108a2cf786037a4bd95913e61bcf11fc092491fd7e840b",
+    "section_canonical_fingerprint": "65dac89dbfe4ef139ffe77012d057b409f5826ae783c842ce39f3d977440a572"
+}

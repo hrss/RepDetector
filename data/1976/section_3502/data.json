@@ -1,0 +1,193 @@
+{
+    "id": 0,
+    "score": 114,
+    "endTime": 1200,
+    "scoreType": "INTERVAL",
+    "sectionId": "d41ec77e-a8d2-4ac7-ae39-3a20ac5ef2b1",
+    "startTime": 0,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 150,
+            "startTime": 0,
+            "roundNumber": 0,
+            "restDuration": 13,
+            "exerciseResults": [
+                {
+                    "name": "Handstand Push Up",
+                    "unit": "reps",
+                    "result": 6,
+                    "endTime": 14,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 0,
+                    "avgHeartRate": 95,
+                    "peakHeartRate": 107,
+                    "lowestHeartRate": 80,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 14
+        },
+        {
+            "endTime": 300,
+            "startTime": 150,
+            "roundNumber": 1,
+            "restDuration": 12,
+            "exerciseResults": [
+                {
+                    "name": "Handstand Push Up",
+                    "unit": "reps",
+                    "result": 6,
+                    "endTime": 162,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 150,
+                    "avgHeartRate": 94,
+                    "peakHeartRate": 106,
+                    "lowestHeartRate": 84,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 162
+        },
+        {
+            "endTime": 450,
+            "startTime": 300,
+            "roundNumber": 2,
+            "restDuration": 15,
+            "exerciseResults": [
+                {
+                    "name": "Handstand Push Up",
+                    "unit": "reps",
+                    "result": 6,
+                    "endTime": 315,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 300,
+                    "avgHeartRate": 100,
+                    "peakHeartRate": 110,
+                    "lowestHeartRate": 96,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 315
+        },
+        {
+            "endTime": 600,
+            "startTime": 450,
+            "roundNumber": 3,
+            "restDuration": 14,
+            "exerciseResults": [
+                {
+                    "name": "Handstand Push Up",
+                    "unit": "reps",
+                    "result": 6,
+                    "endTime": 464,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 450,
+                    "avgHeartRate": 95,
+                    "peakHeartRate": 100,
+                    "lowestHeartRate": 90,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 464
+        },
+        {
+            "endTime": 750,
+            "startTime": 600,
+            "roundNumber": 4,
+            "restDuration": 14,
+            "exerciseResults": [
+                {
+                    "name": "Handstand Push Up",
+                    "unit": "reps",
+                    "result": 6,
+                    "endTime": 614,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 600,
+                    "avgHeartRate": 99,
+                    "peakHeartRate": 105,
+                    "lowestHeartRate": 96,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 614
+        },
+        {
+            "endTime": 900,
+            "startTime": 750,
+            "roundNumber": 5,
+            "restDuration": 14,
+            "exerciseResults": [
+                {
+                    "name": "Handstand Push Up",
+                    "unit": "reps",
+                    "result": 6,
+                    "endTime": 764,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 750,
+                    "avgHeartRate": 96,
+                    "peakHeartRate": 108,
+                    "lowestHeartRate": 88,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 764
+        },
+        {
+            "endTime": 1050,
+            "startTime": 900,
+            "roundNumber": 6,
+            "restDuration": 13,
+            "exerciseResults": [
+                {
+                    "name": "Handstand Push Up",
+                    "unit": "reps",
+                    "result": 6,
+                    "endTime": 913,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 900,
+                    "avgHeartRate": 93,
+                    "peakHeartRate": 100,
+                    "lowestHeartRate": 91,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 913
+        },
+        {
+            "endTime": 1200,
+            "startTime": 1050,
+            "roundNumber": 7,
+            "restDuration": 17,
+            "exerciseResults": [
+                {
+                    "name": "Handstand Push Up",
+                    "unit": "reps",
+                    "result": 6,
+                    "endTime": 1068,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 1050,
+                    "avgHeartRate": 97,
+                    "peakHeartRate": 110,
+                    "lowestHeartRate": 88,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1068
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

@@ -1,0 +1,127 @@
+{
+    "id": 0,
+    "score": 147,
+    "endTime": 1500,
+    "scoreType": "INTERVAL",
+    "sectionId": "35b33e16-9ae6-4e8a-87ce-3863c06588dc",
+    "startTime": 600,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 780,
+            "startTime": 600,
+            "roundNumber": 0,
+            "restDuration": 41,
+            "exerciseResults": [
+                {
+                    "name": "V-Up",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 642,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 600,
+                    "avgHeartRate": 135,
+                    "peakHeartRate": 140,
+                    "lowestHeartRate": 129,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 642
+        },
+        {
+            "endTime": 960,
+            "startTime": 780,
+            "roundNumber": 1,
+            "restDuration": 47,
+            "exerciseResults": [
+                {
+                    "name": "V-Up",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 827,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 780,
+                    "avgHeartRate": 122,
+                    "peakHeartRate": 128,
+                    "lowestHeartRate": 115,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 827
+        },
+        {
+            "endTime": 1140,
+            "startTime": 960,
+            "roundNumber": 2,
+            "restDuration": 24,
+            "exerciseResults": [
+                {
+                    "name": "V-Up",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 984,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 960,
+                    "avgHeartRate": 118,
+                    "peakHeartRate": 125,
+                    "lowestHeartRate": 110,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 984
+        },
+        {
+            "endTime": 1320,
+            "startTime": 1140,
+            "roundNumber": 3,
+            "restDuration": 19,
+            "exerciseResults": [
+                {
+                    "name": "V-Up",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 1159,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1140,
+                    "avgHeartRate": 113,
+                    "peakHeartRate": 121,
+                    "lowestHeartRate": 110,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1159
+        },
+        {
+            "endTime": 1500,
+            "startTime": 1320,
+            "roundNumber": 4,
+            "restDuration": 15,
+            "exerciseResults": [
+                {
+                    "name": "V-Up",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 1335,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1320,
+                    "avgHeartRate": 120,
+                    "peakHeartRate": 132,
+                    "lowestHeartRate": 110,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1335
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

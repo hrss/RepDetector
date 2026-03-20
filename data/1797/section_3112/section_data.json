@@ -1,0 +1,49 @@
+{
+    "id": 3112,
+    "score": 101.0,
+    "score_type": "INTERVAL",
+    "section_id": "bc9d4cf6-ea50-42e7-881c-1891e4529674",
+    "workout_result_id": 1797,
+    "section_title": "Deadlift Intervals",
+    "section_data": {
+        "id": "bc9d4cf6-ea50-42e7-881c-1891e4529674",
+        "type": "INTERVAL",
+        "title": "Deadlift Intervals",
+        "rounds": 5,
+        "duration": 900,
+        "autoStart": true,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Deadlift",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "kg",
+                "description": "",
+                "canonicalName": "DEADLIFT",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    10,
+                    10,
+                    10,
+                    10,
+                    10
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": true,
+        "intervalDuration": 180,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "dbfad054c60558bf32f2eddcdde4f68962272bb8b4a00c9d4b0db216ff8b5af2",
+    "section_canonical_fingerprint": "870c90e258163a12621eb21a792649d99678f5d4cf23e7397983e0a35987c7b6"
+}

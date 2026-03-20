@@ -1,0 +1,49 @@
+{
+    "id": 3229,
+    "score": 188.0,
+    "score_type": "INTERVAL",
+    "section_id": "e5f100ca-899c-4383-a116-854b042c4d48",
+    "workout_result_id": 1846,
+    "section_title": "INTERVAL: Clean",
+    "section_data": {
+        "id": "e5f100ca-899c-4383-a116-854b042c4d48",
+        "type": "INTERVAL",
+        "title": "INTERVAL: Clean",
+        "rounds": 5,
+        "duration": 900,
+        "autoStart": false,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Clean",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "",
+                "description": "",
+                "canonicalName": "CLEAN",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    10,
+                    10,
+                    10,
+                    10,
+                    10
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": true,
+        "intervalDuration": 180,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "321b27c89a9e297ca926e0114073dee3d49abb2592d6c3159176d89092e51b2f",
+    "section_canonical_fingerprint": "9ae744076368ece0753c316d09fb96e9c5936d3c7011bce8b3c9bc6e3b810a55"
+}

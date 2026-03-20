@@ -1,0 +1,49 @@
+{
+    "id": 3504,
+    "score": 255.0,
+    "score_type": "INTERVAL",
+    "section_id": "1fcd5ff8-b204-42be-ac47-c46e25d15de7",
+    "workout_result_id": 1976,
+    "section_title": "INTERVAL: Box Jump",
+    "section_data": {
+        "id": "1fcd5ff8-b204-42be-ac47-c46e25d15de7",
+        "type": "INTERVAL",
+        "title": "INTERVAL: Box Jump",
+        "rounds": 5,
+        "duration": 750,
+        "autoStart": true,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Box Jump",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "",
+                "description": "",
+                "canonicalName": "BOX_JUMP",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    12,
+                    12,
+                    12,
+                    12,
+                    12
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": true,
+        "intervalDuration": 150,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "10f6a2fcddc57ccfc5f23955efbb1d9f73e14d749a493a426d1fd69e48694141",
+    "section_canonical_fingerprint": "92b8f05acebb0c7abdd6e1bfe758ae2d5edec10aec13c44cf6504d6e3ee83883"
+}

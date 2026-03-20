@@ -1,0 +1,140 @@
+{
+    "id": 0,
+    "score": 101,
+    "endTime": 3301,
+    "scoreType": "INTERVAL",
+    "sectionId": "bc9d4cf6-ea50-42e7-881c-1891e4529674",
+    "startTime": 2401,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 2581,
+            "startTime": 2401,
+            "roundNumber": 0,
+            "restDuration": 23,
+            "exerciseResults": [
+                {
+                    "name": "Deadlift",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 2424,
+                    "loadUnit": "kg",
+                    "loadUsed": 60,
+                    "startTime": 2401,
+                    "avgHeartRate": 136,
+                    "peakHeartRate": 155,
+                    "lowestHeartRate": 123,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 2424
+        },
+        {
+            "endTime": 2761,
+            "startTime": 2581,
+            "roundNumber": 1,
+            "restDuration": 18,
+            "exerciseResults": [
+                {
+                    "name": "Deadlift",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 2600,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 2581,
+                    "avgHeartRate": 119,
+                    "peakHeartRate": 141,
+                    "lowestHeartRate": 108,
+                    "setWeightResult": false
+                },
+                {
+                    "name": "Deadlift",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 2600,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 2581,
+                    "avgHeartRate": 119,
+                    "peakHeartRate": 141,
+                    "lowestHeartRate": 108,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2600
+        },
+        {
+            "endTime": 2941,
+            "startTime": 2761,
+            "roundNumber": 2,
+            "restDuration": 17,
+            "exerciseResults": [
+                {
+                    "name": "Deadlift",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 2778,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 2761,
+                    "avgHeartRate": 120,
+                    "peakHeartRate": 143,
+                    "lowestHeartRate": 108,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2778
+        },
+        {
+            "endTime": 3121,
+            "startTime": 2941,
+            "roundNumber": 3,
+            "restDuration": 19,
+            "exerciseResults": [
+                {
+                    "name": "Deadlift",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 2960,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 2941,
+                    "avgHeartRate": 122,
+                    "peakHeartRate": 147,
+                    "lowestHeartRate": 106,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2960
+        },
+        {
+            "endTime": 3301,
+            "startTime": 3121,
+            "roundNumber": 4,
+            "restDuration": 23,
+            "exerciseResults": [
+                {
+                    "name": "Deadlift",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 3144,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 3121,
+                    "avgHeartRate": 121,
+                    "peakHeartRate": 143,
+                    "lowestHeartRate": 114,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 3144
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

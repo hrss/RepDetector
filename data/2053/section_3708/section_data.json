@@ -1,0 +1,51 @@
+{
+    "id": 3708,
+    "score": 270.0,
+    "score_type": "INTERVAL",
+    "section_id": "8fb54a81-ef74-437f-b4b2-e60beee304f0",
+    "workout_result_id": 2053,
+    "section_title": "Shuttle Run Intervals",
+    "section_data": {
+        "id": "8fb54a81-ef74-437f-b4b2-e60beee304f0",
+        "type": "INTERVAL",
+        "title": "Shuttle Run Intervals",
+        "rounds": 6,
+        "duration": 540,
+        "autoStart": false,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Shuttle Run",
+                "type": "time",
+                "unit": "seconds",
+                "loadUnit": "kg",
+                "description": "45 seconds of work",
+                "canonicalName": "SHUTTLE_RUN",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    45,
+                    45,
+                    45,
+                    45,
+                    45,
+                    45
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": false,
+        "intervalDuration": 90,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "5979590f3894e89fda9a96318ad7221726fe0b184c96ba9c04a5df8081bf5e1c",
+    "section_canonical_fingerprint": "f5d611e88ea27c4d77aabec838c4d665a7d07337833aa091d046668764721249"
+}

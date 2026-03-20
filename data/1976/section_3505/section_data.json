@@ -1,0 +1,47 @@
+{
+    "id": 3505,
+    "score": 195.0,
+    "score_type": "INTERVAL",
+    "section_id": "665827b4-bf2c-47e4-8ba6-345609b75cb3",
+    "workout_result_id": 1976,
+    "section_title": "INTERVAL: Sit Up",
+    "section_data": {
+        "id": "665827b4-bf2c-47e4-8ba6-345609b75cb3",
+        "type": "INTERVAL",
+        "title": "INTERVAL: Sit Up",
+        "rounds": 4,
+        "duration": 480,
+        "autoStart": true,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Sit Ups",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "",
+                "description": "Simple movement",
+                "canonicalName": "SIT_UP",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    20,
+                    20,
+                    20,
+                    20
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": true,
+        "intervalDuration": 120,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "938cec7300cfa0f4089beb1280c21e50bf9f199d7df309e0af994939031c2bfc",
+    "section_canonical_fingerprint": "0104da6808275a4081dda3df3d24fe602e04dff6588302040cffbe1b86032013"
+}

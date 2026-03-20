@@ -1,0 +1,105 @@
+{
+    "id": 0,
+    "score": 195,
+    "endTime": 3330,
+    "scoreType": "INTERVAL",
+    "sectionId": "665827b4-bf2c-47e4-8ba6-345609b75cb3",
+    "startTime": 2850,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 2970,
+            "startTime": 2850,
+            "roundNumber": 0,
+            "restDuration": 47,
+            "exerciseResults": [
+                {
+                    "name": "Sit Ups",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 2897,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 2850,
+                    "avgHeartRate": 123,
+                    "peakHeartRate": 128,
+                    "lowestHeartRate": 112,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2897
+        },
+        {
+            "endTime": 3090,
+            "startTime": 2970,
+            "roundNumber": 1,
+            "restDuration": 50,
+            "exerciseResults": [
+                {
+                    "name": "Sit Ups",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 3020,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 2970,
+                    "avgHeartRate": 119,
+                    "peakHeartRate": 124,
+                    "lowestHeartRate": 109,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 3020
+        },
+        {
+            "endTime": 3210,
+            "startTime": 3090,
+            "roundNumber": 2,
+            "restDuration": 48,
+            "exerciseResults": [
+                {
+                    "name": "Sit Ups",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 3138,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 3090,
+                    "avgHeartRate": 121,
+                    "peakHeartRate": 129,
+                    "lowestHeartRate": 108,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 3138
+        },
+        {
+            "endTime": 3330,
+            "startTime": 3210,
+            "roundNumber": 3,
+            "restDuration": 50,
+            "exerciseResults": [
+                {
+                    "name": "Sit Ups",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 3260,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 3210,
+                    "avgHeartRate": 117,
+                    "peakHeartRate": 124,
+                    "lowestHeartRate": 107,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 3260
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

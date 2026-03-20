@@ -1,0 +1,45 @@
+{
+    "id": 3711,
+    "score": 139.0,
+    "score_type": "INTERVAL",
+    "section_id": "2ddf7483-514e-4d1f-9298-78e155371779",
+    "workout_result_id": 2053,
+    "section_title": "Wall Ball Intervals",
+    "section_data": {
+        "id": "2ddf7483-514e-4d1f-9298-78e155371779",
+        "type": "INTERVAL",
+        "title": "Wall Ball Intervals",
+        "rounds": 3,
+        "duration": 540,
+        "autoStart": false,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Wall Ball",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "kg",
+                "description": "20 reps every 3:00",
+                "canonicalName": "WALL_BALL_SHOT",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    20,
+                    20,
+                    20
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": true,
+        "intervalDuration": 180,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "237fac0138c51c03562c97f246251ae175549a8c95747435bfb10be861142043",
+    "section_canonical_fingerprint": "5de037a42335d950a35b626b831c6714b8d9ba7cc04dc2206136654ff510941b"
+}

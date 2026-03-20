@@ -1,0 +1,193 @@
+{
+    "id": 0,
+    "score": 210,
+    "endTime": 3730,
+    "scoreType": "INTERVAL",
+    "sectionId": "f5029e24-2af1-4acc-a4eb-ad3458bc8803",
+    "startTime": 2770,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 2890,
+            "startTime": 2770,
+            "roundNumber": 0,
+            "restDuration": 23,
+            "exerciseResults": [
+                {
+                    "name": "Overhead Squat",
+                    "unit": "reps",
+                    "result": 5,
+                    "endTime": 2793,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 2770,
+                    "avgHeartRate": 117,
+                    "peakHeartRate": 122,
+                    "lowestHeartRate": 114,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2793
+        },
+        {
+            "endTime": 3010,
+            "startTime": 2890,
+            "roundNumber": 1,
+            "restDuration": 22,
+            "exerciseResults": [
+                {
+                    "name": "Overhead Squat",
+                    "unit": "reps",
+                    "result": 5,
+                    "endTime": 2913,
+                    "loadUnit": "kg",
+                    "loadUsed": 20,
+                    "startTime": 2890,
+                    "avgHeartRate": 109,
+                    "peakHeartRate": 114,
+                    "lowestHeartRate": 108,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 2913
+        },
+        {
+            "endTime": 3130,
+            "startTime": 3010,
+            "roundNumber": 2,
+            "restDuration": 24,
+            "exerciseResults": [
+                {
+                    "name": "Overhead Squat",
+                    "unit": "reps",
+                    "result": 5,
+                    "endTime": 3035,
+                    "loadUnit": "kg",
+                    "loadUsed": 30,
+                    "startTime": 3010,
+                    "avgHeartRate": 116,
+                    "peakHeartRate": 120,
+                    "lowestHeartRate": 115,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 3035
+        },
+        {
+            "endTime": 3250,
+            "startTime": 3130,
+            "roundNumber": 3,
+            "restDuration": 26,
+            "exerciseResults": [
+                {
+                    "name": "Overhead Squat",
+                    "unit": "reps",
+                    "result": 5,
+                    "endTime": 3157,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 3130,
+                    "avgHeartRate": 118,
+                    "peakHeartRate": 128,
+                    "lowestHeartRate": 114,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 3157
+        },
+        {
+            "endTime": 3370,
+            "startTime": 3250,
+            "roundNumber": 4,
+            "restDuration": 25,
+            "exerciseResults": [
+                {
+                    "name": "Overhead Squat",
+                    "unit": "reps",
+                    "result": 5,
+                    "endTime": 3276,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 3250,
+                    "avgHeartRate": 115,
+                    "peakHeartRate": 118,
+                    "lowestHeartRate": 113,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 3276
+        },
+        {
+            "endTime": 3490,
+            "startTime": 3370,
+            "roundNumber": 5,
+            "restDuration": 25,
+            "exerciseResults": [
+                {
+                    "name": "Overhead Squat",
+                    "unit": "reps",
+                    "result": 5,
+                    "endTime": 3396,
+                    "loadUnit": "kg",
+                    "loadUsed": 40,
+                    "startTime": 3370,
+                    "avgHeartRate": 122,
+                    "peakHeartRate": 129,
+                    "lowestHeartRate": 119,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 3396
+        },
+        {
+            "endTime": 3610,
+            "startTime": 3490,
+            "roundNumber": 6,
+            "restDuration": 27,
+            "exerciseResults": [
+                {
+                    "name": "Overhead Squat",
+                    "unit": "reps",
+                    "result": 5,
+                    "endTime": 3518,
+                    "loadUnit": "kg",
+                    "loadUsed": 40,
+                    "startTime": 3490,
+                    "avgHeartRate": 105,
+                    "peakHeartRate": 107,
+                    "lowestHeartRate": 104,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 3518
+        },
+        {
+            "endTime": 3730,
+            "startTime": 3610,
+            "roundNumber": 7,
+            "restDuration": 31,
+            "exerciseResults": [
+                {
+                    "name": "Overhead Squat",
+                    "unit": "reps",
+                    "result": 5,
+                    "endTime": 3642,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 3610,
+                    "avgHeartRate": 107,
+                    "peakHeartRate": 113,
+                    "lowestHeartRate": 103,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 3642
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

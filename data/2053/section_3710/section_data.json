@@ -1,0 +1,55 @@
+{
+    "id": 3710,
+    "score": 210.0,
+    "score_type": "INTERVAL",
+    "section_id": "f5029e24-2af1-4acc-a4eb-ad3458bc8803",
+    "workout_result_id": 2053,
+    "section_title": "Overhead Squat Intervals",
+    "section_data": {
+        "id": "f5029e24-2af1-4acc-a4eb-ad3458bc8803",
+        "type": "INTERVAL",
+        "title": "Overhead Squat Intervals",
+        "rounds": 8,
+        "duration": 960,
+        "autoStart": false,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Overhead Squat",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "kg",
+                "description": "5 reps every 2:00",
+                "canonicalName": "OVERHEAD_SQUAT",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    5,
+                    5,
+                    5,
+                    5,
+                    5,
+                    5,
+                    5,
+                    5
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": true,
+        "intervalDuration": 120,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "a18b43e9086b07790d0f144e8f5fe97e042550f0a268e8846e8283269aa9c4b4",
+    "section_canonical_fingerprint": "5f045a180568748d42c9e2d99552f251775e56718700894a61df8db9845dbfe1"
+}

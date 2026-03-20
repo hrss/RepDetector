@@ -1,0 +1,49 @@
+{
+    "id": 3111,
+    "score": 79.0,
+    "score_type": "INTERVAL",
+    "section_id": "d14ad91b-5368-4891-b588-3fe51dc29887",
+    "workout_result_id": 1797,
+    "section_title": "V-UP Intervals",
+    "section_data": {
+        "id": "d14ad91b-5368-4891-b588-3fe51dc29887",
+        "type": "INTERVAL",
+        "title": "V-UP Intervals",
+        "rounds": 5,
+        "duration": 600,
+        "autoStart": true,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "V-UP",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "kg",
+                "description": "",
+                "canonicalName": "V_UP",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    10,
+                    10,
+                    10,
+                    10,
+                    10
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": false,
+        "intervalDuration": 120,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "1ab72cf61ced8d260b71a53ebb4e487e0241238dc98666593a74f04d0b5e7f12",
+    "section_canonical_fingerprint": "35217e543fca69d993b2c600f02c945ea72438b63c133b37345963f87f31c4c3"
+}

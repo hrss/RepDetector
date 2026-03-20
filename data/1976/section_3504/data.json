@@ -1,0 +1,127 @@
+{
+    "id": 0,
+    "score": 255,
+    "endTime": 2850,
+    "scoreType": "INTERVAL",
+    "sectionId": "1fcd5ff8-b204-42be-ac47-c46e25d15de7",
+    "startTime": 2100,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 2250,
+            "startTime": 2100,
+            "roundNumber": 0,
+            "restDuration": 58,
+            "exerciseResults": [
+                {
+                    "name": "Box Jump",
+                    "unit": "reps",
+                    "result": 12,
+                    "endTime": 2158,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 2100,
+                    "avgHeartRate": 126,
+                    "peakHeartRate": 147,
+                    "lowestHeartRate": 99,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2158
+        },
+        {
+            "endTime": 2400,
+            "startTime": 2250,
+            "roundNumber": 1,
+            "restDuration": 43,
+            "exerciseResults": [
+                {
+                    "name": "Box Jump",
+                    "unit": "reps",
+                    "result": 12,
+                    "endTime": 2293,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 2250,
+                    "avgHeartRate": 139,
+                    "peakHeartRate": 154,
+                    "lowestHeartRate": 121,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2293
+        },
+        {
+            "endTime": 2550,
+            "startTime": 2400,
+            "roundNumber": 2,
+            "restDuration": 51,
+            "exerciseResults": [
+                {
+                    "name": "Box Jump",
+                    "unit": "reps",
+                    "result": 12,
+                    "endTime": 2451,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 2400,
+                    "avgHeartRate": 136,
+                    "peakHeartRate": 153,
+                    "lowestHeartRate": 115,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2451
+        },
+        {
+            "endTime": 2700,
+            "startTime": 2550,
+            "roundNumber": 3,
+            "restDuration": 54,
+            "exerciseResults": [
+                {
+                    "name": "Box Jump",
+                    "unit": "reps",
+                    "result": 12,
+                    "endTime": 2604,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 2550,
+                    "avgHeartRate": 136,
+                    "peakHeartRate": 155,
+                    "lowestHeartRate": 104,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2604
+        },
+        {
+            "endTime": 2850,
+            "startTime": 2700,
+            "roundNumber": 4,
+            "restDuration": 49,
+            "exerciseResults": [
+                {
+                    "name": "Box Jump",
+                    "unit": "reps",
+                    "result": 12,
+                    "endTime": 2749,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 2700,
+                    "avgHeartRate": 139,
+                    "peakHeartRate": 154,
+                    "lowestHeartRate": 106,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2749
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

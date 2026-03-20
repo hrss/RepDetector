@@ -1,0 +1,140 @@
+{
+    "id": 0,
+    "score": 182,
+    "endTime": 1801,
+    "scoreType": "INTERVAL",
+    "sectionId": "d8fd4f09-fc21-49ba-a87a-ea35ccde391e",
+    "startTime": 900,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 1081,
+            "startTime": 900,
+            "roundNumber": 0,
+            "restDuration": 44,
+            "exerciseResults": [
+                {
+                    "name": "Snatch",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 945,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 900,
+                    "avgHeartRate": 125,
+                    "peakHeartRate": 144,
+                    "lowestHeartRate": 95,
+                    "setWeightResult": false
+                },
+                {
+                    "name": "Snatch",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 945,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 900,
+                    "avgHeartRate": 125,
+                    "peakHeartRate": 144,
+                    "lowestHeartRate": 95,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 945
+        },
+        {
+            "endTime": 1261,
+            "startTime": 1081,
+            "roundNumber": 1,
+            "restDuration": 34,
+            "exerciseResults": [
+                {
+                    "name": "Snatch",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1115,
+                    "loadUnit": "kg",
+                    "loadUsed": 30,
+                    "startTime": 1081,
+                    "avgHeartRate": 129,
+                    "peakHeartRate": 160,
+                    "lowestHeartRate": 103,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 1115
+        },
+        {
+            "endTime": 1441,
+            "startTime": 1261,
+            "roundNumber": 2,
+            "restDuration": 34,
+            "exerciseResults": [
+                {
+                    "name": "Snatch",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1295,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1261,
+                    "avgHeartRate": 136,
+                    "peakHeartRate": 165,
+                    "lowestHeartRate": 104,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1295
+        },
+        {
+            "endTime": 1621,
+            "startTime": 1441,
+            "roundNumber": 3,
+            "restDuration": 33,
+            "exerciseResults": [
+                {
+                    "name": "Snatch",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1474,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1441,
+                    "avgHeartRate": 144,
+                    "peakHeartRate": 169,
+                    "lowestHeartRate": 121,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1474
+        },
+        {
+            "endTime": 1801,
+            "startTime": 1621,
+            "roundNumber": 4,
+            "restDuration": 36,
+            "exerciseResults": [
+                {
+                    "name": "Snatch",
+                    "unit": "reps",
+                    "result": 10,
+                    "endTime": 1657,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 1621,
+                    "avgHeartRate": 142,
+                    "peakHeartRate": 167,
+                    "lowestHeartRate": 117,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 1657
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

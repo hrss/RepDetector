@@ -1,0 +1,55 @@
+{
+    "id": 3502,
+    "score": 114.0,
+    "score_type": "INTERVAL",
+    "section_id": "d41ec77e-a8d2-4ac7-ae39-3a20ac5ef2b1",
+    "workout_result_id": 1976,
+    "section_title": "INTERVAL: Handstand Push Up",
+    "section_data": {
+        "id": "d41ec77e-a8d2-4ac7-ae39-3a20ac5ef2b1",
+        "type": "INTERVAL",
+        "title": "INTERVAL: Handstand Push Up",
+        "rounds": 8,
+        "duration": 1200,
+        "autoStart": false,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Handstand Push Up",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "",
+                "description": "",
+                "canonicalName": "HSPU",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    6,
+                    6,
+                    6,
+                    6,
+                    6,
+                    6,
+                    6,
+                    6
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": true,
+        "intervalDuration": 150,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "ea27f735f0bdd9ce13b785631d8b2e484d2c7e15bc57f283bf6cd6a6a81ff7e1",
+    "section_canonical_fingerprint": "b7b402891834665e4539cb863f35fcffd78eeb6222fec7dc452ffe56bc3b2442"
+}

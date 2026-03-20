@@ -1,0 +1,113 @@
+{
+    "id": 0,
+    "score": 72,
+    "endTime": 3223,
+    "scoreType": "INTERVAL",
+    "sectionId": "1d8f0dfc-599d-4b4f-b5e4-cbda98ba4dea",
+    "startTime": 2323,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 2503,
+            "startTime": 2323,
+            "roundNumber": 0,
+            "restDuration": 15,
+            "exerciseResults": [
+                {
+                    "name": "Ring Muscle Up",
+                    "unit": "reps",
+                    "result": 3,
+                    "endTime": 2338,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 2323,
+                    "avgHeartRate": 139,
+                    "peakHeartRate": 167,
+                    "lowestHeartRate": 112,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2338
+        },
+        {
+            "endTime": 2683,
+            "startTime": 2503,
+            "roundNumber": 1,
+            "restDuration": 16,
+            "exerciseResults": [
+                {
+                    "name": "Ring Muscle Up",
+                    "unit": "reps",
+                    "result": 3,
+                    "endTime": 2519,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 2503,
+                    "avgHeartRate": 134,
+                    "peakHeartRate": 164,
+                    "lowestHeartRate": 109,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2519
+        },
+        {
+            "endTime": 2863,
+            "startTime": 2683,
+            "roundNumber": 2,
+            "restDuration": 15,
+            "exerciseResults": [
+                {
+                    "name": "Ring Muscle Up",
+                    "unit": "reps",
+                    "result": 3,
+                    "endTime": 2698,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 2683,
+                    "avgHeartRate": 139,
+                    "peakHeartRate": 162,
+                    "lowestHeartRate": 119,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2698
+        },
+        {
+            "endTime": 3043,
+            "startTime": 2863,
+            "roundNumber": 3,
+            "restDuration": 16,
+            "exerciseResults": [
+                {
+                    "name": "Ring Muscle Up",
+                    "unit": "reps",
+                    "result": 3,
+                    "endTime": 2879,
+                    "loadUnit": "",
+                    "loadUsed": 0,
+                    "startTime": 2863,
+                    "avgHeartRate": 131,
+                    "peakHeartRate": 158,
+                    "lowestHeartRate": 114,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 2879
+        },
+        {
+            "endTime": 3223,
+            "startTime": 3043,
+            "roundNumber": 4,
+            "restDuration": 10,
+            "exerciseResults": [],
+            "restingTimeStart": 3053
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

@@ -1,0 +1,83 @@
+{
+    "id": 0,
+    "score": 139,
+    "endTime": 4356,
+    "scoreType": "INTERVAL",
+    "sectionId": "2ddf7483-514e-4d1f-9298-78e155371779",
+    "startTime": 3816,
+    "totalReps": 0,
+    "repsPerRound": 0,
+    "roundResults": [
+        {
+            "endTime": 3996,
+            "startTime": 3816,
+            "roundNumber": 0,
+            "restDuration": 47,
+            "exerciseResults": [
+                {
+                    "name": "Wall Ball",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 3863,
+                    "loadUnit": "kg",
+                    "loadUsed": 7,
+                    "startTime": 3816,
+                    "avgHeartRate": 142,
+                    "peakHeartRate": 148,
+                    "lowestHeartRate": 138,
+                    "setWeightResult": true
+                }
+            ],
+            "restingTimeStart": 3863
+        },
+        {
+            "endTime": 4176,
+            "startTime": 3996,
+            "roundNumber": 1,
+            "restDuration": 45,
+            "exerciseResults": [
+                {
+                    "name": "Wall Ball",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 4041,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 3996,
+                    "avgHeartRate": 119,
+                    "peakHeartRate": 133,
+                    "lowestHeartRate": 108,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 4041
+        },
+        {
+            "endTime": 4356,
+            "startTime": 4176,
+            "roundNumber": 2,
+            "restDuration": 47,
+            "exerciseResults": [
+                {
+                    "name": "Wall Ball",
+                    "unit": "reps",
+                    "result": 20,
+                    "endTime": 4223,
+                    "loadUnit": "kg",
+                    "loadUsed": 0,
+                    "startTime": 4176,
+                    "avgHeartRate": 119,
+                    "peakHeartRate": 127,
+                    "lowestHeartRate": 114,
+                    "setWeightResult": false
+                }
+            ],
+            "restingTimeStart": 4223
+        }
+    ],
+    "sectionTitle": "",
+    "section_data": null,
+    "displayedScore": "",
+    "section_fingerprint": "",
+    "section_canonical_fingerprint": ""
+}

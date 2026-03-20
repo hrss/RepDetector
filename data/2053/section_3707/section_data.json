@@ -1,0 +1,53 @@
+{
+    "id": 3707,
+    "score": 90.0,
+    "score_type": "INTERVAL",
+    "section_id": "1592284b-4394-490e-ad81-1bfb71fd89f2",
+    "workout_result_id": 2053,
+    "section_title": "Chest to Bar Pull Up Intervals",
+    "section_data": {
+        "id": "1592284b-4394-490e-ad81-1bfb71fd89f2",
+        "type": "INTERVAL",
+        "title": "Chest to Bar Pull Up Intervals",
+        "rounds": 7,
+        "duration": 1050,
+        "autoStart": false,
+        "exercises": [
+            {
+                "load": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "name": "Chest to Bar Pull Up",
+                "type": "reps",
+                "unit": "reps",
+                "loadUnit": "kg",
+                "description": "7 reps every 2:30",
+                "canonicalName": "CHEST_TO_BAR",
+                "progressionType": "normal",
+                "progressionValue": 0,
+                "endConditionValues": [
+                    5,
+                    5,
+                    5,
+                    5,
+                    5,
+                    5,
+                    5
+                ]
+            }
+        ],
+        "mainWorkout": false,
+        "durationUnit": "seconds",
+        "strengthOrSkill": true,
+        "intervalDuration": 150,
+        "intervalDurationUnit": "seconds"
+    },
+    "section_fingerprint": "e1f394eb9861e170182502d766b58f0a43890c8d167154c98fc8518d6d56ce11",
+    "section_canonical_fingerprint": "5543465bc2a8ba21c62fcba7cfd17e7d01fab65a3a78336458bab9f233c7c56b"
+}
