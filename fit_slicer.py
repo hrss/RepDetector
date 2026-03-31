@@ -16,37 +16,48 @@ def extract_raw_fit_data(fit_path):
     data_points = []
     start_time = None
 
+    def as_list(value):
+        return value if isinstance(value, (list, tuple)) else [value]
+
+    def safe_div(value, divisor):
+        if value is None:
+            return None
+        return value / divisor
+
     with fitdecode.FitReader(fit_path) as reader:
         for frame in reader:
             if frame.frame_type == fitdecode.FIT_FRAME_DATA and frame.name == 'record':
                 ts = frame.get_value('timestamp')
+                if ts is None:
+                    continue
+
                 if start_time is None:
                     start_time = ts
 
-                def get_val(frame, field):
-                    val = frame.get_value(field)
-                    return val if isinstance(val, (list, tuple)) else [val]
+                acc_x = as_list(frame.get_value('accel_x'))
+                acc_y = as_list(frame.get_value('accel_y'))
+                acc_z = as_list(frame.get_value('accel_z'))
+                gyr_x = as_list(frame.get_value('gyro_x'))
+                gyr_y = as_list(frame.get_value('gyro_y'))
+                gyr_z = as_list(frame.get_value('gyro_z'))
 
-                acc_x = get_val(frame, 'accel_x')
-                acc_y = get_val(frame, 'accel_y')
-                acc_z = get_val(frame, 'accel_z')
-                gyr_x = get_val(frame, 'gyro_x')
-                gyr_y = get_val(frame, 'gyro_y')
-                gyr_z = get_val(frame, 'gyro_z')
+                max_len = min(len(acc_x), len(acc_y), len(acc_z), len(gyr_x), len(gyr_y), len(gyr_z))
 
-                for i, val in enumerate(acc_x):
-                    if val is None: continue
+                for i in range(max_len):
+                    values = (acc_x[i], acc_y[i], acc_z[i], gyr_x[i], gyr_y[i], gyr_z[i])
+                    if any(v is None for v in values):
+                        continue
 
                     t_offset = (ts - start_time).total_seconds() + (i / SAMPLE_RATE)
 
                     data_points.append({
                         'rel_time': t_offset,
-                        'acc_x': val / ACCEL_DIVISOR,
-                        'acc_y': acc_y[i] / ACCEL_DIVISOR,
-                        'acc_z': acc_z[i] / ACCEL_DIVISOR,
-                        'gyro_x': gyr_x[i] / GYRO_DIVISOR,
-                        'gyro_y': gyr_y[i] / GYRO_DIVISOR,
-                        'gyro_z': gyr_z[i] / GYRO_DIVISOR
+                        'acc_x': safe_div(acc_x[i], ACCEL_DIVISOR),
+                        'acc_y': safe_div(acc_y[i], ACCEL_DIVISOR),
+                        'acc_z': safe_div(acc_z[i], ACCEL_DIVISOR),
+                        'gyro_x': safe_div(gyr_x[i], GYRO_DIVISOR),
+                        'gyro_y': safe_div(gyr_y[i], GYRO_DIVISOR),
+                        'gyro_z': safe_div(gyr_z[i], GYRO_DIVISOR)
                     })
 
     return pd.DataFrame(data_points)
@@ -136,5 +147,10 @@ def process_workout_directory(workout_dir):
 
 
 if __name__ == "__main__":
-    process_workout_directory(workout_dir="data/1797")
+
+    data_root = "data"
+    for dir_name in os.listdir(data_root):
+        workout_path = os.path.join(data_root, dir_name)
+        if os.path.isdir(workout_path):
+            process_workout_directory(workout_dir=workout_path)
     pass

@@ -25,7 +25,7 @@ CONFIG = {
     'lowpass_cutoff': 3.0,
     'filter_order': 4,
     'batch_size': 32,
-    'epochs': 20,
+    'epochs': 50,
     'lr': 0.001
 }
 

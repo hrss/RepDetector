@@ -72,6 +72,11 @@ def plot_latent_space():
     # Translate the integer labels back to strings (e.g., 'Sit Ups', 'Rest')
     string_labels = le.inverse_transform(encoded_labels)
 
+    # Filter out 'Rest' class
+    mask = string_labels != 'Rest'
+    embeddings_128d = embeddings_128d[mask]
+    string_labels = string_labels[mask]
+
     # 5. Dimensionality Reduction (Squash 128D -> 2D)
     print("Running t-SNE to reduce 128 dimensions down to 2D. This may take a minute...")
     # Perplexity controls how to balance local vs global aspects of the data.
@@ -102,6 +107,25 @@ def plot_latent_space():
         edgecolor=None
     )
 
+    # Label one point per movement directly on the plot
+    labeled_movements = set()
+    for _, row in df_plot.iterrows():
+        movement = row["Movement"]
+        if movement in labeled_movements:
+            continue
+
+        plt.annotate(
+            movement,
+            (row["TSNE_X"], row["TSNE_Y"]),
+            textcoords="offset points",
+            xytext=(6, 6),
+            fontsize=9,
+            fontweight="bold",
+            color="black",
+            bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.7),
+        )
+        labeled_movements.add(movement)
+
     plt.title("WodBuddy Latent Space: t-SNE Projection of CNN Embeddings", fontweight='bold', fontsize=14)
     plt.xlabel("Latent Dimension 1")
     plt.ylabel("Latent Dimension 2")
@@ -113,7 +137,6 @@ def plot_latent_space():
     plt.savefig("latent_space_map.png", dpi=300)
     print("Saved 2D mapping to latent_space_map.png")
     plt.show()
-
 
 if __name__ == "__main__":
     plot_latent_space()
