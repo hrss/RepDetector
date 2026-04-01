@@ -66,11 +66,12 @@ def apply_butterworth(data, cutoff, fs, order=4):
 #     return np.array(features)
 
 
-#16 features
+#20 features (Added FFT Dominant Frequencies)
 def extract_features(window):
     """
-    16 carefully selected features that force the tree to learn
-    universal physics (Accel) and technique nuances (Gyro).
+    20 carefully selected features that force the tree to learn
+    universal physics (Accel), technique nuances (Gyro), and 
+    repetition cadence (FFT).
     """
     # --- 8 ACCELEROMETER FEATURES (The Universal Physics) ---
 
@@ -106,13 +107,28 @@ def extract_features(window):
     gyro_x_max = np.max(gyro_x)
     gyro_x_min = np.min(gyro_x)
 
+    # 7. Specific Wrist Rotations (Peaks and Valleys of technique)
     gyro_y = window[:, 4]
     gyro_y_max = np.max(gyro_y)
     gyro_y_min = np.min(gyro_y)
 
+    # 8. Specific Wrist Rotations (Peaks and Valleys of technique)
     gyro_z = window[:, 5]
     gyro_z_max = np.max(gyro_z)
     gyro_z_min = np.min(gyro_z)
+
+    # --- 4 FFT FEATURES (The Repetition Cadence) ---
+    # These help distinguish between fast/slow movements and identify periodic patterns
+    
+    # FFT for Accel SMV
+    acc_fft = np.abs(np.fft.rfft(acc_smv - acc_smv_mean))
+    acc_dom_freq_idx = np.argmax(acc_fft[1:]) + 1  # Skip DC component
+    acc_max_power = acc_fft[acc_dom_freq_idx]
+
+    # FFT for Gyro SMV
+    gyro_fft = np.abs(np.fft.rfft(gyro_smv - gyro_smv_mean))
+    gyro_dom_freq_idx = np.argmax(gyro_fft[1:]) + 1  # Skip DC component
+    gyro_max_power = gyro_fft[gyro_dom_freq_idx]
 
     return np.array([
         # The 8 Accel Features
@@ -120,7 +136,10 @@ def extract_features(window):
         acc_y_mean, acc_y_range, acc_x_mean, acc_x_range,
         # The 8 Gyro Features
         gyro_smv_mean, gyro_smv_std,
-        gyro_x_max, gyro_x_min, gyro_y_max, gyro_y_min, gyro_z_max, gyro_z_min
+        gyro_x_max, gyro_x_min, gyro_y_max, gyro_y_min, gyro_z_max, gyro_z_min,
+        # The 4 FFT Features
+        acc_dom_freq_idx, acc_max_power,
+        gyro_dom_freq_idx, gyro_max_power
     ])
 
 def smooth_predictions(raw_preds, window_size=12):
@@ -292,17 +311,19 @@ def test_and_plot_section(section_dir, model, label_encoder, config):
 
 # --- 4. EXPORT AND SAVE ---
 def save_model(model, le, num_features):
+    # 1. Save standard Python assets (for retraining/analysis)
     joblib.dump(le, "wodbuddy_dt_label_encoder.pkl")
     joblib.dump(model, "wodbuddy_dt_model.pkl")
 
-    # Initial type matches our 34 statistical features, not 300 raw points
+    # 2. Export ONNX for the Go Backend
     initial_type = [('input_sensors', FloatTensorType([None, num_features]))]
-
     onnx_model = convert_sklearn(model, initial_types=initial_type)
     with open("wodbuddy_dt_model.onnx", "wb") as f:
         f.write(onnx_model.SerializeToString())
+    print("Exported Go Backend model to wodbuddy_dt_model.onnx")
 
-    print("Exported production model to wodbuddy_dt_model.onnx")
+    # 3. Export JSON for the Garmin Watch
+    export_tree_for_garmin(model, le, "wodbuddy_dt.json")
 
 
 def print_feature_importances(model):
@@ -346,18 +367,17 @@ def print_feature_importances(model):
 
 
 def print_lean_feature_importances(model):
-    """Accurately maps the 10 lean features to their weights."""
+    """Accurately maps the 20 features to their weights."""
     feature_names = [
-        "acc_smv_mean",
-        "gyro_z_max",
-        "gyro_y_max",
-        "gyro_smv_std",
-        "gyro_x_max",
-        "gyro_smv_mean",
-        "gyro_y_min",
-        "gyro_x_std",
-        "gyro_z_min",
-        "gyro_y_std"
+        # The 8 Accel Features
+        "acc_smv_mean", "acc_z_mean", "acc_z_range", "acc_z_std",
+        "acc_y_mean", "acc_y_range", "acc_x_mean", "acc_x_range",
+        # The 8 Gyro Features
+        "gyro_smv_mean", "gyro_smv_std",
+        "gyro_x_max", "gyro_x_min", "gyro_y_max", "gyro_y_min", "gyro_z_max", "gyro_z_min",
+        # The 4 FFT Features
+        "acc_dom_freq", "acc_max_power",
+        "gyro_dom_freq", "gyro_max_power"
     ]
 
     importances = model.feature_importances_
@@ -365,10 +385,32 @@ def print_lean_feature_importances(model):
     feature_importance_pairs = list(zip(feature_names, importances))
     feature_importance_pairs.sort(key=lambda x: x[1], reverse=True)
 
-    print("\n--- ACTUAL LEAN DECISION TREE WEIGHTS ---")
+    print("\n--- ACTUAL DECISION TREE WEIGHTS ---")
     for name, importance in feature_importance_pairs:
-        print(f"{name: <15} | Weight: {importance:.4f}")
+        if importance > 0.001:
+            print(f"{name: <15} | Weight: {importance:.4f}")
 
+def export_tree_for_garmin(clf, label_encoder, filename="wodbuddy_dt.json"):
+    """Extracts the tree into a flat JSON array for Monkey C."""
+    tree = clf.tree_
+
+    ciq_payload = {
+        "meta": {
+            "nodes": tree.node_count,
+            "classes": label_encoder.classes_.tolist()
+        },
+        "f": tree.feature.tolist(),
+        "t": tree.threshold.tolist(),
+        "l": tree.children_left.tolist(),
+        "r": tree.children_right.tolist(),
+        "c": np.argmax(tree.value[:, 0, :], axis=1).tolist()
+    }
+
+    with open(filename, 'w') as f:
+        # Use separators to minify the JSON and save Garmin RAM
+        json.dump(ciq_payload, f, separators=(',', ':'))
+
+    print(f"Exported Garmin Watch model to {filename} ({tree.node_count} nodes)")
 
 # --- 5. EXECUTION ---
 if __name__ == "__main__":
@@ -390,3 +432,7 @@ if __name__ == "__main__":
     # Pick one of your sliced sections to test against
     test_target_dir = "data/1797/section_3109"
     test_and_plot_section(test_target_dir, model, label_encoder, CONFIG)
+
+
+
+
