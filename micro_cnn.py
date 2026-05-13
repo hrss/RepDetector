@@ -300,7 +300,7 @@ def test_and_plot_section(section_dir, model, label_encoder, config, device):
     fig.legend(handles=handles, loc='lower center', ncol=len(unique_classes), bbox_to_anchor=(0.5, -0.05))
 
     plt.tight_layout()
-    save_name = f"inference_{section_id}.png"
+    save_name = f"micro_cnn_inference_{section_id}.png"
     plt.savefig(save_name, bbox_inches="tight")
     print(f"Saved plot to {save_name}")
     plt.show()

@@ -89,4 +89,4 @@ if __name__ == "__main__":
     # parser.add_argument("workout_result_id", help="The ID of the workout result.")
     # args = parser.parse_args()
 
-    fetch_section_results(1797)
+    fetch_section_results(6123)

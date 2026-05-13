@@ -13,6 +13,9 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import LabelEncoder
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
+from collections import Counter
+from imblearn.under_sampling import RandomUnderSampler
+from imblearn.over_sampling import SMOTE
 
 # --- CONFIGURATION ---
 CONFIG = {
@@ -22,7 +25,8 @@ CONFIG = {
     'lowpass_cutoff': 3.0,
     'filter_order': 4,
     'max_depth': 15,
-    'min_samples_split': 5
+    'min_samples_split': 5,
+    'allowed_classes': ['Air Squat', 'Shoulder Press', 'Shuttle Run', 'Rest'],  # List of strings or None for all
 }
 
 
@@ -163,6 +167,7 @@ def load_and_window_data(data_dir, config):
 
     X_list = []
     y_list = []
+    class_counts = Counter()
 
     for s_dir in section_dirs:
         csv_path = os.path.join(s_dir, "imu.csv")
@@ -190,19 +195,27 @@ def load_and_window_data(data_dir, config):
         labels = df['label'].values
 
         for i in range(0, len(df) - window_pts, step_pts):
-            window_data = signals[i: i + window_pts]
             mid_idx = i + window_pts // 2
+            label = labels[mid_idx]
+
+            # 1. Class Filtering
+            if config['allowed_classes'] is not None and label not in config['allowed_classes']:
+                continue
+
+            window_data = signals[i: i + window_pts]
 
             # --- APPLY FEATURE ENGINEERING ---
             stat_features = extract_features(window_data)
             X_list.append(stat_features)
-            y_list.append(labels[mid_idx])
+            y_list.append(label)
+            class_counts[label] += 1
 
     X_np = np.array(X_list)
     le = LabelEncoder()
     y_encoded = le.fit_transform(y_list)
 
     print(f"Created {len(X_np)} windows. Feature Vector Shape: {X_np.shape} across {len(set(y_encoded))} classes.")
+    print(f"Class Distribution: {dict(class_counts)}")
     return X_np, y_encoded, le
 
 
@@ -256,6 +269,11 @@ def test_and_plot_section(section_dir, model, label_encoder, config):
 
     predictions_smooth = smooth_predictions(predictions_raw, window_size=10)
 
+    # Filter truth labels to only show what the model can actually predict
+    # (Optional: Or keep them as is to see where the model fails on unknown classes)
+    # For visualization, we'll keep the truth as is, but we must ensure
+    # the color map handles it.
+
     res_df = pd.DataFrame({
         'time': time_tracker,
         'truth': df['truth'].values,
@@ -266,7 +284,11 @@ def test_and_plot_section(section_dir, model, label_encoder, config):
 
     # --- PLOTTING ---
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 10), sharex=True, gridspec_kw={'height_ratios': [1, 1]})
-    unique_classes = sorted(list(set([str(c) for c in label_encoder.classes_] + ['Rest'])))
+    
+    # Collect all unique classes present in truth or predictions
+    all_seen_classes = set(res_df['truth']) | set(res_df['pred_raw']) | set(res_df['pred_smooth'])
+    unique_classes = sorted(list(all_seen_classes))
+    
     cmap = plt.get_cmap('tab10')
     colors = [cmap(i) for i in np.linspace(0, 1, len(unique_classes))]
     color_map = {cls: col for cls, col in zip(unique_classes, colors)}
@@ -412,27 +434,110 @@ def export_tree_for_garmin(clf, label_encoder, filename="wodbuddy_dt.json"):
 
     print(f"Exported Garmin Watch model to {filename} ({tree.node_count} nodes)")
 
-# --- 5. EXECUTION ---
-if __name__ == "__main__":
-    X, y, label_encoder = load_and_window_data(data_dir="data", config=CONFIG)
-    num_features = X.shape[1]
 
-    print("\n--- Training Decision Tree ---")
-    model = DecisionTreeClassifier(
-        max_depth=CONFIG['max_depth'],
-        min_samples_split=CONFIG['min_samples_split'],
-        random_state=42
-    )
-    model.fit(X, y)
-    print_lean_feature_importances(model)
-    print(f"Training Complete. Model Depth: {model.get_depth()}")
+def load_model_and_test_section():
+    """Load the saved Decision Tree model and test it on a section."""
+    print("Loading saved model and label encoder...")
 
-    save_model(model, label_encoder, num_features)
+    # Load the saved model and label encoder
+    model = joblib.load("wodbuddy_dt_model.pkl")
+    label_encoder = joblib.load("wodbuddy_dt_label_encoder.pkl")
 
-    # Pick one of your sliced sections to test against
-    test_target_dir = "data/1797/section_3109"
+    print(f"Model loaded successfully. Tree depth: {model.get_depth()}")
+    print(f"Classes: {label_encoder.classes_}")
+
+    # Test on a specific section
+    test_target_dir = "data/2053/section_3708"
+    test_and_plot_section(test_target_dir, model, label_encoder, CONFIG)
+    """Load the saved Decision Tree model and test it on a section."""
+    print("Loading saved model and label encoder...")
+
+    # Load the saved model and label encoder
+    model = joblib.load("wodbuddy_dt_model.pkl")
+    label_encoder = joblib.load("wodbuddy_dt_label_encoder.pkl")
+
+    print(f"Model loaded successfully. Tree depth: {model.get_depth()}")
+    print(f"Classes: {label_encoder.classes_}")
+
+    # Test on a specific section
+    test_target_dir = "data/2053/section_3708"
     test_and_plot_section(test_target_dir, model, label_encoder, CONFIG)
 
+# --- 5. EXECUTION ---
+if __name__ == "__main__":
+    # X, y, label_encoder = load_and_window_data(data_dir="data", config=CONFIG)
+    # num_features = X.shape[1]
+    #
+    # print(f"\nOriginal Class Distribution: {Counter(y)}")
+    #
+    # # 1. Find the integer label for "Rest"
+    # try:
+    #     rest_label = label_encoder.transform(['Rest'])[0]
+    # except ValueError:
+    #     print("Warning: 'Rest' not found in this dataset slice.")
+    #     rest_label = None
+    #
+    # if rest_label is not None:
+    #     # 2. Find the size of the next biggest class
+    #     counts = Counter(y)
+    #     non_rest_counts = {k: v for k, v in counts.items() if k != rest_label}
+    #
+    #     if non_rest_counts:
+    #         next_biggest_size = max(non_rest_counts.values())
+    #
+    #         # --- THE FIX: Add a multiplier to keep Rest dominant ---
+    #         rest_multiplier = 10.0  # Try 1.5x or 2.0x
+    #         rest_target_size = int(next_biggest_size * rest_multiplier)
+    #
+    #         print(f"\nNext biggest exercise size: {next_biggest_size}")
+    #         print(f"New target size for 'Rest': {rest_target_size}")
+    #
+    #         # 3. Undersample ONLY the "Rest" class to the new multiplier
+    #         if counts[rest_label] > rest_target_size:
+    #             print("Undersampling 'Rest' data...")
+    #             rus = RandomUnderSampler(
+    #                 sampling_strategy={rest_label: rest_target_size},
+    #                 random_state=42
+    #             )
+    #             X, y = rus.fit_resample(X, y)
+    #             print(f"Post-Undersampling Distribution: {Counter(y)}")
+    #
+    #         # 4. Oversample minority classes using SMOTE
+    #         print("\nOversampling minority classes with SMOTE...")
+    #
+    #         # We explicitly define the SMOTE strategy so it only inflates
+    #         # the exercises up to 'next_biggest_size', NOT all the way up to 'Rest'.
+    #         current_counts = Counter(y)
+    #         smote_strategy = {
+    #             cls: next_biggest_size
+    #             for cls in current_counts.keys()
+    #             if cls != rest_label and current_counts[cls] < next_biggest_size
+    #         }
+    #
+    #         if smote_strategy:
+    #             smote = SMOTE(sampling_strategy=smote_strategy, random_state=42)
+    #             X, y = smote.fit_resample(X, y)
+    #
+    #         print(f"Final Balanced Distribution: {Counter(y)}\n")
+    #
+    # print("--- Training Decision Tree ---")
+    # model = DecisionTreeClassifier(
+    #     max_depth=CONFIG['max_depth'],
+    #     min_samples_split=CONFIG['min_samples_split'],
+    #     random_state=42
+    # )
+    # model.fit(X, y)
+    # print_lean_feature_importances(model)
+    # print(f"Training Complete. Model Depth: {model.get_depth()}")
+    #
+    # save_model(model, label_encoder, num_features)
+    #
+    # Pick one of your sliced sections to test against
 
+    # test_target_dir = "data/2053/section_3708"
+    # test_and_plot_section(test_target_dir, model, label_encoder, CONFIG)
+
+    # Or use the new function to load and test
+    load_model_and_test_section()
 
 

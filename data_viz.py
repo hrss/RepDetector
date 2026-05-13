@@ -116,7 +116,7 @@ def generate_dashboard(section_dir, apply_filter=False, cutoff_hz=3.0):
 
 if __name__ == "__main__":
     # Example usage:
-    directory = "dataset/section_c11b7a06-0606-444f-b598-8343665bc5a5"
+    directory = "data/test_sceton/section_11111"
 
     # Generate the Raw Dashboard
     # generate_dashboard(directory, apply_filter=False)
