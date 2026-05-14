@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Workout Segment Aligner</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --panel: #252525;
+    --panel-2: #2f2f2f;
+    --border: #3a3a3a;
+    --text: #e8e8e8;
+    --text-dim: #999;
+    --accent: #4a9eff;
+    --accent-warm: #ff9a3c;
+    --success: #4ade80;
+    --danger: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 13px;
+    height: 100vh; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── Top bar ─────────────────────────────────────────────────── */
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 12px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .topbar .stage {
+    padding: 4px 10px;
+    background: var(--panel-2);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .topbar .stage.active { color: var(--accent); }
+  .topbar .file-info {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+  .topbar button {
+    background: var(--accent); color: white;
+    border: none; padding: 6px 14px;
+    border-radius: 4px; cursor: pointer; font-size: 12px;
+  }
+  .topbar button:hover { filter: brightness(1.15); }
+  .topbar button.secondary { background: var(--panel-2); color: var(--text); }
+
+  /* ── Loader screen ───────────────────────────────────────────── */
+  .loader {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 24px; padding: 40px;
+  }
+  .loader h1 { margin: 0 0 8px; font-weight: 500; font-size: 20px; }
+  .loader .subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
+  .drop-zone {
+    display: grid; grid-template-columns: repeat(3, 240px); gap: 16px;
+    margin-top: 16px;
+  }
+  .drop {
+    background: var(--panel);
+    border: 1px dashed var(--border);
+    border-radius: 8px; padding: 24px;
+    text-align: center; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .drop:hover, .drop.dragover { border-color: var(--accent); background: var(--panel-2); }
+  .drop.loaded { border-color: var(--success); border-style: solid; }
+  .drop .icon { font-size: 24px; margin-bottom: 8px; }
+  .drop .label { font-size: 12px; color: var(--text-dim); }
+  .drop .name { font-size: 11px; color: var(--text); margin-top: 6px; word-break: break-all; }
+  .drop input { display: none; }
+
+  /* ── Sync screen ─────────────────────────────────────────────── */
+  .sync-screen { flex: 1; padding: 24px; overflow: auto; }
+  .sync-screen h2 { font-weight: 500; margin: 0 0 4px; }
+  .sync-screen .hint { color: var(--text-dim); margin-bottom: 20px; }
+  .sync-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    height: calc(100vh - 200px);
+  }
+  .sync-panel {
+    background: var(--panel); border-radius: 8px; padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+    min-height: 0;
+  }
+  .sync-panel h3 { margin: 0; font-size: 14px; font-weight: 500; }
+  .sync-panel video { width: 100%; max-height: 360px; background: black; border-radius: 4px; }
+  .sync-panel canvas { width: 100%; background: var(--panel-2); border-radius: 4px; }
+  .clap-table {
+    width: 100%; font-size: 12px; border-collapse: collapse;
+  }
+  .clap-table th { text-align: left; color: var(--text-dim); font-weight: 500; padding: 6px 4px; }
+  .clap-table td { padding: 6px 4px; border-top: 1px solid var(--border); }
+  .clap-table .status-ok { color: var(--success); }
+  .clap-table .status-bad { color: var(--danger); }
+  .video-controls { display: flex; gap: 6px; flex-wrap: wrap; }
+  .video-controls button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;
+  }
+  .video-controls button:hover { background: var(--border); }
+  .time-display {
+    font-family: monospace; font-size: 13px; color: var(--accent);
+    padding: 6px 10px; background: var(--panel-2); border-radius: 4px;
+  }
+
+  /* ── Edit screen ─────────────────────────────────────────────── */
+  .edit-screen { flex: 1; display: grid; grid-template-columns: 1fr 360px; min-height: 0; }
+  .video-col {
+    display: flex; flex-direction: column;
+    background: var(--bg);
+    min-height: 0;
+  }
+  .video-wrap {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: black; min-height: 0;
+  }
+  .video-wrap video { max-width: 100%; max-height: 100%; }
+  .controls-bar {
+    padding: 8px 12px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .controls-bar button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;
+    font-family: monospace;
+  }
+  .controls-bar button:hover { background: var(--border); }
+  .controls-bar .spacer { flex: 1; }
+  .time-readout {
+    font-family: monospace; font-size: 12px;
+    display: flex; gap: 12px;
+  }
+  .time-readout .label { color: var(--text-dim); }
+  .time-readout .v-time { color: var(--accent); }
+  .time-readout .w-time { color: var(--accent-warm); }
+
+  /* Timeline */
+  .timeline {
+    height: 80px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    position: relative; overflow: hidden;
+    cursor: pointer;
+  }
+  .timeline .seg {
+    position: absolute; top: 8px; bottom: 8px;
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: rgba(0,0,0,0.7);
+    overflow: hidden; white-space: nowrap;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .timeline .seg.rest { opacity: 0.4; }
+  .timeline .seg.selected { border-color: white; box-shadow: 0 0 0 1px rgba(255,255,255,0.3); }
+  .timeline .seg .handle {
+    position: absolute; top: 0; bottom: 0; width: 6px;
+    cursor: ew-resize; background: rgba(0,0,0,0.2);
+  }
+  .timeline .seg .handle.left { left: 0; }
+  .timeline .seg .handle.right { right: 0; }
+  .timeline .seg .handle:hover { background: rgba(255,255,255,0.5); }
+  .timeline .cursor {
+    position: absolute; top: 0; bottom: 0; width: 2px;
+    background: var(--accent); pointer-events: none;
+    box-shadow: 0 0 4px var(--accent);
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  .sidebar-header {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; gap: 8px; align-items: center;
+  }
+  .sidebar-header .title { font-weight: 500; }
+  .sidebar-header .spacer { flex: 1; }
+  .sidebar-header button {
+    background: var(--accent); color: white; border: none;
+    padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;
+  }
+  .seg-list {
+    flex: 1; overflow-y: auto; padding: 4px;
+  }
+  .seg-row {
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center;
+  }
+  .seg-row:hover { background: var(--panel-2); }
+  .seg-row.selected { background: var(--panel-2); border-left: 2px solid var(--accent); padding-left: 8px; }
+  .seg-row .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .seg-row .name { font-size: 12px; }
+  .seg-row .times { font-family: monospace; font-size: 10px; color: var(--text-dim); text-align: right; }
+  .seg-row.modified .name { color: var(--accent-warm); }
+  .seg-row.modified .name::after { content: " •"; }
+
+  .seg-detail {
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    background: var(--panel-2);
+  }
+  .seg-detail .name-input {
+    width: 100%; background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 6px 8px; font-size: 13px; margin-bottom: 12px;
+  }
+  .field {
+    display: grid; grid-template-columns: 60px 1fr auto; gap: 6px;
+    align-items: center; margin-bottom: 6px;
+  }
+  .field label { font-size: 11px; color: var(--text-dim); }
+  .field input {
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 5px 8px; font-family: monospace; font-size: 12px; width: 100%;
+  }
+  .field button {
+    background: var(--accent); color: white; border: none;
+    padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 10px;
+    white-space: nowrap;
+  }
+  .field button:hover { filter: brightness(1.1); }
+  .help {
+    font-size: 10px; color: var(--text-dim); margin-top: 8px;
+    line-height: 1.5; font-family: monospace;
+  }
+  .help kbd {
+    background: var(--bg); border: 1px solid var(--border);
+    padding: 1px 4px; border-radius: 2px;
+  }
+
+  .hidden { display: none !important; }
+  .error {
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    padding: 8px 12px; border-radius: 4px; font-size: 12px;
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- TOP BAR                                                            -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="topbar">
+  <strong style="font-weight: 500;">Segment Aligner</strong>
+  <span class="stage" id="stageLoad">1. Load files</span>
+  <span class="stage" id="stageSync">2. Sync claps</span>
+  <span class="stage" id="stageEdit">3. Edit segments</span>
+  <span class="file-info" id="fileInfo"></span>
+  <button id="btnReset" class="secondary hidden">Reset</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- STAGE 1: LOADER                                                    -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="loader" id="screenLoad">
+  <div style="text-align: center;">
+    <h1>Load workout files</h1>
+    <p class="subtitle">All three files needed to proceed. Everything stays in your browser — nothing is uploaded.</p>
+  </div>
+  <div class="drop-zone">
+    <label class="drop" id="dropVideo" for="fileVideo">
+      <div class="icon">🎬</div>
+      <div class="label">Video file</div>
+      <div class="name" id="nameVideo">.mp4, .mov, .webm</div>
+      <input type="file" id="fileVideo" accept="video/*">
+    </label>
+    <label class="drop" id="dropImu" for="fileImu">
+      <div class="icon">📊</div>
+      <div class="label">IMU binary</div>
+      <div class="name" id="nameImu">.imubin</div>
+      <input type="file" id="fileImu" accept=".imubin">
+    </label>
+    <label class="drop" id="dropJson" for="fileJson">
+      <div class="icon">📋</div>
+      <div class="label">Workout JSON</div>
+      <div class="name" id="nameJson">.json</div>
+      <input type="file" id="fileJson" accept=".json,application/json">
+    </label>
+  </div>
+  <div id="loadError"></div>
+  <button id="btnProceed" disabled style="padding: 10px 24px; font-size: 14px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; opacity: 0.5;">Continue →</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- STAGE 2: CLAP SYNC                                                 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="sync-screen hidden" id="screenSync">
+  <h2>Sync video to workout</h2>
+  <p class="hint">Scrub the video to the first clap, then click <strong>Lock sync</strong>. The other two claps will be predicted and shown for verification.</p>
+  <div class="sync-grid">
+    <div class="sync-panel">
+      <h3>Video</h3>
+      <video id="syncVideo" controls></video>
+      <div class="video-controls">
+        <button data-skip="-1">−1s</button>
+        <button data-skip="-0.1">−0.1s</button>
+        <button data-skip="-0.033">−1f</button>
+        <button data-skip="0.033">+1f</button>
+        <button data-skip="0.1">+0.1s</button>
+        <button data-skip="1">+1s</button>
+      </div>
+      <div class="time-display">video time: <span id="syncVideoTime">0.000</span>s</div>
+      <button id="btnLockSync" style="background: var(--accent); color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-top: 8px;">
+        Lock sync to first clap →
+      </button>
+    </div>
+    <div class="sync-panel">
+      <h3>IMU accel magnitude (Setup window, 0–30s)</h3>
+      <canvas id="imuCanvas" height="200"></canvas>
+      <table class="clap-table">
+        <thead>
+          <tr>
+            <th>Clap</th>
+            <th>Workout time</th>
+            <th>Predicted video time</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="clapTable"></tbody>
+      </table>
+      <div style="font-size: 11px; color: var(--text-dim);">
+        Offset: <span id="offsetDisplay">— not set</span>
+      </div>
+      <button id="btnConfirmSync" disabled style="background: var(--success); color: black; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-top: auto; opacity: 0.5;">
+        Confirm sync → Start editing
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- STAGE 3: EDITOR                                                    -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="edit-screen hidden" id="screenEdit">
+  <div class="video-col">
+    <div class="video-wrap">
+      <video id="editVideo" controls></video>
+    </div>
+    <div class="controls-bar">
+      <button data-skip="-1">J</button>
+      <button data-skip="-0.033">,</button>
+      <button id="btnPlay">⏯</button>
+      <button data-skip="0.033">.</button>
+      <button data-skip="1">L</button>
+      <div class="spacer"></div>
+      <div class="time-readout">
+        <span><span class="label">video:</span> <span class="v-time" id="editVideoTime">0.000</span>s</span>
+        <span><span class="label">workout:</span> <span class="w-time" id="editWorkoutTime">0.000</span>s</span>
+      </div>
+    </div>
+    <div class="timeline" id="timeline"></div>
+  </div>
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="title">Segments</span>
+      <span class="spacer"></span>
+      <button id="btnExport">Export JSON</button>
+    </div>
+    <div class="seg-list" id="segList"></div>
+    <div class="seg-detail" id="segDetail">
+      <input type="text" class="name-input" id="segName" placeholder="Segment name">
+      <div class="field">
+        <label>Start</label>
+        <input type="number" id="segStart" step="0.001">
+        <button id="btnSetStart">Set [</button>
+      </div>
+      <div class="field">
+        <label>End</label>
+        <input type="number" id="segEnd" step="0.001">
+        <button id="btnSetEnd">Set ]</button>
+      </div>
+      <div class="help">
+        <kbd>Space</kbd> play/pause &nbsp; <kbd>J</kbd>/<kbd>L</kbd> ±1s &nbsp; <kbd>,</kbd>/<kbd>.</kbd> ±1 frame<br>
+        <kbd>[</kbd> set start to video time &nbsp; <kbd>]</kbd> set end to video time<br>
+        <kbd>↑</kbd>/<kbd>↓</kbd> prev/next segment &nbsp; <kbd>Enter</kbd> jump video to start
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═════════════════════════════════════════════════════════════════════════
+// STATE
+// ═════════════════════════════════════════════════════════════════════════
+const state = {
+  videoFile: null,
+  videoUrl: null,
+  imuFile: null,
+  jsonFile: null,
+  imuData: null,        // { header, samples: { t, wt, ax, ay, az, gx, gy, gz } as Float arrays }
+  segments: [],         // [{ name, startTime, endTime, _orig: {startTime, endTime, name}, modified }]
+  workoutJson: null,    // full parsed JSON, untouched
+  clapsWorkoutTime: [], // [t1, t2, t3] in workout seconds
+  syncOffset: null,     // videoTime = workoutTime + syncOffset
+  selectedIdx: -1,
+  fps: 30,
+};
+
+// ═════════════════════════════════════════════════════════════════════════
+// STAGE 1 — LOADER
+// ═════════════════════════════════════════════════════════════════════════
+function setupFileDrop(inputId, fileKey, onLoad) {
+  const input = document.getElementById(inputId);
+  const drop = input.parentElement;
+  input.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    state[fileKey] = file;
+    drop.querySelector('.name').textContent = file.name;
+    drop.classList.add('loaded');
+    onLoad(file);
+    checkProceed();
+  });
+  ['dragover', 'dragenter'].forEach(evt => {
+    drop.addEventListener(evt, e => {
+      e.preventDefault();
+      drop.classList.add('dragover');
+    });
+  });
+  ['dragleave', 'drop'].forEach(evt => {
+    drop.addEventListener(evt, e => {
+      e.preventDefault();
+      drop.classList.remove('dragover');
+    });
+  });
+  drop.addEventListener('drop', e => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    input.files = e.dataTransfer.files;
+    input.dispatchEvent(new Event('change'));
+  });
+}
+
+setupFileDrop('fileVideo', 'videoFile', file => {
+  if (state.videoUrl) URL.revokeObjectURL(state.videoUrl);
+  state.videoUrl = URL.createObjectURL(file);
+});
+setupFileDrop('fileImu', 'imuFile', () => {});
+setupFileDrop('fileJson', 'jsonFile', () => {});
+
+function checkProceed() {
+  const ready = state.videoFile && state.imuFile && state.jsonFile;
+  const btn = document.getElementById('btnProceed');
+  btn.disabled = !ready;
+  btn.style.opacity = ready ? '1' : '0.5';
+}
+
+document.getElementById('btnProceed').addEventListener('click', async () => {
+  try {
+    document.getElementById('loadError').innerHTML = '';
+    await loadImu();
+    loadJson();
+    goToSyncStage();
+  } catch (err) {
+    document.getElementById('loadError').innerHTML =
+      `<div class="error">${err.message}</div>`;
+    console.error(err);
+  }
+});
+
+// ═════════════════════════════════════════════════════════════════════════
+// FILE PARSERS
+// ═════════════════════════════════════════════════════════════════════════
+async function loadImu() {
+  const buf = await state.imuFile.arrayBuffer();
+  const view = new DataView(buf);
+  const HEADER = 48, SAMPLE = 36;
+
+  // Magic check
+  if (view.getUint8(0) !== 0x49 || view.getUint8(1) !== 0x4D ||
+      view.getUint8(2) !== 0x55 || view.getUint8(3) !== 0x00) {
+    throw new Error('IMU file: bad magic, expected "IMU\\0"');
+  }
+
+  const nSamples = Math.floor((buf.byteLength - HEADER) / SAMPLE);
+  if (nSamples < 100) throw new Error(`IMU file: only ${nSamples} samples (too few)`);
+
+  const t  = new Float64Array(nSamples);
+  const wt = new Int32Array(nSamples);
+  const ax = new Float32Array(nSamples);
+  const ay = new Float32Array(nSamples);
+  const az = new Float32Array(nSamples);
+
+  for (let i = 0; i < nSamples; i++) {
+    const o = HEADER + i * SAMPLE;
+    t[i]  = view.getFloat64(o,      true);
+    wt[i] = view.getInt32  (o + 8,  true);
+    ax[i] = view.getFloat32(o + 12, true);
+    ay[i] = view.getFloat32(o + 16, true);
+    az[i] = view.getFloat32(o + 20, true);
+  }
+
+  state.imuData = { t, wt, ax, ay, az, nSamples };
+  console.log(`Loaded ${nSamples} IMU samples`);
+}
+
+function loadJson() {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        state.workoutJson = JSON.parse(e.target.result);
+        const round = state.workoutJson.roundResults?.[0];
+        if (!round) throw new Error('JSON: no roundResults[0] found');
+        state.segments = round.exerciseResults.map(ex => ({
+          name: ex.name,
+          startTime: ex.startTime,
+          endTime:   ex.endTime,
+          _orig: { startTime: ex.startTime, endTime: ex.endTime, name: ex.name },
+          modified: false,
+        }));
+        console.log(`Loaded ${state.segments.length} segments`);
+        resolve();
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Failed to read JSON'));
+    reader.readAsText(state.jsonFile);
+  });
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// STAGE 2 — CLAP SYNC
+// ═════════════════════════════════════════════════════════════════════════
+function goToSyncStage() {
+  document.getElementById('screenLoad').classList.add('hidden');
+  document.getElementById('screenSync').classList.remove('hidden');
+  document.getElementById('stageLoad').classList.remove('active');
+  document.getElementById('stageSync').classList.add('active');
+  document.getElementById('btnReset').classList.remove('hidden');
+  document.getElementById('fileInfo').textContent = state.videoFile.name;
+
+  const v = document.getElementById('syncVideo');
+  v.src = state.videoUrl;
+  v.currentTime = 0;
+  v.addEventListener('timeupdate', () => {
+    document.getElementById('syncVideoTime').textContent = v.currentTime.toFixed(3);
+  });
+
+  document.querySelectorAll('#screenSync .video-controls button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      v.currentTime = Math.max(0, v.currentTime + parseFloat(btn.dataset.skip));
+    });
+  });
+
+  detectClaps();
+  drawImuMagnitude();
+}
+
+function detectClaps() {
+  // Compute accel magnitude over the Setup window (workoutTime in [0, 30])
+  const { wt, ax, ay, az, nSamples } = state.imuData;
+  const setupIndices = [];
+  for (let i = 0; i < nSamples; i++) {
+    if (wt[i] >= 0 && wt[i] <= 30) setupIndices.push(i);
+  }
+  if (setupIndices.length === 0) {
+    throw new Error('No IMU samples in workoutTime 0..30s — cannot detect claps');
+  }
+
+  // Compute magnitudes, subtract gravity baseline
+  const mags = setupIndices.map(i => Math.sqrt(ax[i]**2 + ay[i]**2 + az[i]**2));
+  const baseline = mags.reduce((a,b) => a+b, 0) / mags.length;
+  const dev = mags.map(m => Math.abs(m - baseline));
+
+  // Find top peaks with min-separation of ~0.3s
+  // Estimate sample rate from setup window
+  const tFirst = state.imuData.t[setupIndices[0]];
+  const tLast  = state.imuData.t[setupIndices[setupIndices.length - 1]];
+  const fs = (setupIndices.length - 1) / (tLast - tFirst);
+  const minGap = Math.round(0.3 * fs);  // ~0.3s in samples
+
+  const peaks = [];
+  const taken = new Set();
+  // Greedy: pick max, mask neighborhood, repeat
+  while (peaks.length < 3) {
+    let bestI = -1, bestV = -Infinity;
+    for (let j = 0; j < dev.length; j++) {
+      if (taken.has(j)) continue;
+      if (dev[j] > bestV) { bestV = dev[j]; bestI = j; }
+    }
+    if (bestI < 0) break;
+    peaks.push(bestI);
+    for (let k = Math.max(0, bestI - minGap); k < Math.min(dev.length, bestI + minGap); k++) {
+      taken.add(k);
+    }
+  }
+  peaks.sort((a, b) => a - b);
+
+  // Convert peak indices to workout time using precise float timestamp
+  // workoutTime is integer-only, so use t (CMAbsoluteTime) interpolated to fractional workout seconds
+  // We approximate fractional workout time using the index position within the setup window
+  state.clapsWorkoutTime = peaks.map(p => {
+    const sampleIdx = setupIndices[p];
+    const dt = state.imuData.t[sampleIdx] - state.imuData.t[setupIndices[0]];
+    return Math.round(dt * 1000) / 1000;
+  });
+  console.log('Detected claps at workout times:', state.clapsWorkoutTime);
+
+  state.setupMags = mags;
+  state.setupTimes = setupIndices.map(i => {
+    const dt = state.imuData.t[i] - state.imuData.t[setupIndices[0]];
+    return dt;
+  });
+  state.detectedPeakIndices = peaks;
+}
+
+function drawImuMagnitude() {
+  const canvas = document.getElementById('imuCanvas');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 200 * dpr;
+  canvas.style.height = '200px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const W = rect.width, H = 200;
+  ctx.clearRect(0, 0, W, H);
+
+  const mags = state.setupMags;
+  const times = state.setupTimes;
+  if (!mags || mags.length === 0) return;
+
+  const tMin = times[0], tMax = times[times.length - 1];
+  const mMin = Math.min(...mags), mMax = Math.max(...mags);
+  const mRange = mMax - mMin || 1;
+  const padding = 30;
+
+  // Grid
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 0.5;
+  ctx.font = '10px monospace';
+  ctx.fillStyle = '#999';
+  for (let s = 0; s <= 30; s += 5) {
+    const x = padding + (s / 30) * (W - padding - 10);
+    ctx.beginPath(); ctx.moveTo(x, 5); ctx.lineTo(x, H - 20); ctx.stroke();
+    ctx.fillText(s + 's', x - 6, H - 5);
+  }
+
+  // Trace
+  ctx.strokeStyle = '#4a9eff';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < mags.length; i++) {
+    const x = padding + ((times[i] - tMin) / (tMax - tMin)) * (W - padding - 10);
+    const y = 5 + (1 - (mags[i] - mMin) / mRange) * (H - 30);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Detected claps
+  state.clapsWorkoutTime.forEach((t, i) => {
+    const x = padding + (t / 30) * (W - padding - 10);
+    ctx.strokeStyle = '#ff9a3c';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, 5); ctx.lineTo(x, H - 20); ctx.stroke();
+    ctx.fillStyle = '#ff9a3c';
+    ctx.fillText(`clap ${i + 1}`, x + 3, 14);
+  });
+
+  // Predicted video positions, if sync locked
+  if (state.syncOffset !== null) {
+    state.clapsWorkoutTime.forEach((t, i) => {
+      const x = padding + (t / 30) * (W - padding - 10);
+      ctx.strokeStyle = '#4ade80';
+      ctx.setLineDash([3, 3]);
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, 5); ctx.lineTo(x, H - 20); ctx.stroke();
+      ctx.setLineDash([]);
+    });
+  }
+
+  renderClapTable();
+}
+
+function renderClapTable() {
+  const tbody = document.getElementById('clapTable');
+  tbody.innerHTML = '';
+  state.clapsWorkoutTime.forEach((wt, i) => {
+    const predictedVideo = state.syncOffset !== null ? (wt + state.syncOffset) : null;
+    let status = '—';
+    if (state.syncOffset !== null && i === 0) status = '<span class="status-ok">anchor</span>';
+    else if (predictedVideo !== null) status = '<span class="status-ok">predicted</span>';
+    tbody.innerHTML += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${wt.toFixed(3)}s</td>
+        <td>${predictedVideo === null ? '—' : predictedVideo.toFixed(3) + 's'}</td>
+        <td>${status}</td>
+      </tr>`;
+  });
+}
+
+document.getElementById('btnLockSync').addEventListener('click', () => {
+  const v = document.getElementById('syncVideo');
+  if (state.clapsWorkoutTime.length === 0) {
+    alert('No claps detected — cannot sync.');
+    return;
+  }
+  state.syncOffset = v.currentTime - state.clapsWorkoutTime[0];
+  document.getElementById('offsetDisplay').textContent =
+    state.syncOffset.toFixed(3) + 's (video = workout + offset)';
+  drawImuMagnitude();
+  const btn = document.getElementById('btnConfirmSync');
+  btn.disabled = false;
+  btn.style.opacity = '1';
+});
+
+document.getElementById('btnConfirmSync').addEventListener('click', goToEditStage);
+
+// ═════════════════════════════════════════════════════════════════════════
+// STAGE 3 — EDITOR
+// ═════════════════════════════════════════════════════════════════════════
+function goToEditStage() {
+  document.getElementById('screenSync').classList.add('hidden');
+  document.getElementById('screenEdit').classList.remove('hidden');
+  document.getElementById('stageSync').classList.remove('active');
+  document.getElementById('stageEdit').classList.add('active');
+
+  const v = document.getElementById('editVideo');
+  v.src = state.videoUrl;
+  v.currentTime = state.syncOffset >= 0 ? state.syncOffset : 0;
+
+  v.addEventListener('timeupdate', updateEditTimes);
+  v.addEventListener('loadedmetadata', () => {
+    if (v.videoTracks && v.videoTracks[0]) {
+      // can't get fps directly; rely on common default
+    }
+  });
+
+  document.querySelectorAll('#screenEdit .controls-bar button[data-skip]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      v.currentTime = Math.max(0, v.currentTime + parseFloat(btn.dataset.skip));
+    });
+  });
+  document.getElementById('btnPlay').addEventListener('click', () => {
+    if (v.paused) v.play(); else v.pause();
+  });
+
+  renderSegList();
+  renderTimeline();
+  selectSegment(0);
+
+  document.getElementById('btnSetStart').addEventListener('click', setStartToVideo);
+  document.getElementById('btnSetEnd').addEventListener('click', setEndToVideo);
+  document.getElementById('segStart').addEventListener('change', onStartInput);
+  document.getElementById('segEnd').addEventListener('change', onEndInput);
+  document.getElementById('segName').addEventListener('change', onNameInput);
+  document.getElementById('btnExport').addEventListener('click', exportJson);
+
+  document.addEventListener('keydown', handleHotkey);
+}
+
+function updateEditTimes() {
+  const v = document.getElementById('editVideo');
+  const vt = v.currentTime;
+  const wt = vt - state.syncOffset;
+  document.getElementById('editVideoTime').textContent = vt.toFixed(3);
+  document.getElementById('editWorkoutTime').textContent = wt.toFixed(3);
+  updateTimelineCursor(vt);
+}
+
+function videoToWorkout(vt) { return vt - state.syncOffset; }
+function workoutToVideo(wt) { return wt + state.syncOffset; }
+
+function segmentColor(seg, i) {
+  if (seg.name.toUpperCase() === 'REST') return '#666';
+  // distribute hues across non-REST segments
+  let nonRestIdx = 0;
+  for (let j = 0; j <= i; j++) {
+    if (state.segments[j].name.toUpperCase() !== 'REST') {
+      if (j === i) break;
+      nonRestIdx++;
+    }
+  }
+  const total = state.segments.filter(s => s.name.toUpperCase() !== 'REST').length;
+  const hue = (nonRestIdx / Math.max(total, 1)) * 360;
+  return `hsl(${hue}, 65%, 60%)`;
+}
+
+function renderSegList() {
+  const list = document.getElementById('segList');
+  list.innerHTML = '';
+  state.segments.forEach((seg, i) => {
+    const row = document.createElement('div');
+    row.className = 'seg-row' + (i === state.selectedIdx ? ' selected' : '')
+                              + (seg.modified ? ' modified' : '');
+    row.innerHTML = `
+      <div class="dot" style="background: ${segmentColor(seg, i)};"></div>
+      <div class="name">${escapeHtml(seg.name)}</div>
+      <div class="times">${seg.startTime.toFixed(2)}–${seg.endTime.toFixed(2)}</div>
+    `;
+    row.addEventListener('click', () => selectSegment(i));
+    list.appendChild(row);
+  });
+}
+
+function renderTimeline() {
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = '<div class="cursor" id="tlCursor"></div>';
+  const totalWorkout = Math.max(...state.segments.map(s => s.endTime));
+  const w = tl.clientWidth;
+  state.segments.forEach((seg, i) => {
+    const left = (seg.startTime / totalWorkout) * w;
+    const width = ((seg.endTime - seg.startTime) / totalWorkout) * w;
+    const div = document.createElement('div');
+    div.className = 'seg' + (seg.name.toUpperCase() === 'REST' ? ' rest' : '')
+                          + (i === state.selectedIdx ? ' selected' : '');
+    div.style.left = left + 'px';
+    div.style.width = width + 'px';
+    div.style.background = segmentColor(seg, i);
+    div.title = `${seg.name}\n${seg.startTime.toFixed(3)}–${seg.endTime.toFixed(3)}s`;
+    div.textContent = seg.name;
+    div.addEventListener('click', e => {
+      e.stopPropagation();
+      selectSegment(i);
+      const v = document.getElementById('editVideo');
+      v.currentTime = workoutToVideo(seg.startTime);
+    });
+    tl.appendChild(div);
+  });
+  // Click on bare timeline = seek
+  tl.addEventListener('click', e => {
+    if (e.target !== tl) return;
+    const x = e.offsetX;
+    const wt = (x / w) * totalWorkout;
+    const v = document.getElementById('editVideo');
+    v.currentTime = workoutToVideo(wt);
+  });
+}
+
+function updateTimelineCursor(videoTime) {
+  const cursor = document.getElementById('tlCursor');
+  if (!cursor) return;
+  const totalWorkout = Math.max(...state.segments.map(s => s.endTime));
+  const wt = videoToWorkout(videoTime);
+  const tl = document.getElementById('timeline');
+  cursor.style.left = ((wt / totalWorkout) * tl.clientWidth) + 'px';
+}
+
+function selectSegment(i) {
+  if (i < 0 || i >= state.segments.length) return;
+  state.selectedIdx = i;
+  const seg = state.segments[i];
+  document.getElementById('segName').value = seg.name;
+  document.getElementById('segStart').value = seg.startTime.toFixed(3);
+  document.getElementById('segEnd').value = seg.endTime.toFixed(3);
+  renderSegList();
+  renderTimeline();
+}
+
+function setStartToVideo() {
+  if (state.selectedIdx < 0) return;
+  const v = document.getElementById('editVideo');
+  const newStart = videoToWorkout(v.currentTime);
+  setSegmentStart(state.selectedIdx, newStart);
+}
+
+function setEndToVideo() {
+  if (state.selectedIdx < 0) return;
+  const v = document.getElementById('editVideo');
+  const newEnd = videoToWorkout(v.currentTime);
+  setSegmentEnd(state.selectedIdx, newEnd);
+}
+
+function setSegmentStart(i, newStart) {
+  const seg = state.segments[i];
+  newStart = Math.round(newStart * 1000) / 1000;
+  if (newStart >= seg.endTime) { alert('Start must be before end.'); return; }
+  seg.startTime = newStart;
+  seg.modified = true;
+  // Share boundary: previous segment's end follows
+  if (i > 0) {
+    state.segments[i - 1].endTime = newStart;
+    state.segments[i - 1].modified = true;
+  }
+  selectSegment(i);
+}
+
+function setSegmentEnd(i, newEnd) {
+  const seg = state.segments[i];
+  newEnd = Math.round(newEnd * 1000) / 1000;
+  if (newEnd <= seg.startTime) { alert('End must be after start.'); return; }
+  seg.endTime = newEnd;
+  seg.modified = true;
+  // Share boundary: next segment's start follows
+  if (i < state.segments.length - 1) {
+    state.segments[i + 1].startTime = newEnd;
+    state.segments[i + 1].modified = true;
+  }
+  selectSegment(i);
+}
+
+function onStartInput() {
+  if (state.selectedIdx < 0) return;
+  setSegmentStart(state.selectedIdx, parseFloat(document.getElementById('segStart').value));
+}
+function onEndInput() {
+  if (state.selectedIdx < 0) return;
+  setSegmentEnd(state.selectedIdx, parseFloat(document.getElementById('segEnd').value));
+}
+function onNameInput() {
+  if (state.selectedIdx < 0) return;
+  const newName = document.getElementById('segName').value.trim();
+  if (!newName) return;
+  const seg = state.segments[state.selectedIdx];
+  if (seg.name !== newName) { seg.name = newName; seg.modified = true; }
+  renderSegList();
+  renderTimeline();
+}
+
+function handleHotkey(e) {
+  if (e.target.tagName === 'INPUT') return;
+  const v = document.getElementById('editVideo');
+  switch (e.key) {
+    case ' ':
+      e.preventDefault();
+      if (v.paused) v.play(); else v.pause();
+      break;
+    case 'j': case 'J': v.currentTime = Math.max(0, v.currentTime - 1); break;
+    case 'l': case 'L': v.currentTime = v.currentTime + 1; break;
+    case ',': v.currentTime = Math.max(0, v.currentTime - 1 / state.fps); break;
+    case '.': v.currentTime = v.currentTime + 1 / state.fps; break;
+    case '[': e.preventDefault(); setStartToVideo(); break;
+    case ']': e.preventDefault(); setEndToVideo(); break;
+    case 'ArrowUp':
+      e.preventDefault();
+      selectSegment(Math.max(0, state.selectedIdx - 1));
+      break;
+    case 'ArrowDown':
+      e.preventDefault();
+      selectSegment(Math.min(state.segments.length - 1, state.selectedIdx + 1));
+      break;
+    case 'Enter':
+      e.preventDefault();
+      if (state.selectedIdx >= 0) {
+        v.currentTime = workoutToVideo(state.segments[state.selectedIdx].startTime);
+      }
+      break;
+  }
+}
+
+function exportJson() {
+  // Rebuild the workout JSON with updated startTime/endTime/result
+  const out = JSON.parse(JSON.stringify(state.workoutJson));
+  const round = out.roundResults[0];
+  round.exerciseResults.forEach((ex, i) => {
+    const seg = state.segments[i];
+    ex.startTime = round3(seg.startTime);
+    ex.endTime = round3(seg.endTime);
+    ex.result = round3(seg.endTime - seg.startTime);
+    ex.name = seg.name;
+  });
+  // Update round timing
+  round.startTime = round3(state.segments[0].startTime);
+  round.endTime = round3(state.segments[state.segments.length - 1].endTime);
+  out.startTime = round.startTime;
+  out.endTime = round.endTime;
+
+  // Embed sync metadata as a sibling
+  const bundle = {
+    workout: out,
+    sync: {
+      offset: round3(state.syncOffset),
+      claps_workout_time: state.clapsWorkoutTime.map(round3),
+      video_file: state.videoFile.name,
+      generated_at: new Date().toISOString(),
+    },
+  };
+
+  const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  const baseName = state.jsonFile.name.replace(/\.json$/i, '');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${baseName}.aligned.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 0);
+}
+
+function round3(x) { return Math.round(x * 1000) / 1000; }
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+// Reset
+document.getElementById('btnReset').addEventListener('click', () => {
+  if (confirm('Reset everything and reload?')) location.reload();
+});
+
+window.addEventListener('resize', () => {
+  if (!document.getElementById('screenEdit').classList.contains('hidden')) {
+    renderTimeline();
+  }
+});
+</script>
+</body>
+</html>
