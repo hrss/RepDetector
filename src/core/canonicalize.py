@@ -1,9 +1,9 @@
 """
 Canonicalization: device-native IMU frames -> a single canonical body frame.
 
-CANONICAL FRAME (watch on LEFT wrist, screen up, arm hanging at side, palm facing thigh):
+CANONICAL FRAME (watch on RIGHT wrist, screen up, arm hanging at side, palm facing thigh):
     +X = distal     (toward fingers)
-    +Y = ulnar      (toward pinky side)
+    +Y = ulnar      (toward pinky side — the LEFT side of the watch body on a right wrist)
     +Z = out of screen (away from skin)
 
 Gyro sign convention: right-handed about each canonical axis.
@@ -12,9 +12,9 @@ Units after canonicalization: accel in g, gyro in rad/s.
 IMPORTANT — empirical validation:
     The rotation matrices below are HYPOTHESES based on documented device frames.
     They MUST be validated with a calibration recording before training. The
-    recommended protocol is in `validate_calibration()` at the bottom of this file.
-    If a model trained on canonicalized data shows device-specific failure modes,
-    a wrong rotation is your prime suspect.
+    recommended protocol is in `validate_calibration_protocol()` at the bottom of
+    this file. If a model trained on canonicalized data shows device-specific
+    failure modes, a wrong rotation is your prime suspect.
 """
 
 from __future__ import annotations
@@ -36,8 +36,9 @@ Crown = Literal["left", "right"]  # Apple only; which side of the watch the crow
 # Standard gravity, for optional g <-> m/s^2 conversions.
 G_MS2 = 9.80665
 
+
 # ---------------------------------------------------------------------------
-# Device-native -> "left-wrist canonical" rotation matrices
+# Device-native -> "right-wrist canonical" rotation matrices
 # ---------------------------------------------------------------------------
 #
 # Each matrix R is applied as: canonical = R @ native, where native and canonical
@@ -45,109 +46,104 @@ G_MS2 = 9.80665
 # both are vectors in the same body frame (gyro is a pseudovector but rotates
 # the same way under proper rotations; we are not doing reflections here).
 #
-# Apple Watch CMDeviceMotion frame (per Apple docs, watch worn left wrist, screen up):
-#   +X = toward the crown (right side of watch body, which is ulnar side on left wrist)
+# Apple Watch CMDeviceMotion frame (per Apple docs, watch worn RIGHT wrist, screen up,
+# crown on LEFT side of watch body — Apple's default for right-wrist wear):
+#   +X = toward the crown (left side of watch body = ulnar side on right wrist)
 #   +Y = toward the top of the screen (distal, toward fingers)
 #   +Z = out of the screen (away from skin)
 #
-# To map Apple-native -> canonical (distal, ulnar, out-of-screen):
-#   canonical_X (distal)   = native_Y
-#   canonical_Y (ulnar)    = native_X
-#   canonical_Z (out)      = native_Z
+# Canonical frame (right wrist): distal=+X, ulnar=+Y (pinky side), out=+Z
 #
-# That is a swap of X and Y. NOTE: this is a reflection (det = -1), which would
-# flip gyro signs incorrectly. We instead use a proper rotation by also flipping
-# one axis. Convention here: canonical_Y = native_X (no flip) requires us to
-# flip another axis to keep det = +1. We'll flip Z (canonical_Z = -native_Z)
-# only if the determinant check fails — but the swap (X<->Y) alone IS a
-# reflection. To keep a proper rotation, the correct mapping is:
-#   canonical = [[0, 1, 0], [1, 0, 0], [0, 0, 1]] @ native   -> det = -1 (BAD)
-#   canonical = [[0, 1, 0], [-1, 0, 0], [0, 0, 1]] @ native  -> det = +1 (90° about Z)
+# Mapping Apple-native -> canonical:
+#   canonical_X (distal)   = native_Y  (top of screen = toward fingers)
+#   canonical_Y (ulnar)    = native_X  (toward crown = toward pinky on right wrist)
+#   canonical_Z (out)      = native_Z  (out of screen, unchanged)
 #
-# Using the rotation form: 90° clockwise about +Z when viewed from +Z.
-# Verify by hand: native +Y (toward top of screen / fingers) -> canonical +X. Good.
-#                 native +X (toward crown / ulnar)           -> canonical -Y? That's wrong;
-#                 we want canonical +Y on left wrist.
+# Pure swap of X and Y: det = -1, a reflection. To keep a proper rotation we
+# note that native_X (toward crown) IS toward pinky on the right wrist when the
+# crown is on the left side, but we need to verify the sign. The swap form:
+#   [[0,1,0],[1,0,0],[0,0,1]]  det=-1  (reflection — bad for pseudovectors)
+# The proper-rotation nearest equivalent, 90° CCW about +Z:
+#   [[0,1,0],[-1,0,0],[0,0,1]] det=+1
+#   maps native_Y -> canonical_X ✓, native_X -> canonical_-Y ✗ (wrong ulnar sign)
+# So the correct proper rotation is 90° CW about +Z:
+#   [[0,-1,0],[1,0,0],[0,0,1]] det=+1
+#   maps native_Y -> canonical_-X ✗ (wrong distal sign)
 #
-# So neither pure rotation nor pure reflection trivially works without thinking
-# about WHICH wrist the watch is on. The "Apple X = toward crown" depends on
-# crown position (Digital Crown can be on left or right side of the watch body
-# via the user's setting). Below we account for that with `crown`.
+# Neither 90° rotation gives us both signs right, because the physical mapping
+# IS a reflection (relabeling two axes without flipping either). The resolution:
+# we accept the reflection matrix for Apple's axis relabeling. Applying the same
+# reflection to gyro is correct here because we are relabeling axes of the SAME
+# physical right-handed frame, not changing its handedness. The gyro pseudovector
+# transforms identically to accel under such a relabeling.
 #
-# Decision: we define the apple_watch matrix for the canonical case
-#   (left wrist, crown on RIGHT side of watch body — Apple's default).
-# Then `wrist` and `crown` are handled by additional rotations composed on top.
+# Apple default = right wrist, crown on LEFT side of watch body.
 APPLE_DEFAULT_TO_CANONICAL = np.array(
     [
-        [0.0, 1.0, 0.0],  # canonical X (distal) = native Y (top of screen)
-        [1.0, 0.0, 0.0],
-        # canonical Y (ulnar)  = native X (toward crown, which is ulnar on left wrist w/ crown on right)
-        [0.0, 0.0, 1.0],  # canonical Z (out)    = native Z (out of screen)
+        [0.0, 1.0, 0.0],  # canonical X (distal)  = native Y (top of screen)
+        [1.0, 0.0, 0.0],  # canonical Y (ulnar)   = native X (toward crown = pinky on right wrist)
+        [0.0, 0.0, 1.0],  # canonical Z (out)     = native Z (out of screen)
     ],
     dtype=np.float64,
 )
-# det = -1: this is a reflection. We accept this here ONLY because it represents
-# the relationship between two right-handed frames where the axis *labels* differ
-# but the physical handedness is the same. For gyro to come out right, we apply
-# the same transform to gyro (it's a pseudovector but we're not changing handedness
-# of the physical frame, only relabeling axes — so the same R applies).
-# TODO: verify gyro signs on a known rotation (e.g., turning the wrist palm-up).
+# det = -1: accepted reflection — see explanation above.
+# TODO: verify gyro signs empirically (slow wrist-rotation-supination recording).
 
 # Garmin frame: this varies by device family and firmware. For most modern
 # Garmin wrist watches with the IMU exposed via FIT developer data:
-#   +X = toward the top of the watch (distal on left wrist)
-#   +Y = toward the right side of the watch body (ulnar on left wrist if buttons on right)
+#   +X = toward the top of the watch (distal on right wrist)
+#   +Y = toward the left side of the watch body (ulnar / pinky side on right wrist)
 #   +Z = out of the screen
-# This means Garmin native ~= canonical (for left wrist, default button orientation).
+# This means Garmin native ~= canonical (for right wrist, default button orientation).
 GARMIN_DEFAULT_TO_CANONICAL = np.eye(3, dtype=np.float64)
 # TODO: VERIFY. Garmin's IMU axis convention is poorly documented and varies
-# between Fenix, Forerunner, Venu, etc. Do a calibration recording per model.
+# between Fenix, Forerunner, Venu, etc. Do a calibration recording per device model.
 
 
 # ---------------------------------------------------------------------------
 # Wrist + crown adjustments
 # ---------------------------------------------------------------------------
 
-# Right wrist: the watch is rotated 180° about the distal axis (canonical +X)
-# compared to left wrist, because the screen now faces the OTHER direction
-# relative to the body's midline. Concretely: ulnar direction flips, and
-# out-of-screen direction flips.
+# Left wrist: relative to the right-wrist canonical frame, wearing the watch on
+# the left wrist rotates it 180° about the distal axis (+X). The screen now faces
+# the opposite direction relative to the body's midline, flipping ulnar and out-of-screen.
 #
-# Rotation by 180° about +X: diag(1, -1, -1). det = +1, proper rotation. Good.
-RIGHT_WRIST_FLIP = np.diag([1.0, -1.0, -1.0]).astype(np.float64)
+# Rotation by 180° about +X: diag(1, -1, -1). det = +1, proper rotation.
+LEFT_WRIST_FLIP = np.diag([1.0, -1.0, -1.0]).astype(np.float64)
 
-# Crown-on-left (Apple, user wears watch "upside down" relative to default):
+# Crown-on-RIGHT for Apple (user wears watch with crown on right side of body,
+# i.e. "upside down" relative to the right-wrist default where crown is on left):
 # The watch body is rotated 180° about the out-of-screen axis (native Z).
 # Rotation by 180° about Z: diag(-1, -1, 1). det = +1.
-CROWN_LEFT_FLIP_NATIVE = np.diag([-1.0, -1.0, 1.0]).astype(np.float64)
+CROWN_RIGHT_FLIP_NATIVE = np.diag([-1.0, -1.0, 1.0]).astype(np.float64)
 
 
 def rotation_for(device: Device, wrist: Wrist, crown: Crown | None) -> np.ndarray:
     """
     Build the full 3x3 transform from device-native axes to canonical axes,
     accounting for wrist side and (for Apple) crown side.
+
+    Canonical frame: right wrist, crown on LEFT (Apple default for right-wrist wear).
     """
     if device == "apple_watch":
         base = APPLE_DEFAULT_TO_CANONICAL.copy()
         # Apply crown adjustment in NATIVE frame BEFORE the base rotation.
-        # If crown is on the left, pre-multiply native by the crown flip.
-        if crown == "left":
-            base = base @ CROWN_LEFT_FLIP_NATIVE
-        elif crown not in ("right", None):
+        # Default is crown-on-left (right wrist). Crown-on-right needs a native flip.
+        if crown == "right":
+            base = base @ CROWN_RIGHT_FLIP_NATIVE
+        elif crown not in ("left", None):
             raise ValueError(f"Unknown crown position: {crown!r}")
     elif device == "garmin":
         base = GARMIN_DEFAULT_TO_CANONICAL.copy()
-        if crown is not None:
-            # Garmin doesn't have a configurable crown side in the same sense;
-            # silently ignore but warn-worthy in logs.
-            pass
+        # Garmin doesn't expose a configurable crown side; crown argument is ignored.
     else:
         raise ValueError(f"Unknown device: {device!r}")
 
     # Apply wrist adjustment in CANONICAL frame AFTER the base rotation.
-    if wrist == "right":
-        full = RIGHT_WRIST_FLIP @ base
-    elif wrist == "left":
+    # Right wrist is the canonical default — no adjustment needed.
+    if wrist == "left":
+        full = LEFT_WRIST_FLIP @ base
+    elif wrist == "right":
         full = base
     else:
         raise ValueError(f"Unknown wrist: {wrist!r}")
@@ -209,9 +205,9 @@ def garmin_fit_spec(wrist: Wrist) -> CanonicalizeSpec:
 
 
 def canonicalize_array(
-        accel_xyz: np.ndarray,
-        gyro_xyz: np.ndarray,
-        spec: CanonicalizeSpec,
+    accel_xyz: np.ndarray,
+    gyro_xyz: np.ndarray,
+    spec: CanonicalizeSpec,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Transform (N, 3) accel and gyro arrays from device-native frame to canonical
@@ -240,11 +236,11 @@ def canonicalize_array(
 
 
 def canonicalize_dataframe(
-        df: pd.DataFrame,
-        spec: CanonicalizeSpec,
-        accel_cols: tuple[str, str, str] = ("acc_x", "acc_y", "acc_z"),
-        gyro_cols: tuple[str, str, str] = ("gyro_x", "gyro_y", "gyro_z"),
-        inplace: bool = False,
+    df: pd.DataFrame,
+    spec: CanonicalizeSpec,
+    accel_cols: tuple[str, str, str] = ("acc_x", "acc_y", "acc_z"),
+    gyro_cols: tuple[str, str, str] = ("gyro_x", "gyro_y", "gyro_z"),
+    inplace: bool = False,
 ) -> pd.DataFrame:
     """
     Canonicalize the six IMU columns of a DataFrame. Returns a new DataFrame
@@ -280,44 +276,34 @@ def _assert_proper_rotation_or_reflection(R: np.ndarray, name: str) -> None:
 def selftest() -> None:
     """Run on import / from CLI to catch matrix typos."""
     for d, w, c in [
-        ("apple_watch", "left", "right"),
-        ("apple_watch", "left", "left"),
+        ("apple_watch", "right", "left"),   # canonical default
         ("apple_watch", "right", "right"),
-        ("apple_watch", "right", "left"),
-        ("garmin", "left", None),
+        ("apple_watch", "left", "left"),
+        ("apple_watch", "left", "right"),
         ("garmin", "right", None),
+        ("garmin", "left", None),
     ]:
         R = rotation_for(d, w, c)
         _assert_proper_rotation_or_reflection(R, f"{d}/{w}/{c}")
 
-    # Round-trip: gravity pointing along native -Z (watch lying face-up on table,
-    # screen up) should give canonical accel ~= (0, 0, +1g) regardless of device
-    # or wrist. Note: Apple/Garmin both report gravity as +Z when face-up because
-    # the accelerometer measures the reaction force (specific force), so a watch
-    # at rest face-up reads +1g on its Z axis.
-    rest_accel = np.array([[0.0, 0.0, 1.0]])  # 1g out of screen
+    # Sanity: a watch lying face-up on a table reads native accel ~(0, 0, +1g) on
+    # both devices. We don't assert what each spec produces here (the wrist flip
+    # is meant for WORN orientations, not table-flat orientations — see the
+    # calibration protocol). Just verify shapes and that no spec crashes.
+    rest_accel = np.array([[0.0, 0.0, 1.0]])
     rest_gyro = np.array([[0.0, 0.0, 0.0]])
     for spec in [
-        apple_imubin_spec("left", "right"),
+        apple_imubin_spec("right", "left"),
         apple_imubin_spec("right", "right"),
-        garmin_fit_spec("left"),
         garmin_fit_spec("right"),
+        garmin_fit_spec("left"),
     ]:
-        a, _ = canonicalize_array(rest_accel, rest_gyro, spec)
-        # Canonical Z should still be ~+1g (screen still faces up; canonical Z
-        # is "out of screen, away from skin" which equals "up" when the watch
-        # is on a table).
-        # BUT: for right-wrist, our convention says canonical Z flips because
-        # the watch is "facing the other way" when worn — except when it's on
-        # a TABLE face-up, both wrists give the same physical orientation.
-        # This is a subtle point: the wrist flip is meant to handle the case
-        # when the watch is being WORN. A table calibration on either wrist
-        # spec should show the SAME canonical output (a clue that wrist info
-        # alone is insufficient — you also need to know if the watch is on a
-        # wrist or a table).
-        # For a worn calibration (arm-hanging-at-side), things work out.
-        # We don't assert anything specific here, just verify no crashes.
-        assert a.shape == (1, 3)
+        a, g = canonicalize_array(rest_accel, rest_gyro, spec)
+        assert a.shape == (1, 3), f"Shape error for {spec}"
+        assert g.shape == (1, 3), f"Shape error for {spec}"
+
+    # Verify left-wrist flip is the inverse of itself (applying twice = identity).
+    assert np.allclose(LEFT_WRIST_FLIP @ LEFT_WRIST_FLIP, np.eye(3))
 
     print("canonicalize.selftest: OK")
 
@@ -327,29 +313,48 @@ def validate_calibration_protocol() -> str:
     return """
 EMPIRICAL CALIBRATION PROTOCOL
 ==============================
+Canonical frame: RIGHT wrist, crown on LEFT side of watch body (Apple default).
+  +X = distal (toward fingers)
+  +Y = ulnar  (toward pinky — the LEFT side of the watch body on a right wrist)
+  +Z = out of screen (away from skin)
+
+SIGN CONVENTION REMINDER:
+  The accelerometer measures SPECIFIC FORCE (the reaction force on the sensor),
+  which points OPPOSITE to gravitational acceleration. At rest on a table,
+  with gravity pulling the device DOWN, the accelerometer reads UP (+1g away
+  from the earth). So at rest in any pose, the accel vector points AWAY from
+  the earth, in canonical body coordinates.
+
 For each (device, wrist, crown) combination you plan to support:
 
 1. Wear the watch in the specified configuration.
-2. Start recording.
-3. Stand with arm hanging straight down at your side, palm facing your thigh.
-   Hold still for 5 seconds. (Expected canonical accel: ~[0, 0, +1g] — wait,
-   actually with arm hanging down, gravity points along -X canonical (proximal).
-   So expected: accel ~ [-1g, 0, 0].)
-4. Raise your arm straight forward (palm down), hold 5s.
-   (Gravity now along -Z canonical: accel ~ [0, 0, -1g])
-5. Raise your arm straight to the side, palm forward, hold 5s.
-   (Depends on wrist; verify against your derivation)
-6. Slowly rotate wrist palm-up then palm-down over 3 seconds.
-   (Should produce a clean +/- gyro_X canonical signal)
-7. Stop recording.
+2. Stand upright, arm hanging straight down, palm facing your thigh. Hold 5s.
+   Physically: hand points toward earth, so +X (distal) points toward earth.
+   Accel reads OPPOSITE = away from earth = -X.
+   Expected canonical accel: ~(-1g, 0, 0)
+3. Raise arm straight forward, palm facing DOWN. Hold 5s.
+   Physically: screen faces up (away from earth), so +Z (out-of-screen) points
+   away from earth. Accel reads in that same direction.
+   Expected canonical accel: ~(0, 0, +1g)
+4. Raise arm straight to the side (abduction), palm facing FORWARD. Hold 5s.
+   Physically: on the RIGHT wrist with palm forward, +Y (ulnar / pinky) points
+   toward earth (pinky is on the underside of the arm). Accel reads opposite.
+   Expected canonical accel: ~(0, -1g, 0) on RIGHT wrist
+                             ~(0, -1g, 0) on LEFT wrist  (canonical frame is wrist-agnostic
+                                                          AFTER canonicalization — that's
+                                                          the whole point. If you get +1g
+                                                          on one wrist and -1g on the other,
+                                                          the wrist flip is wrong.)
+5. Slowly pronate then supinate the wrist (palm-down -> palm-up) over ~3 seconds.
+   Expected: gyro_X dominant, clean sinusoid; gyro_Y and gyro_Z near zero.
 
-Then run canonicalize on the recording and confirm:
-- Steps 3-5: accel magnitude is ~1g, direction matches expectations above.
-- Step 6: gyro_X has a clear sinusoidal shape; gyro_Y and gyro_Z stay near zero.
+Run canonicalize on the recording and confirm:
+- Static poses (steps 2-4): accel magnitude ~1g, direction matches above.
+- Dynamic pose (step 5): gyro_X dominant signal, other axes quiet.
 
-Repeat across all wrist/crown combos. Right-wrist data should produce the
-SAME canonical signals as left-wrist data for the same physical motion.
-If it doesn't, the rotation matrices are wrong.
+Importantly: repeat for both wrists and confirm the SAME physical motion produces
+the SAME canonical signal. If left-wrist and right-wrist disagree on the sign of
+any canonical axis for the same pose, the LEFT_WRIST_FLIP matrix is wrong.
 """
 
 
