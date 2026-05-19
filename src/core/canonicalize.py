@@ -36,7 +36,8 @@ Crown = Literal["left", "right"]  # Apple only; which side of the watch the crow
 # Standard gravity, for optional g <-> m/s^2 conversions.
 G_MS2 = 9.80665
 
-
+# Canonical frame is right wrist, Z out of screen (out positive, in negative), Y ulnar (towards bottom of screen is positive), X is distal (towards fingers is positive)
+# On gyro, same axis convention, X, Y, and Z are positive clockwise looking to the positive direction
 # ---------------------------------------------------------------------------
 # Device-native -> "right-wrist canonical" rotation matrices
 # ---------------------------------------------------------------------------
@@ -45,18 +46,11 @@ G_MS2 = 9.80665
 # are column vectors [x, y, z]. Same R is used for both accel and gyro because
 # both are vectors in the same body frame (gyro is a pseudovector but rotates
 # the same way under proper rotations; we are not doing reflections here).
-#
-# Apple Watch CMDeviceMotion frame (per Apple docs, watch worn RIGHT wrist, screen up,
-# crown on LEFT side of watch body — Apple's default for right-wrist wear):
-#   +X = toward the crown (left side of watch body = ulnar side on right wrist)
-#   +Y = toward the top of the screen (distal, toward fingers)
-#   +Z = out of the screen (away from skin)
-#
-# Canonical frame (right wrist): distal=+X, ulnar=+Y (pinky side), out=+Z
+
 #
 # Mapping Apple-native -> canonical:
-#   canonical_X (distal)   = native_Y  (top of screen = toward fingers)
-#   canonical_Y (ulnar)    = native_X  (toward crown = toward pinky on right wrist)
+#   canonical_X (distal)   = native_X  (top of screen = toward fingers)
+#   canonical_Y (ulnar)    = native_Y  (toward crown = toward pinky on right wrist)
 #   canonical_Z (out)      = native_Z  (out of screen, unchanged)
 #
 # Pure swap of X and Y: det = -1, a reflection. To keep a proper rotation we
@@ -78,11 +72,12 @@ G_MS2 = 9.80665
 # transforms identically to accel under such a relabeling.
 #
 # Apple default = right wrist, crown on LEFT side of watch body.
+# It's identical to canonical.
 APPLE_DEFAULT_TO_CANONICAL = np.array(
     [
-        [0.0, 1.0, 0.0],  # canonical X (distal)  = native Y (top of screen)
-        [1.0, 0.0, 0.0],  # canonical Y (ulnar)   = native X (toward crown = pinky on right wrist)
-        [0.0, 0.0, 1.0],  # canonical Z (out)     = native Z (out of screen)
+        [1.0, 0.0, 0.0],  # canonical X (distal)
+        [0.0, 1.0, 0.0],  # canonical Y (ulnar)
+        [0.0, 0.0, 1.0],  # canonical Z (out)
     ],
     dtype=np.float64,
 )
@@ -95,8 +90,14 @@ APPLE_DEFAULT_TO_CANONICAL = np.array(
 #   +Y = toward the left side of the watch body (ulnar / pinky side on right wrist)
 #   +Z = out of the screen
 # This means Garmin native ~= canonical (for right wrist, default button orientation).
-GARMIN_DEFAULT_TO_CANONICAL = np.eye(3, dtype=np.float64)
-# TODO: VERIFY. Garmin's IMU axis convention is poorly documented and varies
+GARMIN_DEFAULT_TO_CANONICAL  = np.array(
+    [
+        [-1.0, 0.0, 0.0],  # canonical X (distal)
+        [0.0, -1.0, 0.0],  # canonical Y (ulnar)
+        [0.0, 0.0, 1.0],  # canonical Z (out)
+    ],
+    dtype=np.float64,
+)
 # between Fenix, Forerunner, Venu, etc. Do a calibration recording per device model.
 
 
@@ -105,11 +106,11 @@ GARMIN_DEFAULT_TO_CANONICAL = np.eye(3, dtype=np.float64)
 # ---------------------------------------------------------------------------
 
 # Left wrist: relative to the right-wrist canonical frame, wearing the watch on
-# the left wrist rotates it 180° about the distal axis (+X). The screen now faces
-# the opposite direction relative to the body's midline, flipping ulnar and out-of-screen.
+# the left wrist rotates it 180° about the out of screen axis (+Z) but the movement should be mirrored.
+# This means that only the x axis flips
 #
-# Rotation by 180° about +X: diag(1, -1, -1). det = +1, proper rotation.
-LEFT_WRIST_FLIP = np.diag([1.0, -1.0, -1.0]).astype(np.float64)
+# Rotation by 180° about +X: diag(-1, -1, 1). det = +1, proper rotation.
+LEFT_WRIST_FLIP = np.diag([-1.0, 1.0, 1.0]).astype(np.float64)
 
 # Crown-on-RIGHT for Apple (user wears watch with crown on right side of body,
 # i.e. "upside down" relative to the right-wrist default where crown is on left):
@@ -335,7 +336,7 @@ For each (device, wrist, crown) combination you plan to support:
 3. Raise arm straight forward, palm facing DOWN. Hold 5s.
    Physically: screen faces up (away from earth), so +Z (out-of-screen) points
    away from earth. Accel reads in that same direction.
-   Expected canonical accel: ~(0, 0, +1g)
+   Expected canonical accel: ~(0, 0, +1g),
 4. Raise arm straight to the side (abduction), palm facing FORWARD. Hold 5s.
    Physically: on the RIGHT wrist with palm forward, +Y (ulnar / pinky) points
    toward earth (pinky is on the underside of the arm). Accel reads opposite.
