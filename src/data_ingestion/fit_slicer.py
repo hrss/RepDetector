@@ -9,12 +9,13 @@ Wire format (per RECORD frame, one per second):
   gyro_hi:     UINT8  × 19, high 2 bits of each axis sample, packed sequentially
                             bits 6N..6N+5 = (Z<<4)|(Y<<2)|X for sample N
   Scaler = 1.0, so stored SINT10 IS deg/s.
+  We convert to rad/s for output.
 
 Output CSV schema:
   rel_time, acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z
   - rel_time: seconds since first sample (float)
   - acc_*:    g
-  - gyro_*:   deg/s
+  - gyro_*:   rad/s
 """
 
 import os
@@ -29,6 +30,7 @@ import fitdecode
 SAMPLE_RATE = 25
 ACCEL_DIVISOR = 1000.0   # mg -> g
 GYRO_HI_BYTES = 19       # ceil(25 * 6 / 8)
+DEG_TO_RAD = np.pi / 180.0
 
 
 # ---------------------------------------------------------------------------
@@ -72,11 +74,12 @@ def _unpack_gyro_hi(hi_bytes):
 
 
 def _decode_gyro_sint10(lo, hi2):
-    """Reconstruct SINT10 -> deg/s (scaler 1.0)."""
+    """Reconstruct SINT10 -> rad/s."""
     lo = np.asarray(lo, dtype=np.uint16)
     hi2 = np.asarray(hi2, dtype=np.uint16)
     biased = (hi2 << 8) | lo                  # uint10 in [0, 1023]
-    return (biased.astype(np.int16) - 512).astype(np.float32)
+    deg_per_s = (biased.astype(np.int16) - 512).astype(np.float32)
+    return deg_per_s * DEG_TO_RAD
 
 
 def _as_list(value):
@@ -168,7 +171,7 @@ def extract_raw_fit_data(fit_path):
     Read a FIT file and return a DataFrame of raw IMU samples on a uniform
     25 Hz grid:
         rel_time, acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z
-    Units: acc in g, gyro in deg/s, time in seconds from first sample.
+    Units: acc in g, gyro in rad/s, time in seconds from first sample.
 
     Gaps in the source data (None bytes from FIT-layer "invalid" sentinels)
     are filled by linear interpolation; boundary gaps use nearest-neighbor.
