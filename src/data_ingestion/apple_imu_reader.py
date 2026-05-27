@@ -24,6 +24,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.ticker as ticker
 
 HEADER_SIZE = 48
 SAMPLE_SIZE = 36
@@ -269,7 +270,33 @@ def plot(
 
         ax.set_ylabel(f"{label}\n({unit})", fontsize=8)
         ax.grid(True, alpha=0.25)
+        ax.grid(True, which="minor", alpha=0.1, linestyle=":")
         ax.axhline(0, color="gray", linewidth=0.4, alpha=0.5)
+
+    # Granular x-axis ticks
+    if x_mode in ("time", "workout"):
+        duration = x[-1] - x[0]
+        if duration > 0:
+            # Aim for ~20-40 major ticks
+            # Common intervals: 1, 2, 5, 10, 30, 60, 120, 300, 600...
+            potential_intervals = [1, 2, 5, 10, 30, 60, 120, 300, 600, 1200, 1800, 3600]
+            interval = 5
+            for pi in potential_intervals:
+                if duration / pi <= 40:
+                    interval = pi
+                    break
+            
+            axes[-1].xaxis.set_major_locator(ticker.MultipleLocator(interval))
+            minor_interval = interval / 5
+            if minor_interval >= 1:
+                axes[-1].xaxis.set_minor_locator(ticker.MultipleLocator(minor_interval))
+            else:
+                axes[-1].xaxis.set_minor_locator(ticker.AutoMinorLocator())
+    elif x_mode == "index":
+        # For sample index, maybe every 1000 or 5000 depending on duration
+        # but let's stick to 1000 if it's not too crowded
+        axes[-1].xaxis.set_major_locator(ticker.AutoLocator())
+        axes[-1].xaxis.set_minor_locator(ticker.AutoMinorLocator())
 
     # Rep number labels on the top subplot
     if reps:

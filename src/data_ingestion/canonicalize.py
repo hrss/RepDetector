@@ -2,9 +2,10 @@
 Canonicalization: device-native IMU frames -> a single canonical body frame.
 
 CANONICAL FRAME (watch on RIGHT wrist, screen up, arm hanging at side, palm facing thigh):
-    +X = distal     (toward fingers)
+    In the canonical frame, the normal force is:
+    +X = proximal     (toward elbow, away from crown on default apple)
     +Y = ulnar      (toward pinky side — the LEFT side of the watch body on a right wrist)
-    +Z = out of screen (away from skin)
+    +Z = towards screen
 
 Gyro sign convention: right-handed about each canonical axis (positive rotation
 is clockwise when viewed looking in the +axis direction).
@@ -81,12 +82,10 @@ GARMIN_DEFAULT_TO_CANONICAL = np.diag([-1.0, -1.0, 1.0]).astype(np.float64)
 # (det = -1), not a proper rotation, because switching wrists really IS a
 # mirror operation on the body — left and right arms are mirror images.
 #
-# A right-wrist motion's mirror on the left wrist is a reflected motion, and
-# accel/gyro both reflect identically as long as we apply the same matrix to
-# both. The pseudovector subtlety doesn't bite us because we're not changing
-# the handedness of the SENSOR frame — we're describing the same physical
-# motion in a mirrored BODY frame.
+# A right-wrist motion's mirror on the left wrist is a reflected motion.
 LEFT_WRIST_FLIP = np.diag([-1.0, 1.0, 1.0]).astype(np.float64)
+
+LEFT_WRIST_GYRO_FLIP = np.diag([1.0, -1.0, -1.0]).astype(np.float64)
 
 # Apple Watch crown-on-RIGHT: user has rotated the watch 180° on their wrist
 # compared to Apple's default orientation. This is a 180° rotation about the
@@ -95,7 +94,7 @@ LEFT_WRIST_FLIP = np.diag([-1.0, 1.0, 1.0]).astype(np.float64)
 CROWN_RIGHT_FLIP_NATIVE = np.diag([-1.0, -1.0, 1.0]).astype(np.float64)
 
 
-def rotation_for(device: Device, wrist: Wrist, crown: Crown | None) -> np.ndarray:
+def rotation_for(device: Device, wrist: Wrist, crown: Crown | None, flip_gyro: bool = False) -> np.ndarray:
     """
     Build the full 3x3 transform from device-native axes to canonical axes,
     accounting for wrist side and (for Apple) crown side.
@@ -120,7 +119,10 @@ def rotation_for(device: Device, wrist: Wrist, crown: Crown | None) -> np.ndarra
         raise ValueError(f"Unknown device: {device!r}")
 
     if wrist == "left":
-        full = LEFT_WRIST_FLIP @ base
+        if flip_gyro:
+            full = LEFT_WRIST_GYRO_FLIP @ base
+        else:
+            full = LEFT_WRIST_FLIP @ base
     elif wrist == "right":
         full = base
     else:
@@ -171,7 +173,8 @@ def canonicalize_array(
     if gyro_xyz.shape != accel_xyz.shape:
         raise ValueError(f"gyro_xyz shape {gyro_xyz.shape} != accel_xyz shape {accel_xyz.shape}")
 
-    R = rotation_for(spec.device, spec.wrist, spec.crown)
+    R = rotation_for(spec.device, spec.wrist, spec.crown, False)
+    R = rotation_for(spec.device, spec.wrist, spec.crown, True)
 
     # Each row is a 3-vector; right-multiply by R.T to apply R to each row.
     a_canon = accel_xyz.astype(np.float64) @ R.T
