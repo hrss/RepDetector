@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi-track Exercise Labeler</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --panel: #252525;
+    --panel-2: #2f2f2f;
+    --border: #3a3a3a;
+    --text: #e8e8e8;
+    --text-dim: #999;
+    --accent: #4a9eff;
+    --accent-warm: #ff9a3c;
+    --success: #4ade80;
+    --danger: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 13px;
+    height: 100vh; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  button { font-family: inherit; }
+
+  /* ── Top bar ─────────────────────────────────────────────────── */
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 12px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .topbar .stage {
+    padding: 4px 10px; background: var(--panel-2); border-radius: 4px;
+    font-size: 12px; color: var(--text-dim);
+  }
+  .topbar .stage.active { color: var(--accent); }
+  .topbar .stage.done { color: var(--success); }
+  .topbar .file-info { font-size: 11px; color: var(--text-dim); margin-left: auto; }
+  .topbar button {
+    background: var(--accent); color: white; border: none;
+    padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;
+  }
+  .topbar button:hover { filter: brightness(1.15); }
+  .topbar button.secondary { background: var(--panel-2); color: var(--text); }
+
+  /* ── Loader ──────────────────────────────────────────────────── */
+  .loader { flex: 1; overflow: auto; padding: 32px 40px; }
+  .loader h1 { margin: 0 0 6px; font-weight: 500; font-size: 20px; }
+  .loader .subtitle { color: var(--text-dim); font-size: 13px; margin: 0 0 24px; }
+  .loader-grid { display: grid; grid-template-columns: 280px 1fr; gap: 28px; max-width: 1100px; }
+  .drop {
+    background: var(--panel); border: 1px dashed var(--border); border-radius: 8px;
+    padding: 22px; text-align: center; cursor: pointer; display: block;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .drop:hover, .drop.dragover { border-color: var(--accent); background: var(--panel-2); }
+  .drop.loaded { border-color: var(--success); border-style: solid; }
+  .drop .icon { font-size: 22px; margin-bottom: 6px; }
+  .drop .label { font-size: 12px; color: var(--text-dim); }
+  .drop .name { font-size: 11px; color: var(--text); margin-top: 6px; word-break: break-all; }
+  .drop input { display: none; }
+
+  .tracks-head { display: flex; align-items: center; margin-bottom: 10px; }
+  .tracks-head h3 { margin: 0; font-size: 14px; font-weight: 500; }
+  .tracks-head .spacer { flex: 1; }
+  .tracks-head button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;
+  }
+  .tracks-head button:hover { border-color: var(--accent); }
+
+  .track-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px; margin-bottom: 12px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: start;
+  }
+  .track-card .person-field { display: flex; flex-direction: column; gap: 4px; }
+  .track-card .person-field label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .track-card .person-field input {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; padding: 7px 8px; font-size: 13px;
+  }
+  .track-card .mini-drop {
+    background: var(--bg); border: 1px dashed var(--border); border-radius: 6px;
+    padding: 10px 8px; text-align: center; cursor: pointer; font-size: 11px; color: var(--text-dim);
+    transition: border-color 0.15s;
+  }
+  .track-card .mini-drop:hover, .track-card .mini-drop.dragover { border-color: var(--accent); }
+  .track-card .mini-drop.loaded { border-color: var(--success); border-style: solid; color: var(--text); }
+  .track-card .mini-drop .tag { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; display: block; margin-bottom: 3px; }
+  .track-card .mini-drop input { display: none; }
+  .track-card .remove-track {
+    background: transparent; color: var(--text-dim); border: 1px solid var(--border);
+    border-radius: 4px; cursor: pointer; padding: 6px 8px; font-size: 11px; align-self: center;
+  }
+  .track-card .remove-track:hover { color: var(--danger); border-color: var(--danger); }
+
+  .loader-footer { margin-top: 16px; display: flex; align-items: center; gap: 14px; }
+  .loader-footer button {
+    padding: 10px 24px; font-size: 14px; background: var(--accent); color: white;
+    border: none; border-radius: 6px; cursor: pointer;
+  }
+  .loader-footer button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── Sync ────────────────────────────────────────────────────── */
+  .sync-screen { flex: 1; padding: 24px; overflow: auto; }
+  .sync-screen h2 { font-weight: 500; margin: 0 0 4px; }
+  .sync-screen .hint { color: var(--text-dim); margin-bottom: 18px; max-width: 760px; line-height: 1.5; }
+  .sync-grid { display: grid; grid-template-columns: 460px 1fr; gap: 24px; align-items: start; }
+  .sync-video-panel { background: var(--panel); border-radius: 8px; padding: 16px; position: sticky; top: 0; }
+  .sync-video-panel h3 { margin: 0 0 10px; font-size: 14px; font-weight: 500; }
+  .sync-video-panel video { width: 100%; max-height: 300px; background: black; border-radius: 4px; }
+  .video-controls { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .video-controls button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: monospace;
+  }
+  .video-controls button:hover { background: var(--border); }
+  .time-display { font-family: monospace; font-size: 13px; color: var(--accent); padding: 8px 10px; background: var(--panel-2); border-radius: 4px; margin-top: 8px; }
+  .anchor-state { margin-top: 8px; font-size: 11px; color: var(--text-dim); }
+
+  .sync-track-row {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; margin-bottom: 12px;
+  }
+  .sync-track-row .row-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .sync-track-row .row-head .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .sync-track-row .row-head .nm { font-weight: 500; }
+  .sync-track-row .row-head .spacer { flex: 1; }
+  .sync-track-row .row-head .badge { font-size: 11px; font-family: monospace; color: var(--text-dim); }
+  .sync-track-row canvas { width: 100%; background: var(--bg); border-radius: 4px; display: block; }
+  .sync-set-row { display: flex; align-items: center; gap: 8px; margin: 4px 0 2px; }
+  .sync-set-row label { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+  .sync-set-row input {
+    width: 110px; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; padding: 6px 8px; font-family: monospace; font-size: 13px;
+  }
+  .sync-set-row button {
+    background: var(--accent); color: white; border: none; padding: 7px 12px;
+    border-radius: 4px; cursor: pointer; font-size: 12px;
+  }
+  .sync-set-row button:hover { filter: brightness(1.12); }
+  .spacer-flex { flex: 1; }
+  .sync-track-row .set-info { font-size: 11px; color: var(--text-dim); font-family: monospace; }
+  .sync-track-row .pred { font-size: 11px; color: var(--accent); font-family: monospace; margin-top: 6px; min-height: 14px; }
+  .sync-track-row .ctrls { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .sync-track-row .ctrls .offset-val { font-family: monospace; color: var(--accent-warm); min-width: 120px; }
+  .sync-track-row .ctrls button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 5px 9px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: monospace;
+  }
+  .sync-track-row .ctrls button:hover { background: var(--border); }
+  .sync-track-row .pred { font-size: 11px; color: var(--text-dim); margin-left: auto; font-family: monospace; }
+  .sync-footer { display: flex; gap: 12px; margin-top: 8px; }
+  .sync-footer button { padding: 11px 22px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .sync-footer .confirm { background: var(--success); color: black; }
+  .sync-footer .skip { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+
+  /* ── Editor ──────────────────────────────────────────────────── */
+  .edit-screen { flex: 1; display: grid; grid-template-columns: 1fr 380px; min-height: 0; }
+  .video-col { display: flex; flex-direction: column; background: var(--bg); min-height: 0; }
+  .video-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: black; min-height: 0; }
+  .video-wrap video { max-width: 100%; max-height: 100%; }
+  .controls-bar {
+    padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .controls-bar button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: monospace;
+  }
+  .controls-bar button:hover { background: var(--border); }
+  .controls-bar .spacer { flex: 1; }
+  .controls-bar .fps-field { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-dim); }
+  .controls-bar .fps-field input { width: 44px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font-family: monospace; }
+  .time-readout { font-family: monospace; font-size: 12px; display: flex; gap: 12px; }
+  .time-readout .label { color: var(--text-dim); }
+  .time-readout .v-time { color: var(--accent); }
+
+  /* Multi-lane timeline */
+  .timeline-area {
+    background: var(--panel); border-top: 1px solid var(--border);
+    position: relative; display: flex; flex-direction: column; flex-shrink: 0;
+    max-height: 46vh; overflow: hidden;
+  }
+  .ruler { height: 22px; position: relative; border-bottom: 1px solid var(--border); flex-shrink: 0; margin-left: 120px; }
+  .ruler .tick { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--border); }
+  .ruler .tick span { position: absolute; left: 3px; top: 4px; font-size: 9px; color: var(--text-dim); font-family: monospace; }
+  .lanes { position: relative; overflow-y: auto; flex: 1; }
+  .lane { display: flex; height: 54px; border-bottom: 1px solid var(--border); position: relative; }
+  .lane .lane-gutter {
+    width: 120px; flex-shrink: 0; padding: 6px 8px; border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; justify-content: center; cursor: pointer;
+    background: var(--panel); position: sticky; left: 0; z-index: 3;
+  }
+  .lane.active .lane-gutter { background: var(--panel-2); border-left: 3px solid var(--accent); padding-left: 5px; }
+  .lane .lane-gutter .g-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lane .lane-gutter .g-sub { font-size: 9px; color: var(--text-dim); font-family: monospace; margin-top: 2px; }
+  .lane .lane-track { position: relative; flex: 1; overflow: hidden; cursor: crosshair; }
+  .lane:not(.active) .lane-track { cursor: pointer; }
+  .lane .label-block {
+    position: absolute; top: 6px; bottom: 6px; border-radius: 3px;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    font-size: 10px; color: rgba(0,0,0,0.78); white-space: nowrap; padding: 0 4px;
+    border: 1px solid transparent; cursor: grab; user-select: none;
+  }
+  .lane .label-block.rest { opacity: 0.45; }
+  .lane .label-block.selected { border-color: white; box-shadow: 0 0 0 1px rgba(255,255,255,0.4); z-index: 2; }
+  .lane .label-block .handle { position: absolute; top: 0; bottom: 0; width: 7px; cursor: ew-resize; background: rgba(0,0,0,0.18); }
+  .lane .label-block .handle.left { left: 0; } .lane .label-block .handle.right { right: 0; }
+  .lane .label-block .handle:hover { background: rgba(255,255,255,0.55); }
+  .lane .rep-tick { position: absolute; top: 4px; bottom: 4px; width: 2px; background: white; box-shadow: 0 0 3px rgba(255,255,255,0.6); pointer-events: none; }
+  .lane .rep-tick.orphan { background: var(--danger); }
+  .lane .ghost { position: absolute; top: 6px; bottom: 6px; background: rgba(74,158,255,0.3); border: 1px dashed var(--accent); border-radius: 3px; pointer-events: none; }
+  .playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); box-shadow: 0 0 4px var(--accent); pointer-events: none; z-index: 4; left: 120px; }
+  .inout-marker { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed var(--accent-warm); pointer-events: none; z-index: 3; }
+
+  /* Sidebar */
+  .sidebar { background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
+  .sidebar-header { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
+  .sidebar-header .title { font-weight: 500; }
+  .sidebar-header .spacer { flex: 1; }
+  .sidebar-header button { background: var(--accent); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+  .sidebar-header button.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  .sidebar-body { flex: 1; overflow-y: auto; }
+
+  .section { border-bottom: 1px solid var(--border); padding: 12px; }
+  .section h4 { margin: 0 0 8px; font-size: 11px; font-weight: 500; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center; }
+
+  .track-pill { display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; padding: 7px 8px; border-radius: 4px; cursor: pointer; margin-bottom: 3px; }
+  .track-pill:hover { background: var(--panel-2); }
+  .track-pill.active { background: var(--panel-2); border-left: 2px solid var(--accent); padding-left: 6px; }
+  .track-pill .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .track-pill .nm { font-size: 12px; }
+  .track-pill .cnt { font-size: 10px; color: var(--text-dim); font-family: monospace; }
+  .track-pill .exp { background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 11px; padding: 2px 4px; }
+  .track-pill .exp:hover { color: var(--accent); }
+
+  .create-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .create-grid .full { grid-column: 1 / -1; }
+  .field-row { display: flex; flex-direction: column; gap: 3px; }
+  .field-row label { font-size: 10px; color: var(--text-dim); }
+  .field-row input, .field-row select {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; padding: 6px 8px; font-size: 12px; font-family: monospace; width: 100%;
+  }
+  .field-row input.name-in { font-family: inherit; }
+  .inout-readout { display: flex; gap: 8px; font-family: monospace; font-size: 11px; }
+  .inout-readout .chip { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 6px; text-align: center; }
+  .inout-readout .chip b { color: var(--accent-warm); }
+  .btn-primary { width: 100%; background: var(--accent); color: white; border: none; padding: 9px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 8px; }
+  .btn-primary:hover { filter: brightness(1.12); }
+  .btn-row { display: flex; gap: 6px; margin-top: 8px; }
+  .btn-row button { flex: 1; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); padding: 7px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: monospace; }
+  .btn-row button:hover { background: var(--border); }
+
+  .label-list { max-height: 220px; overflow-y: auto; }
+  .label-row { display: grid; grid-template-columns: 10px 1fr auto auto auto; gap: 6px; align-items: center; padding: 6px 7px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+  .label-row:hover { background: var(--panel-2); }
+  .label-row.selected { background: var(--panel-2); }
+  .label-row .swatch { width: 9px; height: 9px; border-radius: 2px; }
+  .label-row .nm { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .label-row .tm { font-family: monospace; color: var(--text-dim); }
+  .label-row button { background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 2px 4px; font-size: 11px; }
+  .label-row .jump:hover { color: var(--accent); }
+  .label-row .del:hover { color: var(--danger); }
+  .list-empty { padding: 12px; text-align: center; color: var(--text-dim); font-size: 11px; font-style: italic; }
+
+  .detail-name { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 7px 8px; font-size: 13px; margin-bottom: 10px; }
+  .field { display: grid; grid-template-columns: 50px 1fr auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .field label { font-size: 11px; color: var(--text-dim); }
+  .field input { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 5px 8px; font-family: monospace; font-size: 12px; width: 100%; }
+  .field button { background: var(--accent); color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; white-space: nowrap; }
+  .field button:hover { filter: brightness(1.1); }
+  .detail-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .detail-actions .danger-btn { flex: 1; background: rgba(248,113,113,0.12); color: var(--danger); border: 1px solid var(--danger); border-radius: 4px; padding: 7px; cursor: pointer; font-size: 11px; }
+  .detail-actions .danger-btn:hover { background: rgba(248,113,113,0.22); }
+
+  .reps-block { margin-top: 10px; }
+  .reps-list { max-height: 110px; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 4px; }
+  .rep-item { display: grid; grid-template-columns: 24px 1fr auto auto; gap: 6px; align-items: center; padding: 3px 6px; font-size: 11px; font-family: monospace; border-radius: 3px; }
+  .rep-item:hover { background: var(--panel); }
+  .rep-item .idx { color: var(--text-dim); }
+  .rep-item .t { color: var(--accent-warm); }
+  .rep-item button { background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 2px 4px; font-size: 10px; }
+  .rep-item .jump:hover { color: var(--accent); }
+  .rep-item .del:hover { color: var(--danger); }
+  .rep-badge { background: var(--accent-warm); color: black; padding: 1px 6px; border-radius: 8px; font-size: 9px; font-weight: 600; margin-left: 4px; }
+
+  .help { font-size: 10px; color: var(--text-dim); margin-top: 10px; line-height: 1.6; font-family: monospace; }
+  .help kbd { background: var(--bg); border: 1px solid var(--border); padding: 1px 4px; border-radius: 2px; }
+
+  .hidden { display: none !important; }
+  .error { background: rgba(248,113,113,0.1); border: 1px solid var(--danger); color: var(--danger); padding: 8px 12px; border-radius: 4px; font-size: 12px; margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <strong style="font-weight:500;">Exercise Labeler</strong>
+  <span class="stage active" id="stageLoad">1. Load files</span>
+  <span class="stage" id="stageSync">2. Sync</span>
+  <span class="stage" id="stageEdit">3. Label</span>
+  <span class="file-info" id="fileInfo"></span>
+  <button id="btnReset" class="secondary hidden">Reset</button>
+</div>
+
+<!-- STAGE 1: LOAD -->
+<div class="loader" id="screenLoad">
+  <h1>Load a video and one track per person</h1>
+  <p class="subtitle">Each track needs an IMU file. Add an existing events JSON to edit it, or leave it empty to label from scratch. Everything stays in your browser — nothing is uploaded.</p>
+  <div class="loader-grid">
+    <div>
+      <label class="drop" id="dropVideo" for="fileVideo">
+        <div class="icon">🎬</div>
+        <div class="label">Video file</div>
+        <div class="name" id="nameVideo">.mp4, .mov, .webm</div>
+        <input type="file" id="fileVideo" accept="video/*">
+      </label>
+    </div>
+    <div>
+      <div class="tracks-head">
+        <h3>Tracks (one per person)</h3>
+        <span class="spacer"></span>
+        <button id="btnAddTrack">+ Add track</button>
+      </div>
+      <div id="trackCards"></div>
+    </div>
+  </div>
+  <div id="loadError"></div>
+  <div class="loader-footer">
+    <button id="btnProceed" disabled>Continue →</button>
+    <span id="loadStatus" style="color:var(--text-dim);font-size:12px;"></span>
+  </div>
+</div>
+
+<!-- STAGE 2: SYNC -->
+<div class="sync-screen hidden" id="screenSync">
+  <h2>Sync sensors to the video</h2>
+  <p class="hint">For each person, scrub the video to a frame where their watch timer is readable, type the time it shows, and press <strong>Set from this frame</strong>. That pins the sensor's clock to the video. People can show their watches at different moments — each track is set independently. Or skip and label in video time.</p>
+  <div class="sync-grid">
+    <div class="sync-video-panel">
+      <h3>Video</h3>
+      <video id="syncVideo" controls></video>
+      <div class="video-controls">
+        <button data-skip="-1">−1s</button>
+        <button data-skip="-0.1">−0.1s</button>
+        <button data-skip="-0.033">−1f</button>
+        <button data-skip="0.033">+1f</button>
+        <button data-skip="0.1">+0.1s</button>
+        <button data-skip="1">+1s</button>
+      </div>
+      <div class="time-display">video time: <span id="syncVideoTime">0.000</span>s</div>
+      <div class="anchor-state" id="anchorState">Scrub to a readable watch, then set each track on the right.</div>
+    </div>
+    <div>
+      <div id="syncTrackRows"></div>
+      <div class="sync-footer">
+        <button class="confirm" id="btnConfirmSync">Start labeling →</button>
+        <button class="skip" id="btnSkipSync">Skip — label in video time</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STAGE 3: EDITOR -->
+<div class="edit-screen hidden" id="screenEdit">
+  <div class="video-col">
+    <div class="video-wrap"><video id="editVideo" controls></video></div>
+    <div class="controls-bar">
+      <button data-skip="-1">J −1s</button>
+      <button data-skip="-0.033">, −1f</button>
+      <button id="btnPlay">⏯</button>
+      <button data-skip="0.033">. +1f</button>
+      <button data-skip="1">L +1s</button>
+      <div class="spacer"></div>
+      <div class="fps-field">fps <input type="number" id="fpsInput" value="30" min="1" max="240" step="1"></div>
+      <div class="time-readout">
+        <span><span class="label">video:</span> <span class="v-time" id="editVideoTime">0.000</span>s</span>
+      </div>
+    </div>
+    <div class="timeline-area">
+      <div class="ruler" id="ruler"></div>
+      <div class="lanes" id="lanes"></div>
+      <div class="playhead" id="playhead"></div>
+    </div>
+  </div>
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="title">Labels</span>
+      <span class="spacer"></span>
+      <button class="secondary" id="btnExportActive">Export track</button>
+      <button id="btnExportAll">Export all</button>
+    </div>
+    <div class="sidebar-body">
+      <div class="section">
+        <h4>Tracks</h4>
+        <div id="trackPills"></div>
+      </div>
+      <div class="section">
+        <h4>New label <span id="activeTrackName" style="color:var(--accent);text-transform:none;letter-spacing:0;"></span></h4>
+        <div class="create-grid">
+          <div class="field-row full">
+            <label>Exercise</label>
+            <input class="name-in" id="newName" list="exerciseList" placeholder="e.g. Squat" value="Squat">
+            <datalist id="exerciseList"></datalist>
+          </div>
+          <div class="field-row"><label>Start (s)</label><input id="newStart" type="number" step="0.001" placeholder="4.000"></div>
+          <div class="field-row"><label>End (s)</label><input id="newEnd" type="number" step="0.001" placeholder="10.000"></div>
+        </div>
+        <div class="inout-readout" style="margin-top:8px;">
+          <div class="chip">in: <b id="inReadout">—</b></div>
+          <div class="chip">out: <b id="outReadout">—</b></div>
+        </div>
+        <div class="btn-row">
+          <button id="btnSetIn">Set in [I]</button>
+          <button id="btnSetOut">Set out [O]</button>
+          <button id="btnClearInOut">Clear</button>
+        </div>
+        <button class="btn-primary" id="btnAddLabel">Add label</button>
+        <div class="help">
+          Drag across the active lane to draw a label, or set in/out points and add. Times are in video seconds.
+        </div>
+      </div>
+      <div class="section">
+        <h4><span>Labels on this track</span><span class="cnt" id="labelCount" style="font-family:monospace;color:var(--accent-warm);">0</span></h4>
+        <div class="label-list" id="labelList"></div>
+      </div>
+      <div class="section" id="detailSection">
+        <h4>Selected label</h4>
+        <div id="detailBody"><div class="list-empty">No label selected.</div></div>
+      </div>
+      <div class="section">
+        <div class="help">
+          <kbd>Space</kbd> play/pause &nbsp; <kbd>J</kbd>/<kbd>L</kbd> ±1s &nbsp; <kbd>,</kbd>/<kbd>.</kbd> ±1f<br>
+          <kbd>←</kbd>/<kbd>→</kbd> ±50ms &nbsp; <kbd>Shift</kbd>+ ±200ms<br>
+          <kbd>I</kbd>/<kbd>O</kbd> set in/out &nbsp; <kbd>Enter</kbd> add label<br>
+          <kbd>[</kbd>/<kbd>]</kbd> set selected start/end &nbsp; <kbd>M</kbd> mark rep<br>
+          <kbd>Del</kbd> delete label &nbsp; <kbd>1</kbd>–<kbd>9</kbd> switch track
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+const state = {
+  videoFile: null,
+  videoUrl: null,
+  videoDuration: 0,
+  fps: 30,
+  tracks: [],              // see makeTrack()
+  activeTrackId: null,
+  selectedLabelId: null,
+  pending: { in: null, out: null }, // video seconds
+  exerciseNames: ['Squat','Push-up','Sit-up','Lunge','Burpee','Jumping Jack','Plank','Pull-up','Deadlift','Mountain Climber','REST'],
+};
+
+let _trackSeq = 0, _labelSeq = 0;
+function makeTrack() {
+  return {
+    id: 'trk' + (++_trackSeq),
+    name: 'Person ' + (_trackSeq),
+    imuFile: null, jsonFile: null,
+    imuData: null, sourceJson: null,
+    offset: 0,                 // videoTime = workoutTime + offset
+    syncVideoTime: null,       // video time at which the watch was read
+    watchSeconds: null,        // workout time shown on the watch at that frame
+    synced: false,
+    labels: [],                // { id, name, startTime, endTime (workout s), reps:[{workoutTime}], modified, _origRaw }
+  };
+}
+function activeTrack() { return state.tracks.find(t => t.id === state.activeTrackId) || null; }
+function selectedLabel() {
+  const t = activeTrack(); if (!t) return null;
+  return t.labels.find(l => l.id === state.selectedLabelId) || null;
+}
+
+// time conversions (per track)
+function wToV(t, wt) { return wt + t.offset; }
+function vToW(t, vt) { return vt - t.offset; }
+
+function round3(x) { return Math.round(x * 1000) / 1000; }
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function nameColor(name) {
+  if (!name) return '#888';
+  if (name.toUpperCase() === 'REST') return '#666';
+  let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return `hsl(${h}, 62%, 58%)`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STAGE 1 — LOAD
+// ═══════════════════════════════════════════════════════════════════════════
+function setupDrop(dropEl, inputEl, onFile) {
+  inputEl.addEventListener('change', e => { const f = e.target.files[0]; if (f) onFile(f); });
+  ['dragover','dragenter'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.add('dragover'); }));
+  ['dragleave'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.remove('dragover'); }));
+  dropEl.addEventListener('drop', e => {
+    e.preventDefault(); dropEl.classList.remove('dragover');
+    const f = e.dataTransfer.files[0]; if (f) onFile(f);
+  });
+}
+
+// video drop
+setupDrop(document.getElementById('dropVideo'), document.getElementById('fileVideo'), f => {
+  state.videoFile = f;
+  if (state.videoUrl) URL.revokeObjectURL(state.videoUrl);
+  state.videoUrl = URL.createObjectURL(f);
+  const d = document.getElementById('dropVideo');
+  d.classList.add('loaded'); d.querySelector('.name').textContent = f.name;
+  checkProceed();
+});
+
+function renderTrackCards() {
+  const wrap = document.getElementById('trackCards');
+  wrap.innerHTML = '';
+  state.tracks.forEach(track => {
+    const card = document.createElement('div');
+    card.className = 'track-card';
+    card.innerHTML = `
+      <div class="person-field">
+        <label>Person / label</label>
+        <input type="text" value="${escapeHtml(track.name)}" data-role="name">
+      </div>
+      <label class="mini-drop ${track.imuFile ? 'loaded' : ''}" data-role="imu-drop">
+        <span class="tag">IMU (required)</span>
+        ${track.imuFile ? escapeHtml(track.imuFile.name) : '.imubin'}
+        <input type="file" accept=".imubin" data-role="imu-input">
+      </label>
+      <label class="mini-drop ${track.jsonFile ? 'loaded' : ''}" data-role="json-drop">
+        <span class="tag">Events JSON (optional)</span>
+        ${track.jsonFile ? escapeHtml(track.jsonFile.name) : 'edit existing'}
+        <input type="file" accept=".json,application/json" data-role="json-input">
+      </label>
+      <button class="remove-track" data-role="remove">✕</button>
+    `;
+    card.querySelector('[data-role="name"]').addEventListener('input', e => { track.name = e.target.value; });
+    setupDrop(card.querySelector('[data-role="imu-drop"]'), card.querySelector('[data-role="imu-input"]'), f => {
+      track.imuFile = f; renderTrackCards(); checkProceed();
+    });
+    setupDrop(card.querySelector('[data-role="json-drop"]'), card.querySelector('[data-role="json-input"]'), f => {
+      track.jsonFile = f; renderTrackCards(); checkProceed();
+    });
+    card.querySelector('[data-role="remove"]').addEventListener('click', () => {
+      if (state.tracks.length <= 1) { flash('Keep at least one track', 'warn'); return; }
+      state.tracks = state.tracks.filter(t => t.id !== track.id); renderTrackCards(); checkProceed();
+    });
+    wrap.appendChild(card);
+  });
+}
+
+document.getElementById('btnAddTrack').addEventListener('click', () => { state.tracks.push(makeTrack()); renderTrackCards(); });
+state.tracks.push(makeTrack()); renderTrackCards();
+
+function checkProceed() {
+  const ready = state.videoFile && state.tracks.length > 0 && state.tracks.every(t => t.imuFile);
+  const btn = document.getElementById('btnProceed');
+  btn.disabled = !ready;
+  document.getElementById('loadStatus').textContent = ready
+    ? `${state.tracks.length} track${state.tracks.length>1?'s':''} ready`
+    : 'Need a video and an IMU file for every track.';
+}
+
+document.getElementById('btnProceed').addEventListener('click', async () => {
+  const errBox = document.getElementById('loadError'); errBox.innerHTML = '';
+  try {
+    for (const track of state.tracks) {
+      track.imuData = await parseImu(track.imuFile);
+      if (track.jsonFile) await loadTrackJson(track);
+    }
+    state.activeTrackId = state.tracks[0].id;
+    goToSync();
+  } catch (err) {
+    errBox.innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
+    console.error(err);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILE PARSERS
+// ═══════════════════════════════════════════════════════════════════════════
+async function parseImu(file) {
+  const buf = await file.arrayBuffer();
+  const view = new DataView(buf);
+  const HEADER = 48, SAMPLE = 36;
+  if (view.getUint8(0)!==0x49 || view.getUint8(1)!==0x4D || view.getUint8(2)!==0x55 || view.getUint8(3)!==0x00)
+    throw new Error(`${file.name}: bad magic, expected "IMU\\0"`);
+  const n = Math.floor((buf.byteLength - HEADER) / SAMPLE);
+  if (n < 100) throw new Error(`${file.name}: only ${n} samples (too few)`);
+  const t = new Float64Array(n), wt = new Int32Array(n);
+  const ax = new Float32Array(n), ay = new Float32Array(n), az = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const o = HEADER + i * SAMPLE;
+    t[i]  = view.getFloat64(o, true);
+    wt[i] = view.getInt32(o + 8, true);
+    ax[i] = view.getFloat32(o + 12, true);
+    ay[i] = view.getFloat32(o + 16, true);
+    az[i] = view.getFloat32(o + 20, true);
+  }
+  return { t, wt, ax, ay, az, nSamples: n };
+}
+
+function loadTrackJson(track) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        let parsed = JSON.parse(e.target.result);
+        // Accept either a raw workout JSON or the {workout, sync} bundle produced by this tool
+        if (parsed.workout) {
+          if (parsed.sync && typeof parsed.sync.offset === 'number') {
+            track.offset = parsed.sync.offset; track.synced = true;
+          }
+          parsed = parsed.workout;
+        }
+        track.sourceJson = parsed;
+        const round = parsed.roundResults && parsed.roundResults[0];
+        const exs = (round && round.exerciseResults) || [];
+        track.labels = exs.map(ex => ({
+          id: 'lbl' + (++_labelSeq),
+          name: ex.name,
+          startTime: ex.startTime,
+          endTime: ex.endTime,
+          reps: Array.isArray(ex.reps) ? ex.reps.map(r => ({ workoutTime: r.workoutTime })) : [],
+          modified: false,
+          _origRaw: ex,
+        }));
+        resolve();
+      } catch (err) { reject(new Error(`${track.jsonFile.name}: ${err.message}`)); }
+    };
+    reader.onerror = () => reject(new Error(`Failed to read ${track.jsonFile.name}`));
+    reader.readAsText(track.jsonFile);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STAGE 2 — SYNC (read each watch timer off the video)
+// ═══════════════════════════════════════════════════════════════════════════
+// Accepts "7", "7.5", "1:07", "1:07.5", or "1:02:03" and returns seconds.
+function parseTimer(str) {
+  if (str == null) return NaN;
+  str = String(str).trim();
+  if (!str) return NaN;
+  const parts = str.split(':').map(p => parseFloat(p));
+  if (parts.some(p => isNaN(p))) return NaN;
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return NaN;
+}
+function fmtClock(s) {
+  if (s == null || isNaN(s)) return '—';
+  const sign = s < 0 ? '-' : ''; s = Math.abs(s);
+  const m = Math.floor(s / 60), sec = s - m * 60;
+  return `${sign}${m}:${sec.toFixed(2).padStart(5,'0')}`;
+}
+
+function goToSync() {
+  document.getElementById('screenLoad').classList.add('hidden');
+  document.getElementById('screenSync').classList.remove('hidden');
+  setStage('sync');
+  document.getElementById('btnReset').classList.remove('hidden');
+  document.getElementById('fileInfo').textContent = state.videoFile.name;
+
+  const v = document.getElementById('syncVideo');
+  v.src = state.videoUrl; v.currentTime = 0;
+  v.addEventListener('timeupdate', () => {
+    document.getElementById('syncVideoTime').textContent = v.currentTime.toFixed(3);
+    updateSyncPreviews(v.currentTime);
+  });
+  v.addEventListener('seeked', () => updateSyncPreviews(v.currentTime));
+  document.querySelectorAll('#screenSync .video-controls button').forEach(b => {
+    b.addEventListener('click', () => { v.currentTime = Math.max(0, v.currentTime + parseFloat(b.dataset.skip)); });
+  });
+
+  renderSyncRows();
+}
+
+function renderSyncRows() {
+  const wrap = document.getElementById('syncTrackRows');
+  wrap.innerHTML = '';
+  state.tracks.forEach((track, ti) => {
+    const row = document.createElement('div');
+    row.className = 'sync-track-row';
+    const setInfo = track.synced
+      ? `set from video ${track.syncVideoTime.toFixed(3)}s · watch ${fmtClock(track.watchSeconds)}`
+      : 'not set';
+    row.innerHTML = `
+      <div class="row-head">
+        <span class="dot" style="background:${nameColor(track.name)}"></span>
+        <span class="nm">${escapeHtml(track.name)}</span>
+        <span class="spacer"></span>
+        <span class="badge" id="off_${track.id}">${track.synced ? 'offset '+track.offset.toFixed(3)+'s' : 'offset —'}</span>
+      </div>
+      <div class="sync-set-row">
+        <label>Watch shows</label>
+        <input type="text" data-timer placeholder="mm:ss or s" value="${track.watchSeconds!=null ? fmtClock(track.watchSeconds) : ''}">
+        <button data-set>Set from this frame</button>
+      </div>
+      <div class="ctrls">
+        <span class="set-info" id="info_${track.id}">${setInfo}</span>
+        <span class="spacer-flex"></span>
+        <button data-nudge="-0.1">−0.1</button>
+        <button data-nudge="-0.033">−1f</button>
+        <button data-nudge="0.033">+1f</button>
+        <button data-nudge="0.1">+0.1</button>
+      </div>
+      <div class="pred" id="pre_${track.id}"></div>
+    `;
+    row.querySelector('[data-set]').addEventListener('click', () => {
+      const v = document.getElementById('syncVideo');
+      const watch = parseTimer(row.querySelector('[data-timer]').value);
+      if (isNaN(watch)) { flash('Enter the watch time as mm:ss or seconds', 'warn'); return; }
+      track.watchSeconds = round3(watch);
+      track.syncVideoTime = round3(v.currentTime);
+      track.offset = round3(track.syncVideoTime - track.watchSeconds);
+      track.synced = true;
+      renderSyncRows();
+      updateSyncPreviews(v.currentTime);
+    });
+    row.querySelectorAll('[data-nudge]').forEach(b => b.addEventListener('click', () => {
+      track.synced = true;
+      track.offset = round3(track.offset + parseFloat(b.dataset.nudge));
+      // keep syncVideoTime/watchSeconds consistent with the manual offset
+      if (track.syncVideoTime != null) track.watchSeconds = round3(track.syncVideoTime - track.offset);
+      renderSyncRows();
+      updateSyncPreviews(document.getElementById('syncVideo').currentTime);
+    }));
+    wrap.appendChild(row);
+  });
+  updateSyncPreviews(document.getElementById('syncVideo').currentTime);
+}
+
+// Live check: at the current video frame, what workout time does each synced track map to?
+function updateSyncPreviews(videoTime) {
+  state.tracks.forEach(track => {
+    const el = document.getElementById('pre_' + track.id);
+    if (!el) return;
+    if (!track.synced) { el.textContent = 'Scrub to this person\u2019s watch, type what it reads, then Set.'; return; }
+    const wt = videoTime - track.offset;
+    el.textContent = `at video ${videoTime.toFixed(2)}s \u2192 watch should read ${fmtClock(wt)}`;
+  });
+}
+
+document.getElementById('btnSkipSync').addEventListener('click', () => {
+  state.tracks.forEach(t => { t.offset = 0; t.synced = false; t.syncVideoTime = null; t.watchSeconds = null; });
+  goToEdit();
+});
+document.getElementById('btnConfirmSync').addEventListener('click', goToEdit);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STAGE 3 — EDITOR
+// ═══════════════════════════════════════════════════════════════════════════
+function goToEdit() {
+  document.getElementById('screenSync').classList.add('hidden');
+  document.getElementById('screenEdit').classList.remove('hidden');
+  setStage('edit');
+
+  // exercise datalist
+  const dl = document.getElementById('exerciseList');
+  dl.innerHTML = state.exerciseNames.map(n => `<option value="${escapeHtml(n)}">`).join('');
+
+  const v = document.getElementById('editVideo');
+  v.src = state.videoUrl;
+  v.addEventListener('loadedmetadata', () => {
+    state.videoDuration = v.duration || 0;
+    renderRuler(); renderLanes(); updatePlayhead();
+  });
+  v.addEventListener('timeupdate', () => {
+    document.getElementById('editVideoTime').textContent = v.currentTime.toFixed(3);
+    updatePlayhead();
+  });
+  v.addEventListener('seeked', updatePlayhead);
+
+  document.querySelectorAll('#screenEdit .controls-bar button[data-skip]').forEach(b => {
+    b.addEventListener('click', () => { v.currentTime = Math.max(0, v.currentTime + parseFloat(b.dataset.skip)); });
+  });
+  document.getElementById('btnPlay').addEventListener('click', () => { v.paused ? v.play() : v.pause(); });
+  document.getElementById('fpsInput').addEventListener('change', e => { state.fps = Math.max(1, parseFloat(e.target.value) || 30); });
+
+  document.getElementById('btnSetIn').addEventListener('click', setIn);
+  document.getElementById('btnSetOut').addEventListener('click', setOut);
+  document.getElementById('btnClearInOut').addEventListener('click', () => { state.pending = { in: null, out: null }; renderInOut(); });
+  document.getElementById('btnAddLabel').addEventListener('click', addLabelFromForm);
+  document.getElementById('btnExportActive').addEventListener('click', () => { const t = activeTrack(); if (t) downloadTrack(t); });
+  document.getElementById('btnExportAll').addEventListener('click', exportAll);
+
+  document.addEventListener('keydown', handleHotkey);
+
+  renderTrackPills(); renderActiveTrackName(); renderLabelList(); renderDetail(); renderInOut();
+  if (state.videoDuration) { renderRuler(); renderLanes(); updatePlayhead(); }
+}
+
+function setStage(stage) {
+  ['Load','Sync','Edit'].forEach(s => {
+    const el = document.getElementById('stage'+s);
+    el.classList.remove('active','done');
+  });
+  if (stage === 'sync') { document.getElementById('stageLoad').classList.add('done'); document.getElementById('stageSync').classList.add('active'); }
+  if (stage === 'edit') { document.getElementById('stageLoad').classList.add('done'); document.getElementById('stageSync').classList.add('done'); document.getElementById('stageEdit').classList.add('active'); }
+}
+
+// ── timeline geometry ─────────────────────────────────────────────────────
+const GUTTER = 120;
+function laneTrackWidth() {
+  const lanesEl = document.getElementById('lanes');
+  return Math.max(50, lanesEl.clientWidth - GUTTER);
+}
+function videoToX(vt) { return (state.videoDuration ? vt / state.videoDuration : 0) * laneTrackWidth(); }
+function xToVideo(px) { return state.videoDuration ? (px / laneTrackWidth()) * state.videoDuration : 0; }
+
+function renderRuler() {
+  const ruler = document.getElementById('ruler');
+  ruler.innerHTML = '';
+  const dur = state.videoDuration; if (!dur) return;
+  const w = laneTrackWidth();
+  // choose a tick step that gives ~8-12 ticks
+  const targets = [1,2,5,10,15,30,60,120,300];
+  let step = targets.find(s => dur / s <= 12) || 600;
+  for (let s = 0; s <= dur; s += step) {
+    const tick = document.createElement('div');
+    tick.className = 'tick';
+    tick.style.left = (s / dur * w) + 'px';
+    tick.innerHTML = `<span>${formatT(s)}</span>`;
+    ruler.appendChild(tick);
+  }
+}
+function formatT(s) {
+  const m = Math.floor(s / 60), sec = (s % 60);
+  return m > 0 ? `${m}:${sec.toFixed(0).padStart(2,'0')}` : sec.toFixed(1) + 's';
+}
+
+function renderLanes() {
+  const lanesEl = document.getElementById('lanes');
+  lanesEl.innerHTML = '';
+  const w = laneTrackWidth();
+  state.tracks.forEach((track, ti) => {
+    const lane = document.createElement('div');
+    lane.className = 'lane' + (track.id === state.activeTrackId ? ' active' : '');
+    lane.dataset.trackId = track.id;
+
+    const gutter = document.createElement('div');
+    gutter.className = 'lane-gutter';
+    gutter.innerHTML = `<div class="g-name">${ti+1}. ${escapeHtml(track.name)}</div>
+      <div class="g-sub">${track.labels.length} lbl${track.synced ? ' · off '+track.offset.toFixed(2) : ''}</div>`;
+    gutter.addEventListener('click', () => setActiveTrack(track.id));
+    lane.appendChild(gutter);
+
+    const laneTrack = document.createElement('div');
+    laneTrack.className = 'lane-track';
+    laneTrack.dataset.trackId = track.id;
+
+    // label blocks
+    track.labels.forEach(label => {
+      const left = videoToX(wToV(track, label.startTime));
+      const width = videoToX(label.endTime - label.startTime);  // offset cancels
+      const block = document.createElement('div');
+      block.className = 'label-block' + (label.name.toUpperCase()==='REST' ? ' rest' : '')
+                        + (label.id === state.selectedLabelId && track.id === state.activeTrackId ? ' selected' : '');
+      block.style.left = left + 'px';
+      block.style.width = Math.max(2, width) + 'px';
+      block.style.background = nameColor(label.name);
+      block.title = `${label.name}  ${wToV(track,label.startTime).toFixed(2)}–${wToV(track,label.endTime).toFixed(2)}s (video)`;
+      block.textContent = label.name;
+      block.innerHTML += '<div class="handle left"></div><div class="handle right"></div>';
+      block.dataset.labelId = label.id;
+      lane._track = track; // for handlers
+      laneTrack.appendChild(block);
+
+      // reps
+      (label.reps || []).forEach(rep => {
+        const inSeg = rep.workoutTime >= label.startTime && rep.workoutTime <= label.endTime;
+        const tick = document.createElement('div');
+        tick.className = 'rep-tick' + (inSeg ? '' : ' orphan');
+        tick.style.left = videoToX(wToV(track, rep.workoutTime)) + 'px';
+        laneTrack.appendChild(tick);
+      });
+    });
+
+    lane.appendChild(laneTrack);
+    lanesEl.appendChild(lane);
+    attachLaneHandlers(laneTrack, track);
+  });
+}
+
+function updatePlayhead() {
+  const v = document.getElementById('editVideo');
+  const ph = document.getElementById('playhead');
+  ph.style.left = (GUTTER + videoToX(v.currentTime)) + 'px';
+}
+
+// ── lane pointer interactions: create (drag empty), move/resize (drag block), seek (click empty) ──
+function attachLaneHandlers(laneTrack, track) {
+  laneTrack.addEventListener('pointerdown', e => {
+    const rect = laneTrack.getBoundingClientRect();
+    const blockEl = e.target.closest('.label-block');
+    const v = document.getElementById('editVideo');
+
+    if (blockEl) {
+      // editing existing label — only on its own track (which it is)
+      setActiveTrack(track.id);
+      const label = track.labels.find(l => l.id === blockEl.dataset.labelId);
+      selectLabel(label.id);
+      const isHandle = e.target.classList.contains('handle');
+      const side = e.target.classList.contains('left') ? 'left' : (e.target.classList.contains('right') ? 'right' : null);
+      const startVideoStart = wToV(track, label.startTime);
+      const startVideoEnd = wToV(track, label.endTime);
+      const grabVideo = xToVideo(e.clientX - rect.left);
+      const drag = { mode: isHandle ? 'resize' : 'move', side, label, track, startVideoStart, startVideoEnd, grabVideo, rect, moved: false };
+      beginDrag(e, drag);
+      e.preventDefault();
+      return;
+    }
+
+    // empty area
+    if (track.id !== state.activeTrackId) { setActiveTrack(track.id); }
+    const downVideo = clampV(xToVideo(e.clientX - rect.left));
+    const drag = { mode: 'create', track, downVideo, rect, ghost: null, moved: false };
+    beginDrag(e, drag);
+    e.preventDefault();
+  });
+}
+
+let _drag = null;
+function beginDrag(e, drag) {
+  _drag = drag;
+  drag.pointerId = e.pointerId;
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', onDragUp);
+}
+function onDragMove(e) {
+  if (!_drag) return;
+  const d = _drag;
+  const curVideo = clampV(xToVideo(e.clientX - d.rect.left));
+  d.moved = d.moved || Math.abs(e.clientX - (d.rect.left + videoToX(d.downVideo ?? d.grabVideo))) > 3;
+
+  if (d.mode === 'create') {
+    const a = Math.min(d.downVideo, curVideo), b = Math.max(d.downVideo, curVideo);
+    if (!d.ghost) {
+      d.ghost = document.createElement('div'); d.ghost.className = 'ghost';
+      const lt = document.querySelector(`.lane-track[data-track-id="${d.track.id}"]`);
+      lt && lt.appendChild(d.ghost);
+    }
+    d.ghost.style.left = videoToX(a) + 'px';
+    d.ghost.style.width = Math.max(1, videoToX(b - a)) + 'px';
+    d._a = a; d._b = b;
+  } else if (d.mode === 'move') {
+    const delta = curVideo - d.grabVideo;
+    let ns = d.startVideoStart + delta, ne = d.startVideoEnd + delta;
+    const dur = ne - ns;
+    // clamp to neighbors / bounds
+    const { lo, hi } = neighborBounds(d.track, d.label, null);
+    ns = Math.max(loToVideo(d.track, lo), Math.min(ns, hiToVideo(d.track, hi) - dur));
+    ne = ns + dur;
+    d.label.startTime = round3(vToW(d.track, ns));
+    d.label.endTime = round3(vToW(d.track, ne));
+    d.label.modified = true;
+    renderLanes(); selectLabel(d.label.id, true);
+  } else if (d.mode === 'resize') {
+    if (d.side === 'left') {
+      let ns = Math.min(curVideo, d.startVideoEnd - 0.02);
+      const { lo } = neighborBounds(d.track, d.label, 'left');
+      ns = Math.max(loToVideo(d.track, lo), ns);
+      d.label.startTime = round3(vToW(d.track, ns));
+    } else {
+      let ne = Math.max(curVideo, d.startVideoStart + 0.02);
+      const { hi } = neighborBounds(d.track, d.label, 'right');
+      ne = Math.min(hiToVideo(d.track, hi), ne);
+      d.label.endTime = round3(vToW(d.track, ne));
+    }
+    d.label.modified = true;
+    renderLanes(); selectLabel(d.label.id, true);
+  }
+}
+function onDragUp(e) {
+  window.removeEventListener('pointermove', onDragMove);
+  window.removeEventListener('pointerup', onDragUp);
+  const d = _drag; _drag = null;
+  if (!d) return;
+  if (d.mode === 'create') {
+    if (d.ghost) d.ghost.remove();
+    if (d.moved && d._b - d._a > 0.05) {
+      createLabel(d.track, d._a, d._b, document.getElementById('newName').value.trim() || 'Exercise');
+    } else {
+      // treat as a seek
+      document.getElementById('editVideo').currentTime = clampV(d.downVideo);
+    }
+  } else {
+    renderLabelList(); renderDetail(); renderTrackPills();
+  }
+}
+function clampV(v) { return Math.max(0, Math.min(v, state.videoDuration || v)); }
+
+// neighbor bounds in WORKOUT time for a label on a track; returns lo/hi workout bounds
+function neighborBounds(track, label, sideOnly) {
+  const others = track.labels.filter(l => l.id !== label.id).sort((a,b)=>a.startTime-b.startTime);
+  let lo = 0, hi = (state.videoDuration ? vToW(track, state.videoDuration) : Infinity);
+  others.forEach(o => {
+    if (o.endTime <= label.startTime && o.endTime > lo) lo = o.endTime;
+    if (o.startTime >= label.endTime && o.startTime < hi) hi = o.startTime;
+  });
+  return { lo, hi };
+}
+function loToVideo(track, loWorkout) { return wToV(track, loWorkout); }
+function hiToVideo(track, hiWorkout) { return isFinite(hiWorkout) ? wToV(track, hiWorkout) : (state.videoDuration || 1e9); }
+
+// ── create / edit / delete labels ─────────────────────────────────────────
+function createLabel(track, videoStart, videoEnd, name) {
+  const ws = round3(vToW(track, videoStart)), we = round3(vToW(track, videoEnd));
+  // overlap check (workout time)
+  const overlap = track.labels.some(l => ws < l.endTime && we > l.startTime);
+  if (overlap) { flash('Overlaps an existing label on this track', 'warn'); return null; }
+  const label = { id: 'lbl' + (++_labelSeq), name: name || 'Exercise', startTime: ws, endTime: we, reps: [], modified: true };
+  track.labels.push(label);
+  track.labels.sort((a,b)=>a.startTime-b.startTime);
+  if (!state.exerciseNames.includes(label.name)) {
+    state.exerciseNames.push(label.name);
+    document.getElementById('exerciseList').innerHTML = state.exerciseNames.map(n => `<option value="${escapeHtml(n)}">`).join('');
+  }
+  renderLanes(); renderLabelList(); renderTrackPills();
+  selectLabel(label.id);
+  flash(`Added "${label.name}" ${videoStart.toFixed(2)}–${videoEnd.toFixed(2)}s`, 'ok');
+  return label;
+}
+
+function addLabelFromForm() {
+  const track = activeTrack(); if (!track) return;
+  const name = document.getElementById('newName').value.trim() || 'Exercise';
+  let vs = parseFloat(document.getElementById('newStart').value);
+  let ve = parseFloat(document.getElementById('newEnd').value);
+  // fall back to in/out points
+  if (isNaN(vs) && state.pending.in != null) vs = state.pending.in;
+  if (isNaN(ve) && state.pending.out != null) ve = state.pending.out;
+  if (isNaN(vs) || isNaN(ve)) { flash('Set start and end (type them or use in/out points)', 'warn'); return; }
+  if (ve <= vs) { flash('End must be after start', 'warn'); return; }
+  const lbl = createLabel(track, clampV(vs), clampV(ve), name);
+  if (lbl) {
+    document.getElementById('newStart').value = '';
+    document.getElementById('newEnd').value = '';
+    state.pending = { in: null, out: null }; renderInOut();
+  }
+}
+
+function deleteLabel(track, labelId) {
+  track.labels = track.labels.filter(l => l.id !== labelId);
+  if (state.selectedLabelId === labelId) state.selectedLabelId = null;
+  renderLanes(); renderLabelList(); renderDetail(); renderTrackPills();
+}
+
+function selectLabel(id, keepScroll) {
+  state.selectedLabelId = id;
+  if (!keepScroll) {
+    const t = activeTrack(); const l = t && t.labels.find(x => x.id === id);
+    // no-op scroll; selection visual handled by renders
+  }
+  renderLanes(); renderLabelList(); renderDetail();
+}
+
+// ── in/out points ─────────────────────────────────────────────────────────
+function setIn()  { const v = document.getElementById('editVideo'); state.pending.in = round3(v.currentTime); if (state.pending.out!=null && state.pending.out < state.pending.in) state.pending.out = null; renderInOut(); }
+function setOut() { const v = document.getElementById('editVideo'); state.pending.out = round3(v.currentTime); if (state.pending.in!=null && state.pending.in > state.pending.out) state.pending.in = null; renderInOut(); }
+function renderInOut() {
+  document.getElementById('inReadout').textContent = state.pending.in != null ? state.pending.in.toFixed(3)+'s' : '—';
+  document.getElementById('outReadout').textContent = state.pending.out != null ? state.pending.out.toFixed(3)+'s' : '—';
+}
+
+// ── track selection / sidebar ─────────────────────────────────────────────
+function setActiveTrack(id) {
+  if (state.activeTrackId === id) return;
+  state.activeTrackId = id;
+  state.selectedLabelId = null;
+  renderTrackPills(); renderActiveTrackName(); renderLanes(); renderLabelList(); renderDetail();
+}
+function renderActiveTrackName() {
+  const t = activeTrack();
+  document.getElementById('activeTrackName').textContent = t ? '→ ' + t.name : '';
+}
+function renderTrackPills() {
+  const wrap = document.getElementById('trackPills'); wrap.innerHTML = '';
+  state.tracks.forEach((track, i) => {
+    const pill = document.createElement('div');
+    pill.className = 'track-pill' + (track.id === state.activeTrackId ? ' active' : '');
+    pill.innerHTML = `<span class="dot" style="background:${nameColor(track.name)}"></span>
+      <span class="nm">${i+1}. ${escapeHtml(track.name)} <span class="cnt">(${track.labels.length})</span></span>
+      <button class="exp" title="Export this track">⤓</button>`;
+    pill.addEventListener('click', e => { if (e.target.classList.contains('exp')) return; setActiveTrack(track.id); });
+    pill.querySelector('.exp').addEventListener('click', e => { e.stopPropagation(); downloadTrack(track); });
+    wrap.appendChild(pill);
+  });
+}
+
+function renderLabelList() {
+  const list = document.getElementById('labelList');
+  const track = activeTrack();
+  const labels = track ? [...track.labels].sort((a,b)=>a.startTime-b.startTime) : [];
+  document.getElementById('labelCount').textContent = labels.length;
+  if (!labels.length) { list.innerHTML = '<div class="list-empty">No labels yet. Drag on the lane or add one above.</div>'; return; }
+  list.innerHTML = '';
+  labels.forEach(label => {
+    const row = document.createElement('div');
+    row.className = 'label-row' + (label.id === state.selectedLabelId ? ' selected' : '');
+    const repBadge = label.reps && label.reps.length ? `<span class="rep-badge">${label.reps.length}</span>` : '';
+    row.innerHTML = `<span class="swatch" style="background:${nameColor(label.name)}"></span>
+      <span class="nm">${escapeHtml(label.name)}${repBadge}</span>
+      <span class="tm">${wToV(track,label.startTime).toFixed(2)}–${wToV(track,label.endTime).toFixed(2)}</span>
+      <button class="jump" title="Jump to start">↪</button>
+      <button class="del" title="Delete label">✕</button>`;
+    row.addEventListener('click', e => {
+      if (e.target.classList.contains('del')) { deleteLabel(track, label.id); return; }
+      selectLabel(label.id);
+      if (e.target.classList.contains('jump')) document.getElementById('editVideo').currentTime = clampV(wToV(track, label.startTime));
+    });
+    list.appendChild(row);
+  });
+}
+
+function renderDetail() {
+  const body = document.getElementById('detailBody');
+  const track = activeTrack(); const label = selectedLabel();
+  if (!track || !label) { body.innerHTML = '<div class="list-empty">No label selected.</div>'; return; }
+  body.innerHTML = `
+    <input type="text" class="detail-name" id="dName" list="exerciseList" value="${escapeHtml(label.name)}">
+    <div class="field"><label>Start</label><input type="number" id="dStart" step="0.001" value="${wToV(track,label.startTime).toFixed(3)}"><button id="dSetStart">Set [</button></div>
+    <div class="field"><label>End</label><input type="number" id="dEnd" step="0.001" value="${wToV(track,label.endTime).toFixed(3)}"><button id="dSetEnd">Set ]</button></div>
+    <div class="detail-actions"><button class="danger-btn" id="dDelete">Delete label</button></div>
+    <div class="reps-block">
+      <h4 style="margin:10px 0 6px;font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;">Reps <span style="color:var(--accent-warm);font-family:monospace;">${(label.reps||[]).length}</span></h4>
+      <div class="reps-list" id="dReps"></div>
+    </div>`;
+  document.getElementById('dName').addEventListener('change', e => {
+    const nm = e.target.value.trim(); if (!nm) return;
+    label.name = nm; label.modified = true;
+    if (!state.exerciseNames.includes(nm)) { state.exerciseNames.push(nm); document.getElementById('exerciseList').innerHTML = state.exerciseNames.map(n=>`<option value="${escapeHtml(n)}">`).join(''); }
+    renderLanes(); renderLabelList(); renderTrackPills();
+  });
+  document.getElementById('dStart').addEventListener('change', e => setLabelStartVideo(parseFloat(e.target.value)));
+  document.getElementById('dEnd').addEventListener('change', e => setLabelEndVideo(parseFloat(e.target.value)));
+  document.getElementById('dSetStart').addEventListener('click', () => setLabelStartVideo(document.getElementById('editVideo').currentTime));
+  document.getElementById('dSetEnd').addEventListener('click', () => setLabelEndVideo(document.getElementById('editVideo').currentTime));
+  document.getElementById('dDelete').addEventListener('click', () => deleteLabel(track, label.id));
+  renderRepsList(label, track);
+}
+
+function renderRepsList(label, track) {
+  const wrap = document.getElementById('dReps'); if (!wrap) return;
+  const reps = label.reps || [];
+  if (!reps.length) { wrap.innerHTML = '<div class="list-empty">No reps — press M at the playhead</div>'; return; }
+  wrap.innerHTML = '';
+  reps.forEach((rep, j) => {
+    const div = document.createElement('div'); div.className = 'rep-item';
+    div.innerHTML = `<span class="idx">#${j+1}</span><span class="t">${wToV(track,rep.workoutTime).toFixed(3)}s</span>
+      <button class="jump" title="Jump">↪</button><button class="del" title="Delete">✕</button>`;
+    div.querySelector('.jump').addEventListener('click', () => { document.getElementById('editVideo').currentTime = clampV(wToV(track, rep.workoutTime)); });
+    div.querySelector('.del').addEventListener('click', () => { label.reps.splice(j,1); label.modified = true; renderDetail(); renderLanes(); renderLabelList(); });
+    wrap.appendChild(div);
+  });
+}
+
+function setLabelStartVideo(videoStart) {
+  const track = activeTrack(), label = selectedLabel(); if (!track || !label) return;
+  let ws = round3(vToW(track, videoStart));
+  if (ws >= label.endTime) { flash('Start must be before end', 'warn'); renderDetail(); return; }
+  const { lo } = neighborBounds(track, label, 'left');
+  if (ws < lo) { flash('Would overlap the previous label', 'warn'); renderDetail(); return; }
+  label.startTime = ws; label.modified = true;
+  renderLanes(); renderLabelList(); renderDetail(); renderTrackPills();
+}
+function setLabelEndVideo(videoEnd) {
+  const track = activeTrack(), label = selectedLabel(); if (!track || !label) return;
+  let we = round3(vToW(track, videoEnd));
+  if (we <= label.startTime) { flash('End must be after start', 'warn'); renderDetail(); return; }
+  const { hi } = neighborBounds(track, label, 'right');
+  if (we > hi) { flash('Would overlap the next label', 'warn'); renderDetail(); return; }
+  label.endTime = we; label.modified = true;
+  renderLanes(); renderLabelList(); renderDetail(); renderTrackPills();
+}
+
+// ── reps ───────────────────────────────────────────────────────────────────
+function markRep() {
+  const track = activeTrack(); if (!track) return;
+  const v = document.getElementById('editVideo');
+  const wt = round3(vToW(track, v.currentTime));
+  // find label containing this time, else the selected one
+  let label = track.labels.find(l => wt >= l.startTime && wt <= l.endTime);
+  if (!label) { label = selectedLabel(); if (!label) { flash('No label here to attach a rep to', 'danger'); return; } flash(`Rep outside any label — attached to "${label.name}"`, 'warn'); }
+  if (!label.reps) label.reps = [];
+  if (label.reps.some(r => Math.abs(r.workoutTime - wt) < 0.05)) { flash('Rep already exists near here', 'warn'); return; }
+  label.reps.push({ workoutTime: wt }); label.reps.sort((a,b)=>a.workoutTime-b.workoutTime);
+  label.modified = true;
+  selectLabel(label.id);
+}
+
+// ── export ─────────────────────────────────────────────────────────────────
+function buildTrackBundle(track) {
+  const labels = [...track.labels].sort((a,b)=>a.startTime-b.startTime);
+  const exerciseResults = labels.map(l => Object.assign({}, l._origRaw || {}, {
+    name: l.name,
+    startTime: round3(l.startTime),
+    endTime: round3(l.endTime),
+    result: round3(l.endTime - l.startTime),
+    reps: (l.reps || []).map(r => ({ workoutTime: round3(r.workoutTime) })),
+  }));
+  const startTime = labels.length ? round3(labels[0].startTime) : 0;
+  const endTime = labels.length ? round3(labels[labels.length-1].endTime) : 0;
+  let workout;
+  if (track.sourceJson) {
+    workout = JSON.parse(JSON.stringify(track.sourceJson));
+    if (!workout.roundResults || !workout.roundResults[0]) workout.roundResults = [{}];
+    workout.roundResults[0].exerciseResults = exerciseResults;
+    workout.roundResults[0].startTime = startTime;
+    workout.roundResults[0].endTime = endTime;
+    workout.startTime = startTime; workout.endTime = endTime;
+  } else {
+    workout = { roundResults: [{ startTime, endTime, exerciseResults }], startTime, endTime };
+  }
+  return {
+    workout,
+    sync: {
+      synced: track.synced,
+      method: 'watch_timer',
+      offset: round3(track.offset),
+      time_basis: track.synced ? 'workout' : 'video',
+      watch_seconds: track.watchSeconds,
+      sync_video_time: track.syncVideoTime,
+      track_name: track.name,
+      video_file: state.videoFile ? state.videoFile.name : null,
+      generated_at: new Date().toISOString(),
+    },
+  };
+}
+
+function downloadJson(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 0);
+}
+function safeName(s) { return String(s).replace(/[^a-z0-9._-]+/gi, '_'); }
+
+function downloadTrack(track) {
+  const bundle = buildTrackBundle(track);
+  const base = track.jsonFile ? track.jsonFile.name.replace(/\.json$/i,'') : safeName(track.name);
+  downloadJson(bundle, `${base}.events.json`);
+}
+function exportAll() {
+  const combined = {
+    video_file: state.videoFile ? state.videoFile.name : null,
+    generated_at: new Date().toISOString(),
+    tracks: state.tracks.map(t => ({ name: t.name, ...buildTrackBundle(t) })),
+  };
+  downloadJson(combined, `${safeName((state.videoFile&&state.videoFile.name)||'session').replace(/\.[^.]+$/,'')}.all-tracks.json`);
+}
+
+// ── hotkeys ────────────────────────────────────────────────────────────────
+function handleHotkey(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+  const v = document.getElementById('editVideo');
+  const frame = 1 / state.fps;
+  if (e.key >= '1' && e.key <= '9') {
+    const idx = parseInt(e.key, 10) - 1;
+    if (state.tracks[idx]) { setActiveTrack(state.tracks[idx].id); e.preventDefault(); }
+    return;
+  }
+  switch (e.key) {
+    case ' ': e.preventDefault(); v.paused ? v.play() : v.pause(); break;
+    case 'j': case 'J': v.currentTime = Math.max(0, v.currentTime - 1); break;
+    case 'l': case 'L': v.currentTime = v.currentTime + 1; break;
+    case ',': v.currentTime = Math.max(0, v.currentTime - frame); break;
+    case '.': v.currentTime = v.currentTime + frame; break;
+    case 'ArrowLeft': e.preventDefault(); v.currentTime = Math.max(0, v.currentTime - (e.shiftKey ? 0.2 : 0.05)); break;
+    case 'ArrowRight': e.preventDefault(); v.currentTime = v.currentTime + (e.shiftKey ? 0.2 : 0.05); break;
+    case 'i': case 'I': e.preventDefault(); setIn(); break;
+    case 'o': case 'O': e.preventDefault(); setOut(); break;
+    case 'Enter': e.preventDefault(); if (state.pending.in!=null && state.pending.out!=null) { const t=activeTrack(); if(t) createLabel(t, state.pending.in, state.pending.out, document.getElementById('newName').value.trim()||'Exercise') && (state.pending={in:null,out:null}, renderInOut()); } break;
+    case '[': e.preventDefault(); if (selectedLabel()) setLabelStartVideo(v.currentTime); break;
+    case ']': e.preventDefault(); if (selectedLabel()) setLabelEndVideo(v.currentTime); break;
+    case 'm': case 'M': e.preventDefault(); markRep(); break;
+    case 'Backspace': case 'Delete': {
+      e.preventDefault();
+      const t = activeTrack(), l = selectedLabel();
+      if (t && l) deleteLabel(t, l.id);
+      break;
+    }
+  }
+}
+
+// ── misc ───────────────────────────────────────────────────────────────────
+let _flashTimer = null;
+function flash(msg, kind) {
+  const colors = { warn: '#ff9a3c', danger: '#f87171', ok: '#4ade80' };
+  let el = document.getElementById('flashMsg');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'flashMsg';
+    el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:8px 16px;border-radius:6px;font-size:12px;z-index:9999;pointer-events:none;transition:opacity 0.2s;';
+    document.body.appendChild(el);
+  }
+  el.style.background = colors[kind] || '#444';
+  el.style.color = kind === 'danger' ? 'white' : 'black';
+  el.textContent = msg; el.style.opacity = '1';
+  clearTimeout(_flashTimer); _flashTimer = setTimeout(() => { el.style.opacity = '0'; }, 1800);
+}
+
+document.getElementById('btnReset').addEventListener('click', () => { if (confirm('Reset everything and reload?')) location.reload(); });
+window.addEventListener('resize', () => {
+  if (!document.getElementById('screenEdit').classList.contains('hidden')) { renderRuler(); renderLanes(); updatePlayhead(); }
+});
+</script>
+</body>
+</html>
