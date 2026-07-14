@@ -71,28 +71,79 @@ from src.core.data_utils import extract_features
 from collections import Counter
 
 
-def load_raw_section_data(section_dir, config):
-    csv_path = os.path.join(section_dir, "imu.csv")
-    json_path = os.path.join(section_dir, "data.json")
+def load_raw_section_data(section_path, config):
+    """
+    Loads IMU data and metadata from either legacy directory format or new Parquet/Meta.json format.
 
-    if not os.path.exists(csv_path) or not os.path.exists(json_path):
+    Legacy: section_path is a directory containing imu.csv and data.json
+    New: section_path is a file prefix (e.g. 'data/processed/uuid') where .parquet and .meta.json exist
+    """
+    df = None
+    metadata = None
+
+    # 1. Try New Format (.parquet + .meta.json)
+    parquet_path = section_path + ".parquet"
+    # Support both .meta.json, .json and .aligned.json for metadata
+    meta_json_path = section_path + ".meta.json"
+    if not os.path.exists(meta_json_path):
+        meta_json_path = section_path + ".json"
+    if not os.path.exists(meta_json_path):
+        meta_json_path = section_path + ".aligned.json"
+
+    if os.path.exists(parquet_path) and os.path.exists(meta_json_path):
+        df = pd.read_parquet(parquet_path)
+        with open(meta_json_path, 'r', encoding="utf-8") as f:
+            metadata = json.load(f)
+
+        # Map Parquet columns to canonical names used in the pipeline
+        rename_map = {
+            't_sec': 'rel_time',
+            'ax': 'acc_x', 'ay': 'acc_y', 'az': 'acc_z',
+            'gx': 'gyro_x', 'gy': 'gyro_y', 'gz': 'gyro_z'
+        }
+        df = df.rename(columns=rename_map)
+
+    # 2. Try Legacy Format (Directory with imu.csv + data.json)
+    elif os.path.isdir(section_path):
+        csv_path = os.path.join(section_path, "imu.csv")
+        json_path = os.path.join(section_path, "data.json")
+
+        if os.path.exists(csv_path) and os.path.exists(json_path):
+            df = pd.read_csv(csv_path)
+            with open(json_path, 'r', encoding="utf-8") as f:
+                metadata = json.load(f)
+
+    if df is None or metadata is None:
         return None, None
-
-    df = pd.read_csv(csv_path)
-    with open(json_path, 'r', encoding="utf-8") as f:
-        metadata = json.load(f)
 
     # Apply Filtering
     sensors = ['acc_x', 'acc_y', 'acc_z', 'gyro_x', 'gyro_y', 'gyro_z']
     for col in sensors:
         df[f'{col}_filt'] = apply_butterworth(df[col], config['lowpass_cutoff'], config['sample_rate'])
 
-    # Assign Labels
+    # Assign Labels (Handle multiple metadata schemas)
     df['label'] = 'Rest'
-    for round_data in metadata.get("roundResults", []):
+
+    # Schema A: New 'segments' list
+    if "segments" in metadata:
+        for seg in metadata["segments"]:
+            mask = (df['rel_time'] >= seg['start']) & (df['rel_time'] <= seg['end'])
+            df.loc[mask, 'label'] = seg['name']
+
+    # Schema B: Legacy 'roundResults' (direct or nested in 'workout')
+    round_results = []
+    if "roundResults" in metadata:
+        round_results = metadata["roundResults"]
+    elif "workout" in metadata and isinstance(metadata["workout"], dict):
+        round_results = metadata["workout"].get("roundResults", [])
+
+    for round_data in round_results:
         for ex in round_data.get("exerciseResults", []):
-            mask = (df['rel_time'] >= ex['startTime']) & (df['rel_time'] <= ex['endTime'])
-            df.loc[mask, 'label'] = ex['name']
+            start = ex.get('startTime') or ex.get('start')
+            end = ex.get('endTime') or ex.get('end')
+            if start is not None and end is not None:
+                mask = (df['rel_time'] >= start) & (df['rel_time'] <= end)
+                df.loc[mask, 'label'] = ex['name']
 
     return df, metadata
 
@@ -111,7 +162,16 @@ class WodDataset(Dataset):
 
     def _load_and_window_data(self, data_dir):
         print(f"Loading training data from {data_dir}...")
-        section_dirs = glob.glob(os.path.join(data_dir, "**", "section_*"), recursive=True)
+
+        # 1. Collect Legacy Section Directories
+        legacy_dirs = glob.glob(os.path.join(data_dir, "**", "section_*"), recursive=True)
+
+        # 2. Collect New Processed Parquet Files
+        parquet_files = glob.glob(os.path.join(data_dir, "**", "*.parquet"), recursive=True)
+        new_prefixes = [p.replace(".parquet", "") for p in parquet_files]
+
+        all_sources = legacy_dirs + new_prefixes
+        print(f"Found {len(legacy_dirs)} legacy sections and {len(new_prefixes)} new parquet sessions.")
 
         window_pts = int(self.cfg['window_size_sec'] * self.cfg['sample_rate'])
         step_pts = int(self.cfg['step_size_sec'] * self.cfg['sample_rate'])
@@ -119,8 +179,8 @@ class WodDataset(Dataset):
         sensors = ['acc_x', 'acc_y', 'acc_z', 'gyro_x', 'gyro_y', 'gyro_z']
         filt_cols = [f'{s}_filt' for s in sensors]
 
-        for s_dir in section_dirs:
-            df, _ = load_raw_section_data(s_dir, self.cfg)
+        for source in all_sources:
+            df, _ = load_raw_section_data(source, self.cfg)
             if df is None:
                 continue
 
@@ -149,7 +209,16 @@ class WodDataset(Dataset):
 
 def load_and_window_data_for_dt(data_dir, config):
     print(f"Loading training data from {data_dir}...")
-    section_dirs = glob.glob(os.path.join(data_dir, "**", "section_*"), recursive=True)
+
+    # 1. Collect Legacy Section Directories
+    legacy_dirs = glob.glob(os.path.join(data_dir, "**", "section_*"), recursive=True)
+
+    # 2. Collect New Processed Parquet Files
+    parquet_files = glob.glob(os.path.join(data_dir, "**", "*.parquet"), recursive=True)
+    new_prefixes = [p.replace(".parquet", "") for p in parquet_files]
+
+    all_sources = legacy_dirs + new_prefixes
+    print(f"Found {len(legacy_dirs)} legacy sections and {len(new_prefixes)} new parquet sessions.")
 
     window_pts = int(config['window_size_sec'] * config['sample_rate'])
     step_pts = int(config['step_size_sec'] * config['sample_rate'])
@@ -161,8 +230,8 @@ def load_and_window_data_for_dt(data_dir, config):
     sensors = ['acc_x', 'acc_y', 'acc_z', 'gyro_x', 'gyro_y', 'gyro_z']
     filt_cols = [f'{s}_filt' for s in sensors]
 
-    for s_dir in section_dirs:
-        df, _ = load_raw_section_data(s_dir, config)
+    for source in all_sources:
+        df, _ = load_raw_section_data(source, config)
         if df is None:
             continue
 

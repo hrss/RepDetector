@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 import torch.onnx
 
 from src.training.data_loader import WodDataset, load_raw_section_data
-from src.models.cnn_model import SixAxisCNN
+from src.models.cnn.cnn_model import SixAxisCNN
 from src.core.data_utils import smooth_predictions
 from src.visualization.inference_viz import plot_classification_results
 
@@ -38,12 +38,8 @@ def test_and_plot_section(section_dir, model, label_encoder, config):
         print(f"Error: Missing files in {section_dir}")
         return
 
-    # 3. Get Ground Truth for comparison (from the section JSON structure)
-    df['truth'] = 'Rest'
-    for round_data in metadata.get("roundResults", []):
-        for ex in round_data.get("exerciseResults", []):
-            mask = (df['rel_time'] >= ex['startTime']) & (df['rel_time'] <= ex['endTime'])
-            df.loc[mask, 'truth'] = ex['name']
+    # 3. Get Ground Truth for comparison
+    df['truth'] = df['label']
 
     # 4. Slide Inference Window
     window_pts = int(config['window_size_sec'] * config['sample_rate'])
@@ -152,8 +148,8 @@ if __name__ == "__main__":
 
     save_model()
 
-    # Pick one of your sliced sections to test against
-    test_target_dir = "data/1797/section_3109"
+    # Pick one of your processed sessions to test against
+    test_target_dir = "data/processed/apple/23B31284-45A9-4822-ACC9-CB7E75FB7DCC"
 
     # Make sure to pass model, not model.cpu() if x_tensor is sent to device
     test_and_plot_section(test_target_dir, model, dataset.le, CONFIG)

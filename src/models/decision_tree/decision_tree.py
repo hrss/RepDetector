@@ -37,11 +37,8 @@ def test_and_plot_section(section_dir, model, label_encoder, config):
     if df is None:
         return
 
-    df['truth'] = 'Rest'
-    for round_data in metadata.get("roundResults", []):
-        for ex in round_data.get("exerciseResults", []):
-            mask = (df['rel_time'] >= ex['startTime']) & (df['rel_time'] <= ex['endTime'])
-            df.loc[mask, 'truth'] = ex['name']
+    # 3. Get Ground Truth for comparison
+    df['truth'] = df['label']
 
     window_pts = int(config['window_size_sec'] * config['sample_rate'])
     predictions_raw = []
@@ -196,21 +193,8 @@ def load_model_and_test_section():
     print(f"Model loaded successfully. Tree depth: {model.get_depth()}")
     print(f"Classes: {label_encoder.classes_}")
 
-    # Test on a specific section
-    test_target_dir = "data/2053/section_3708"
-    test_and_plot_section(test_target_dir, model, label_encoder, CONFIG)
-    """Load the saved Decision Tree model and test it on a section."""
-    print("Loading saved model and label encoder...")
-
-    # Load the saved model and label encoder
-    model = joblib.load("wodbuddy_dt_model.pkl")
-    label_encoder = joblib.load("wodbuddy_dt_label_encoder.pkl")
-
-    print(f"Model loaded successfully. Tree depth: {model.get_depth()}")
-    print(f"Classes: {label_encoder.classes_}")
-
-    # Test on a specific section
-    test_target_dir = "data/2053/section_3708"
+    # Test on a specific processed session
+    test_target_dir = "data/processed/apple/23B31284-45A9-4822-ACC9-CB7E75FB7DCC"
     test_and_plot_section(test_target_dir, model, label_encoder, CONFIG)
 
 # --- 5. EXECUTION ---
