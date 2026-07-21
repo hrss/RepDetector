@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi-track Exercise Labeler</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --panel: #252525;
+    --panel-2: #2f2f2f;
+    --border: #3a3a3a;
+    --text: #e8e8e8;
+    --text-dim: #999;
+    --accent: #4a9eff;
+    --accent-warm: #ff9a3c;
+    --success: #4ade80;
+    --danger: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 13px;
+    height: 100vh; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  button { font-family: inherit; }
+
+  /* ── Top bar ─────────────────────────────────────────────────── */
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 12px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .topbar .stage {
+    padding: 4px 10px; background: var(--panel-2); border-radius: 4px;
+    font-size: 12px; color: var(--text-dim);
+  }
+  .topbar .stage.active { color: var(--accent); }
+  .topbar .stage.done { color: var(--success); }
+  .topbar .file-info { font-size: 11px; color: var(--text-dim); margin-left: auto; }
+  .topbar button {
+    background: var(--accent); color: white; border: none;
+    padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;
+  }
+  .topbar button:hover { filter: brightness(1.15); }
+  .topbar button.secondary { background: var(--panel-2); color: var(--text); }
+
+  /* ── Loader ──────────────────────────────────────────────────── */
+  .loader { flex: 1; overflow: auto; padding: 32px 40px; }
+  .loader .subtitle code { background: var(--panel-2); padding: 1px 5px; border-radius: 3px; font-size: 12px; color: var(--accent); }
+  .loader h1 { margin: 0 0 6px; font-weight: 500; font-size: 20px; }
+  .loader .subtitle { color: var(--text-dim); font-size: 13px; margin: 0 0 24px; }
+  .loader-grid { display: grid; grid-template-columns: 280px 1fr; gap: 28px; max-width: 1100px; }
+  .drop {
+    background: var(--panel); border: 1px dashed var(--border); border-radius: 8px;
+    padding: 22px; text-align: center; cursor: pointer; display: block;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .drop:hover, .drop.dragover { border-color: var(--accent); background: var(--panel-2); }
+  .drop.loaded { border-color: var(--success); border-style: solid; }
+  .drop .icon { font-size: 22px; margin-bottom: 6px; }
+  .drop .label { font-size: 12px; color: var(--text-dim); }
+  .drop .name { font-size: 11px; color: var(--text); margin-top: 6px; word-break: break-all; }
+  .drop input { display: none; }
+
+  .tracks-head { display: flex; align-items: center; margin-bottom: 10px; }
+  .tracks-head h3 { margin: 0; font-size: 14px; font-weight: 500; }
+  .tracks-head .spacer { flex: 1; }
+  .tracks-head button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;
+  }
+  .tracks-head button:hover { border-color: var(--accent); }
+
+  .track-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px; margin-bottom: 12px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: start;
+  }
+  .track-card .person-field { display: flex; flex-direction: column; gap: 4px; }
+  .track-card .person-field label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .track-card .person-field input {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; padding: 7px 8px; font-size: 13px;
+  }
+  .track-card .mini-drop {
+    background: var(--bg); border: 1px dashed var(--border); border-radius: 6px;
+    padding: 10px 8px; text-align: center; cursor: pointer; font-size: 11px; color: var(--text-dim);
+    transition: border-color 0.15s;
+  }
+  .track-card .mini-drop:hover, .track-card .mini-drop.dragover { border-color: var(--accent); }
+  .track-card .mini-drop.loaded { border-color: var(--success); border-style: solid; color: var(--text); }
+  .track-card .mini-drop .tag { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; display: block; margin-bottom: 3px; }
+  .track-card .mini-drop input { display: none; }
+  .track-card .remove-track {
+    background: transparent; color: var(--text-dim); border: 1px solid var(--border);
+    border-radius: 4px; cursor: pointer; padding: 6px 8px; font-size: 11px; align-self: center;
+  }
+  .track-card .remove-track:hover { color: var(--danger); border-color: var(--danger); }
+
+  .loader-footer { margin-top: 16px; display: flex; align-items: center; gap: 14px; }
+  .loader-footer button {
+    padding: 10px 24px; font-size: 14px; background: var(--accent); color: white;
+    border: none; border-radius: 6px; cursor: pointer;
+  }
+  .loader-footer button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── Sync ────────────────────────────────────────────────────── */
+  .sync-screen { flex: 1; padding: 24px; overflow: auto; }
+  .sync-screen h2 { font-weight: 500; margin: 0 0 4px; }
+  .sync-screen .hint { color: var(--text-dim); margin-bottom: 18px; max-width: 760px; line-height: 1.5; }
+  .sync-grid { display: grid; grid-template-columns: 460px 1fr; gap: 24px; align-items: start; }
+  .sync-video-panel { background: var(--panel); border-radius: 8px; padding: 16px; position: sticky; top: 0; }
+  .sync-video-panel h3 { margin: 0 0 10px; font-size: 14px; font-weight: 500; }
+  .sync-video-panel video { width: 100%; max-height: 300px; background: black; border-radius: 4px; }
+  .video-controls { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .video-controls button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: monospace;
+  }
+  .video-controls button:hover { background: var(--border); }
+  .time-display { font-family: monospace; font-size: 13px; color: var(--accent); padding: 8px 10px; background: var(--panel-2); border-radius: 4px; margin-top: 8px; }
+  .anchor-state { margin-top: 8px; font-size: 11px; color: var(--text-dim); }
+  .conv-field { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+  .conv-field label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .conv-field select {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; padding: 7px 8px; font-size: 12px; cursor: pointer; width: 100%;
+  }
+  .conv-note { font-size: 11px; color: var(--accent-warm); font-family: monospace; min-height: 14px; }
+
+  .sync-track-row {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; margin-bottom: 12px;
+  }
+  .sync-track-row .row-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .sync-track-row .row-head .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .sync-track-row .row-head .nm { font-weight: 500; }
+  .sync-track-row .row-head .spacer { flex: 1; }
+  .sync-track-row .row-head .badge { font-size: 11px; font-family: monospace; color: var(--text-dim); }
+  .sync-track-row canvas { width: 100%; background: var(--bg); border-radius: 4px; display: block; }
+  .sync-set-row { display: flex; align-items: center; gap: 8px; margin: 4px 0 2px; }
+  .sync-set-row label { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+  .sync-set-row input {
+    width: 110px; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; padding: 6px 8px; font-family: monospace; font-size: 13px;
+  }
+  .sync-set-row button {
+    background: var(--accent); color: white; border: none; padding: 7px 12px;
+    border-radius: 4px; cursor: pointer; font-size: 12px;
+  }
+  .sync-set-row button:hover { filter: brightness(1.12); }
+  .spacer-flex { flex: 1; }
+  .sync-track-row .set-info { font-size: 11px; color: var(--text-dim); font-family: monospace; }
+  .sync-track-row .pred { font-size: 11px; color: var(--accent); font-family: monospace; margin-top: 6px; min-height: 14px; }
+  .sync-track-row .ctrls { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .sync-track-row .ctrls .offset-val { font-family: monospace; color: var(--accent-warm); min-width: 120px; }
+  .sync-track-row .ctrls button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 5px 9px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: monospace;
+  }
+  .sync-track-row .ctrls button:hover { background: var(--border); }
+  .sync-track-row .pred { font-size: 11px; color: var(--text-dim); margin-left: auto; font-family: monospace; }
+  .sync-footer { display: flex; gap: 12px; margin-top: 8px; }
+  .sync-footer button { padding: 11px 22px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .sync-footer .confirm { background: var(--success); color: black; }
+  .sync-footer .skip { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+
+  /* ── Editor ──────────────────────────────────────────────────── */
+  .edit-screen { flex: 1; display: grid; grid-template-columns: 1fr 380px; min-height: 0; }
+  .video-col { display: flex; flex-direction: column; background: var(--bg); min-height: 0; }
+  .video-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: black; min-height: 0; }
+  .video-wrap video { max-width: 100%; max-height: 100%; }
+  .controls-bar {
+    padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .controls-bar button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: monospace;
+  }
+  .controls-bar button:hover { background: var(--border); }
+  .controls-bar .spacer { flex: 1; }
+  .controls-bar .fps-field { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-dim); }
+  .controls-bar .fps-field input { width: 44px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font-family: monospace; }
+  .controls-bar .signal-field { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-dim); }
+  .controls-bar .signal-field select {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; padding: 4px 6px; font-family: monospace; font-size: 11px; cursor: pointer;
+  }
+  .controls-bar .speed-field { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-dim); }
+  .controls-bar .speed-field button { padding: 4px 7px; font-size: 11px; }
+  .controls-bar .speed-field button.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .time-readout { font-family: monospace; font-size: 12px; display: flex; gap: 12px; }
+  .time-readout .label { color: var(--text-dim); }
+  .time-readout .v-time { color: var(--accent); }
+
+  /* Multi-lane timeline */
+  .timeline-area {
+    background: var(--panel); border-top: 1px solid var(--border);
+    position: relative; display: flex; flex-direction: column; flex-shrink: 0;
+    max-height: 46vh; overflow: hidden;
+  }
+  .ruler { height: 22px; position: relative; border-bottom: 1px solid var(--border); flex-shrink: 0; margin-left: 120px; }
+  .ruler .tick { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--border); }
+  .ruler .tick span { position: absolute; left: 3px; top: 4px; font-size: 9px; color: var(--text-dim); font-family: monospace; }
+  .lanes { position: relative; overflow-y: auto; flex: 1; }
+  .lane { display: flex; height: 76px; border-bottom: 1px solid var(--border); position: relative; }
+  .lane .lane-signal { position: absolute; left: 0; top: 0; z-index: 0; pointer-events: none; }
+  .lane .lane-gutter .g-pca { font-size: 9px; color: var(--accent); font-family: monospace; margin-top: 2px; }
+  .lane .lane-gutter {
+    width: 120px; flex-shrink: 0; padding: 6px 8px; border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; justify-content: center; cursor: pointer;
+    background: var(--panel); position: sticky; left: 0; z-index: 3;
+  }
+  .lane.active .lane-gutter { background: var(--panel-2); border-left: 3px solid var(--accent); padding-left: 5px; }
+  .lane .lane-gutter .g-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lane .lane-gutter .g-sub { font-size: 9px; color: var(--text-dim); font-family: monospace; margin-top: 2px; }
+  .lane .lane-track { position: relative; flex: 1; overflow: hidden; cursor: crosshair; }
+  .lane:not(.active) .lane-track { cursor: pointer; }
+  .lane .label-block {
+    position: absolute; top: 4px; bottom: 4px; border-radius: 3px; z-index: 1;
+    display: flex; align-items: flex-start; justify-content: center; overflow: hidden;
+    font-size: 10px; color: #fff; white-space: nowrap; padding: 2px 4px 0;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8);
+    border: 1px solid transparent; cursor: grab; user-select: none;
+  }
+  .lane .label-block.rest { opacity: 0.6; }
+  .lane .label-block.selected { border-color: white; box-shadow: 0 0 0 1px rgba(255,255,255,0.4); z-index: 2; }
+  .lane .label-block .handle { position: absolute; top: 0; bottom: 0; width: 7px; cursor: ew-resize; background: rgba(0,0,0,0.18); }
+  .lane .label-block .handle.left { left: 0; } .lane .label-block .handle.right { right: 0; }
+  .lane .label-block .handle:hover { background: rgba(255,255,255,0.55); }
+  .lane .rep-tick { position: absolute; top: 4px; bottom: 4px; width: 2px; background: white; box-shadow: 0 0 3px rgba(255,255,255,0.6); pointer-events: none; z-index: 2; }
+  .lane .rep-tick.orphan { background: var(--danger); }
+  .lane .ghost { position: absolute; top: 4px; bottom: 4px; background: rgba(74,158,255,0.3); border: 1px dashed var(--accent); border-radius: 3px; pointer-events: none; z-index: 2; }
+  .playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); box-shadow: 0 0 4px var(--accent); pointer-events: none; z-index: 4; left: 120px; }
+  .inout-marker { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed var(--accent-warm); pointer-events: none; z-index: 3; }
+
+  /* Sidebar */
+  .sidebar { background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
+  .sidebar-header { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
+  .sidebar-header .title { font-weight: 500; }
+  .sidebar-header .spacer { flex: 1; }
+  .sidebar-header button { background: var(--accent); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+  .sidebar-header button.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  .sidebar-body { flex: 1; overflow-y: auto; }
+
+  .section { border-bottom: 1px solid var(--border); padding: 12px; }
+  .section h4 { margin: 0 0 8px; font-size: 11px; font-weight: 500; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center; }
+
+  .track-pill { display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; padding: 7px 8px; border-radius: 4px; cursor: pointer; margin-bottom: 3px; }
+  .track-pill:hover { background: var(--panel-2); }
+  .track-pill.active { background: var(--panel-2); border-left: 2px solid var(--accent); padding-left: 6px; }
+  .track-pill .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .track-pill .nm { font-size: 12px; }
+  .track-pill .cnt { font-size: 10px; color: var(--text-dim); font-family: monospace; }
+  .track-pill .exp { background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 11px; padding: 2px 4px; }
+  .track-pill .exp:hover { color: var(--accent); }
+  .opt-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; color: var(--text-dim); cursor: pointer; }
+  .opt-row input { accent-color: var(--accent); cursor: pointer; }
+  .opt-row code { background: var(--bg); padding: 0 4px; border-radius: 3px; color: var(--accent-warm); }
+
+  .create-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ex-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .ex-chip {
+    display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+    background: var(--panel-2); border: 1px solid var(--border); border-left-width: 3px;
+    border-radius: 4px; padding: 4px 6px 4px 8px; font-size: 12px; color: var(--text);
+    user-select: none; transition: background 0.12s;
+  }
+  .ex-chip:hover { background: var(--border); }
+  .ex-chip.armed { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .ex-chip .x { color: var(--text-dim); font-size: 11px; line-height: 1; padding: 0 1px; border-radius: 2px; }
+  .ex-chip .x:hover { color: var(--danger); }
+  .ex-chip.armed .x { color: rgba(255,255,255,0.7); }
+  .ex-chip.armed .x:hover { color: #fff; }
+  .ex-chips-empty { font-size: 11px; color: var(--text-dim); font-style: italic; }
+  .armed-note { color: var(--text-dim); text-transform: none; letter-spacing: 0; font-size: 10px; }
+  .create-grid .full { grid-column: 1 / -1; }
+  .field-row { display: flex; flex-direction: column; gap: 3px; }
+  .field-row label { font-size: 10px; color: var(--text-dim); }
+  .field-row input, .field-row select {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; padding: 6px 8px; font-size: 12px; font-family: monospace; width: 100%;
+  }
+  .field-row input.name-in { font-family: inherit; }
+  .inout-readout { display: flex; gap: 8px; font-family: monospace; font-size: 11px; }
+  .inout-readout .chip { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 6px; text-align: center; }
+  .inout-readout .chip b { color: var(--accent-warm); }
+  .btn-primary { width: 100%; background: var(--accent); color: white; border: none; padding: 9px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 8px; }
+  .btn-primary:hover { filter: brightness(1.12); }
+  .btn-row { display: flex; gap: 6px; margin-top: 8px; }
+  .btn-row button { flex: 1; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); padding: 7px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: monospace; }
+  .btn-row button:hover { background: var(--border); }
+
+  .label-list { max-height: 220px; overflow-y: auto; }
+  .label-row { display: grid; grid-template-columns: 10px 1fr auto auto auto; gap: 6px; align-items: center; padding: 6px 7px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+  .label-row:hover { background: var(--panel-2); }
+  .label-row.selected { background: var(--panel-2); }
+  .label-row .swatch { width: 9px; height: 9px; border-radius: 2px; }
+  .label-row .nm { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .label-row .tm { font-family: monospace; color: var(--text-dim); }
+  .label-row button { background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 2px 4px; font-size: 11px; }
+  .label-row .jump:hover { color: var(--accent); }
+  .label-row .del:hover { color: var(--danger); }
+  .list-empty { padding: 12px; text-align: center; color: var(--text-dim); font-size: 11px; font-style: italic; }
+
+  .detail-name { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 7px 8px; font-size: 13px; margin-bottom: 10px; }
+  .field { display: grid; grid-template-columns: 50px 1fr auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .field label { font-size: 11px; color: var(--text-dim); }
+  .field input { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 5px 8px; font-family: monospace; font-size: 12px; width: 100%; }
+  .field button { background: var(--accent); color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; white-space: nowrap; }
+  .field button:hover { filter: brightness(1.1); }
+  .detail-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .detail-actions .danger-btn { flex: 1; background: rgba(248,113,113,0.12); color: var(--danger); border: 1px solid var(--danger); border-radius: 4px; padding: 7px; cursor: pointer; font-size: 11px; }
+  .detail-actions .danger-btn:hover { background: rgba(248,113,113,0.22); }
+
+  .reps-block { margin-top: 10px; }
+  .reps-list { max-height: 110px; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 4px; }
+  .rep-item { display: grid; grid-template-columns: 24px 1fr auto auto; gap: 6px; align-items: center; padding: 3px 6px; font-size: 11px; font-family: monospace; border-radius: 3px; }
+  .rep-item:hover { background: var(--panel); }
+  .rep-item .idx { color: var(--text-dim); }
+  .rep-item .t { color: var(--accent-warm); }
+  .rep-item button { background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 2px 4px; font-size: 10px; }
+  .rep-item .jump:hover { color: var(--accent); }
+  .rep-item .del:hover { color: var(--danger); }
+  .rep-badge { background: var(--accent-warm); color: black; padding: 1px 6px; border-radius: 8px; font-size: 9px; font-weight: 600; margin-left: 4px; }
+
+  .help { font-size: 10px; color: var(--text-dim); margin-top: 10px; line-height: 1.6; font-family: monospace; }
+  .help kbd { background: var(--bg); border: 1px solid var(--border); padding: 1px 4px; border-radius: 2px; }
+
+  .hidden { display: none !important; }
+  .error { background: rgba(248,113,113,0.1); border: 1px solid var(--danger); color: var(--danger); padding: 8px 12px; border-radius: 4px; font-size: 12px; margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <strong style="font-weight:500;">Exercise Labeler</strong>
+  <span class="stage active" id="stageLoad">1. Load files</span>
+  <span class="stage" id="stageSync">2. Sync</span>
+  <span class="stage" id="stageEdit">3. Label</span>
+  <span class="file-info" id="fileInfo"></span>
+  <button id="btnReset" class="secondary hidden">Reset</button>
+</div>
+
+<!-- STAGE 1: LOAD -->
+<div class="loader" id="screenLoad">
+  <h1>Load a video and one track per person</h1>
+  <p class="subtitle">Each track needs an IMU <strong>.parquet</strong> file (columns <code>t_sec, ax, ay, az</code>, plus optional <code>gx, gy, gz</code>). Optionally add a results JSON to edit, or a workout plan to auto-generate a starting timeline; or leave it empty to label from scratch. Everything stays in your browser — nothing is uploaded.</p>
+  <div class="loader-grid">
+    <div>
+      <label class="drop" id="dropVideo" for="fileVideo">
+        <div class="icon">🎬</div>
+        <div class="label">Video file</div>
+        <div class="name" id="nameVideo">.mp4, .mov, .webm</div>
+        <input type="file" id="fileVideo" accept="video/*">
+      </label>
+    </div>
+    <div>
+      <div class="tracks-head">
+        <h3>Tracks (one per person)</h3>
+        <span class="spacer"></span>
+        <button id="btnAddTrack">+ Add track</button>
+      </div>
+      <div id="trackCards"></div>
+    </div>
+  </div>
+  <div id="loadError"></div>
+  <div class="loader-footer">
+    <button id="btnProceed" disabled>Continue →</button>
+    <span id="loadStatus" style="color:var(--text-dim);font-size:12px;"></span>
+  </div>
+</div>
+
+<!-- STAGE 2: SYNC -->
+<div class="sync-screen hidden" id="screenSync">
+  <h2>Sync sensors to the video</h2>
+  <p class="hint">For each person, find the frame where their watch timer <strong>flips</strong> to a new value, type that value, and press <strong>Set from this frame</strong>. Use the −1f/+1f buttons to land on the flip exactly — a watch shows each value for a whole second, so picking any readable frame instead leaves the IMU trace looking up to 1s late. People can show their watches at different moments; each track is set independently. Or skip and label in video time.</p>
+  <div class="sync-grid">
+    <div class="sync-video-panel">
+      <h3>Video</h3>
+      <video id="syncVideo" controls></video>
+      <div class="video-controls">
+        <button data-skip="-1">−1s</button>
+        <button data-skip="-0.1">−0.1s</button>
+        <button data-skip="-0.033">−1f</button>
+        <button data-skip="0.033">+1f</button>
+        <button data-skip="0.1">+0.1s</button>
+        <button data-skip="1">+1s</button>
+      </div>
+      <div class="time-display">video time: <span id="syncVideoTime">0.000</span>s</div>
+      <div class="conv-field">
+        <label for="watchConvention">What frame are you on?</label>
+        <select id="watchConvention">
+          <option value="tick">The frame where the timer FLIPS to the typed value — precise</option>
+          <option value="mid">Any frame showing the typed value — adds +0.5s</option>
+        </select>
+        <div class="conv-note" id="convNote"></div>
+      </div>
+      <div class="anchor-state" id="anchorState">A watch shows "0:10" for a whole second, so pick the flip frame to avoid a 0–1s error.</div>
+    </div>
+    <div>
+      <div id="syncTrackRows"></div>
+      <div class="sync-footer">
+        <button class="confirm" id="btnConfirmSync">Start labeling →</button>
+        <button class="skip" id="btnSkipSync">Skip — label in video time</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STAGE 3: EDITOR -->
+<div class="edit-screen hidden" id="screenEdit">
+  <div class="video-col">
+    <div class="video-wrap"><video id="editVideo" controls></video></div>
+    <div class="controls-bar">
+      <button data-skip="-1">J −1s</button>
+      <button data-skip="-0.033">, −1f</button>
+      <button id="btnPlay">⏯</button>
+      <button data-skip="0.033">. +1f</button>
+      <button data-skip="1">L +1s</button>
+      <div class="spacer"></div>
+      <div class="signal-field">
+        <span>signal</span>
+        <select id="signalSelect">
+          <option value="pc1">PC1</option>
+          <option value="pc2">PC2</option>
+          <option value="pc3">PC3</option>
+          <option value="accel">|accel|</option>
+          <option value="gyro">|gyro|</option>
+        </select>
+      </div>
+      <div class="speed-field">
+        <span>speed</span>
+        <button data-rate="0.5">0.5×</button>
+        <button data-rate="1" class="active">1×</button>
+        <button data-rate="1.5">1.5×</button>
+        <button data-rate="2">2×</button>
+      </div>
+      <div class="fps-field">fps <input type="number" id="fpsInput" value="30" min="1" max="240" step="1"></div>
+      <div class="time-readout">
+        <span><span class="label">video:</span> <span class="v-time" id="editVideoTime">0.000</span>s</span>
+      </div>
+    </div>
+    <div class="timeline-area">
+      <div class="ruler" id="ruler"></div>
+      <div class="lanes" id="lanes"></div>
+      <div class="playhead" id="playhead"></div>
+    </div>
+  </div>
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="title">Labels</span>
+      <span class="spacer"></span>
+      <button class="secondary" id="btnExportActive">Export track</button>
+      <button id="btnExportAll">Export all</button>
+    </div>
+    <div class="sidebar-body">
+      <div class="section">
+        <h4>Tracks</h4>
+        <div id="trackPills"></div>
+        <label class="opt-row" title="Unlabeled spans are exported as segments with name: null, covering the whole IMU recording">
+          <input type="checkbox" id="optNullGaps" checked>
+          <span>Export unlabeled time as <code>null</code></span>
+        </label>
+      </div>
+      <div class="section">
+        <h4>New label <span id="activeTrackName" style="color:var(--accent);text-transform:none;letter-spacing:0;"></span></h4>
+        <div class="ex-chips" id="exChips"></div>
+        <div class="create-grid">
+          <div class="field-row full">
+            <label>Exercise <span class="armed-note" id="armedNote"></span></label>
+            <input class="name-in" id="newName" list="exerciseList" placeholder="type a new name…" value="Squat">
+            <datalist id="exerciseList"></datalist>
+          </div>
+          <div class="field-row"><label>Start (s)</label><input id="newStart" type="number" step="0.001" placeholder="4.000"></div>
+          <div class="field-row"><label>End (s)</label><input id="newEnd" type="number" step="0.001" placeholder="10.000"></div>
+        </div>
+        <div class="inout-readout" style="margin-top:8px;">
+          <div class="chip">in: <b id="inReadout">—</b></div>
+          <div class="chip">out: <b id="outReadout">—</b></div>
+        </div>
+        <div class="btn-row">
+          <button id="btnSetIn">Set in [I]</button>
+          <button id="btnSetOut">Set out [O]</button>
+          <button id="btnClearInOut">Clear</button>
+        </div>
+        <button class="btn-primary" id="btnAddLabel">Add label</button>
+        <div class="help">
+          Pick an exercise above (or type a new one), then drag across the active lane to draw it. Click a chip while a label is selected to rename it. Times are in video seconds.
+        </div>
+      </div>
+      <div class="section">
+        <h4><span>Labels on this track</span><span class="cnt" id="labelCount" style="font-family:monospace;color:var(--accent-warm);">0</span></h4>
+        <div class="label-list" id="labelList"></div>
+      </div>
+      <div class="section" id="detailSection">
+        <h4>Selected label</h4>
+        <div id="detailBody"><div class="list-empty">No label selected.</div></div>
+      </div>
+      <div class="section">
+        <div class="help">
+          <kbd>Space</kbd> play/pause &nbsp; <kbd>J</kbd>/<kbd>L</kbd> ±1s &nbsp; <kbd>,</kbd>/<kbd>.</kbd> ±1f<br>
+          <kbd>←</kbd>/<kbd>→</kbd> ±50ms &nbsp; <kbd>Shift</kbd>+ ±200ms<br>
+          <kbd>I</kbd>/<kbd>O</kbd> set in/out &nbsp; <kbd>Enter</kbd> add label<br>
+          <kbd>[</kbd>/<kbd>]</kbd> set selected start/end &nbsp; <kbd>M</kbd> mark rep<br>
+          <kbd>Del</kbd> delete label &nbsp; <kbd>1</kbd>–<kbd>9</kbd> switch track
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- hyparquet + fzstd (ZSTD) bundle — reads .parquet IMU files fully in-browser, offline -->
+<script>
+(()=>{var Me=["BOOLEAN","INT32","INT64","INT96","FLOAT","DOUBLE","BYTE_ARRAY","FIXED_LEN_BYTE_ARRAY"],$=["PLAIN","GROUP_VAR_INT","PLAIN_DICTIONARY","RLE","BIT_PACKED","DELTA_BINARY_PACKED","DELTA_LENGTH_BYTE_ARRAY","DELTA_BYTE_ARRAY","RLE_DICTIONARY","BYTE_STREAM_SPLIT"],mt=["REQUIRED","OPTIONAL","REPEATED"],yt=["UTF8","MAP","MAP_KEY_VALUE","LIST","ENUM","DECIMAL","DATE","TIME_MILLIS","TIME_MICROS","TIMESTAMP_MILLIS","TIMESTAMP_MICROS","UINT_8","UINT_16","UINT_32","UINT_64","INT_8","INT_16","INT_32","INT_64","JSON","BSON","INTERVAL"],gt=["UNCOMPRESSED","SNAPPY","GZIP","LZO","BROTLI","LZ4","ZSTD","LZ4_RAW"],ge=["DATA_PAGE","INDEX_PAGE","DICTIONARY_PAGE","DATA_PAGE_V2"];var wt=["SPHERICAL","VINCENTY","THOMAS","ANDOYER","KARNEY"];function Ae(e){let t=we(e);if(t.type===1)return{type:"Point",coordinates:Pe(e,t)};if(t.type===2)return{type:"LineString",coordinates:$e(e,t)};if(t.type===3)return{type:"Polygon",coordinates:At(e,t)};if(t.type===4){let n=[];for(let r=0;r<t.count;r++)n.push(Pe(e,we(e)));return{type:"MultiPoint",coordinates:n}}else if(t.type===5){let n=[];for(let r=0;r<t.count;r++)n.push($e(e,we(e)));return{type:"MultiLineString",coordinates:n}}else if(t.type===6){let n=[];for(let r=0;r<t.count;r++)n.push(At(e,we(e)));return{type:"MultiPolygon",coordinates:n}}else if(t.type===7){let n=[];for(let r=0;r<t.count;r++)n.push(Ae(e));return{type:"GeometryCollection",geometries:n}}else throw new Error(`Unsupported geometry type: ${t.type}`)}function we(e){let{view:t}=e,n=t.getUint8(e.offset++)===1,r=t.getUint32(e.offset,n);e.offset+=4;let i=r%1e3,f=Math.floor(r/1e3),o=0;i>1&&i<=7&&(o=t.getUint32(e.offset,n),e.offset+=4);let s=2;return f&&s++,f===3&&s++,{littleEndian:n,type:i,dim:s,count:o}}function Pe(e,t){let n=[];for(let r=0;r<t.dim;r++){let i=e.view.getFloat64(e.offset,t.littleEndian);e.offset+=8,n.push(i)}return n}function $e(e,t){let n=[];for(let r=0;r<t.count;r++)n.push(Pe(e,t));return n}function At(e,t){let{view:n}=e,r=[];for(let i=0;i<t.count;i++){let f=n.getUint32(e.offset,t.littleEndian);e.offset+=4,r.push($e(e,{...t,count:f}))}return r}var vt=new TextDecoder,j={timestampFromMilliseconds(e){return new Date(Number(e))},timestampFromMicroseconds(e){return new Date(Number(e/1000n))},timestampFromNanoseconds(e){return new Date(Number(e/1000000n))},dateFromDays(e){return new Date(e*864e5)},stringFromBytes(e){return e&&vt.decode(e)},jsonFromBytes(e){return e&&JSON.parse(vt.decode(e))},geometryFromBytes(e){return e&&Ae({view:new DataView(e.buffer,e.byteOffset,e.byteLength),offset:0})},geographyFromBytes(e){return e&&Ae({view:new DataView(e.buffer,e.byteOffset,e.byteLength),offset:0})},uuidFromBytes(e){if(!e)return;let t=Array.from(e,n=>n.toString(16).padStart(2,"0")).join("");return t.slice(0,8)+"-"+t.slice(8,12)+"-"+t.slice(12,16)+"-"+t.slice(16,20)+"-"+t.slice(20,32)}};function Fe(e,t,n,r){if(t&&n.endsWith("_DICTIONARY")){let i=e;e instanceof Uint8Array&&!(t instanceof Uint8Array)&&(i=new t.constructor(e.length));for(let f=0;f<e.length;f++)i[f]=t[e[f]];return i}else return Ce(e,r)}function Ce(e,t){let{element:n,parsers:r,utf8:i=!0,schemaPath:f}=t,{type:o,converted_type:s,logical_type:a}=n,d=n.repetition_type!=="REQUIRED";if(f?.some(l=>l.element.logical_type?.type==="VARIANT")&&o==="BYTE_ARRAY"&&s!=="UTF8"&&a?.type!=="STRING")return e;if(s==="DECIMAL"){let c=10**-(n.scale||0),p=new Array(e.length);for(let m=0;m<p.length;m++)e[m]instanceof Uint8Array?p[m]=qe(e[m])*c:p[m]=Number(e[m])*c;return p}if(!s&&o==="INT96")return Array.from(e).map(l=>r.timestampFromNanoseconds(en(l)));if(s==="DATE")return Array.from(e).map(l=>r.dateFromDays(l));if(s==="TIMESTAMP_MILLIS")return Array.from(e).map(l=>r.timestampFromMilliseconds(l));if(s==="TIMESTAMP_MICROS")return Array.from(e).map(l=>r.timestampFromMicroseconds(l));if(s==="JSON")return e.map(l=>r.jsonFromBytes(l));if(s==="BSON")throw new Error("parquet bson not supported");if(s==="INTERVAL")throw new Error("parquet interval not supported");if(a?.type==="GEOMETRY")return e.map(l=>r.geometryFromBytes(l));if(a?.type==="GEOGRAPHY")return e.map(l=>r.geographyFromBytes(l));if(a?.type==="UUID")return e.map(l=>r.uuidFromBytes(l));if(s==="UTF8"||a?.type==="STRING"||i&&o==="BYTE_ARRAY")return e.map(l=>r.stringFromBytes(l));if(s==="UINT_64"||a?.type==="INTEGER"&&a.bitWidth===64&&!a.isSigned){if(e instanceof BigInt64Array)return new BigUint64Array(e.buffer,e.byteOffset,e.length);let l=d?new Array(e.length):new BigUint64Array(e.length);for(let c=0;c<l.length;c++)l[c]=e[c];return l}if(s==="UINT_32"||a?.type==="INTEGER"&&a.bitWidth===32&&!a.isSigned){if(e instanceof Int32Array)return new Uint32Array(e.buffer,e.byteOffset,e.length);let l=d?new Array(e.length):new Uint32Array(e.length);for(let c=0;c<l.length;c++)l[c]=e[c]<0?4294967296+e[c]:e[c];return l}if(a?.type==="FLOAT16")return Array.from(e).map(Ye);if(a?.type==="TIMESTAMP"){let{unit:l}=a,c=r.timestampFromMilliseconds;l==="MICROS"&&(c=r.timestampFromMicroseconds),l==="NANOS"&&(c=r.timestampFromNanoseconds);let p=new Array(e.length);for(let m=0;m<p.length;m++)p[m]=c(e[m]);return p}return e}function qe(e){if(!e.length)return 0;let t=0n;for(let r of e)t=t*256n+BigInt(r);let n=e.length*8;return t>=2n**BigInt(n-1)&&(t-=2n**BigInt(n)),Number(t)}function en(e){let t=(e>>64n)-2440588n,n=e&0xffffffffffffffffn;return t*86400000000000n+n}function Ye(e){if(!e)return;let t=e[1]<<8|e[0],n=t>>15?-1:1,r=t>>10&31,i=t&1023;return r===0?n*2**-14*(i/1024):r===31?i?NaN:n*(1/0):n*2**(r-15)*(1+i/1024)}function Et(e,t,n){let r=e[t],i=[],f=1;if(r.num_children)for(;i.length<r.num_children;){let o=e[t+f],s=Et(e,t+f,[...n,o.name]);f+=s.count,i.push(s)}return{count:f,element:r,children:i,path:n}}function ve(e,t){let n=Et(e,0,[]),r=[n];for(let i of t){let f=n.children.find(o=>o.element.name===i);if(!f)throw new Error(`parquet schema element not found: ${t}`);r.push(f),n=f}return r}function ke(e){let t=[];function n(r){if(r.children.length)for(let i of r.children)n(i);else t.push(r.path.join("."))}return n(e),t}function Ge(e){let t=0;for(let{element:n}of e)n.repetition_type==="REPEATED"&&t++;return t}function re(e){let t=0;for(let{element:n}of e.slice(1))n.repetition_type!=="REQUIRED"&&t++;return t}function It(e){if(!e||e.element.converted_type!=="LIST"||e.children.length>1)return!1;let t=e.children[0];return!(t.children.length>1||t.element.repetition_type!=="REPEATED")}function bt(e){if(!e||e.element.converted_type!=="MAP"||e.children.length>1)return!1;let t=e.children[0];return!(t.children.length!==2||t.element.repetition_type!=="REPEATED"||t.children.find(i=>i.element.name==="key")?.element.repetition_type==="REPEATED"||t.children.find(i=>i.element.name==="value")?.element.repetition_type==="REPEATED")}function ze(e){if(e.length!==2)return!1;let[,t]=e;return!(t.element.repetition_type==="REPEATED"||t.children.length)}function C(e){let t={},n=0;for(;e.offset<e.view.byteLength;){let r=e.view.getUint8(e.offset++),i=r&15;if(i===0)break;let f=r>>4;n=f?n+f:xt(e),t[`field_${n}`]=Ve(e,i)}return t}function Ve(e,t){switch(t){case 1:return!0;case 2:return!1;case 3:return e.view.getInt8(e.offset++);case 4:case 5:return xt(e);case 6:return Ee(e);case 7:{let n=e.view.getFloat64(e.offset,!0);return e.offset+=8,n}case 8:{let n=F(e),r=new Uint8Array(e.view.buffer,e.view.byteOffset+e.offset,n);return e.offset+=n,r}case 9:{let n=e.view.getUint8(e.offset++),r=n&15,i=n>>4;i===15&&(i=F(e));let f=r===1||r===2,o=new Array(i);for(let s=0;s<i;s++)o[s]=f?Ve(e,3)===1:Ve(e,r);return o}case 12:return C(e);default:throw new Error(`thrift unhandled type: ${t}`)}}function F(e){let t=0,n=0;for(;;){let r=e.view.getUint8(e.offset++);if(t|=(r&127)<<n,!(r&128))return t;n+=7}}function tn(e){let t=0n,n=0n;for(;;){let r=e.view.getUint8(e.offset++);if(t|=BigInt(r&127)<<n,!(r&128))return t;n+=7n}}function xt(e){let t=F(e);return t>>>1^-(t&1)}function Ee(e){let t=tn(e);return t>>1n^-(t&1n)}function Tt(e,t){let n=new Map,r=t?.find(({key:f})=>f==="geo")?.value,i=(r&&JSON.parse(r)?.columns)??{};for(let[f,o]of Object.entries(i)){if(o.encoding!=="WKB")continue;let s=o.edges==="spherical"?"GEOGRAPHY":"GEOMETRY",a=o.crs?.id??o.crs?.ids?.[0],d=a?`${a.authority}:${a.code.toString()}`:void 0;n.set(f,{type:s,crs:d})}for(let f=1;f<e.length;f++){let{logical_type:o,name:s,num_children:a,type:d}=e[f];if(a){f+=a;continue}d==="BYTE_ARRAY"&&!o&&(e[f].logical_type=n.get(s))}}var nn=1<<19,rn=new TextDecoder;function P(e){return e&&rn.decode(e)}async function ie(e,{parsers:t,initialFetchSize:n=nn,geoparquet:r=!0}={}){if(!e||!(e.byteLength>=0))throw new Error("parquet expected AsyncBuffer");let i=Math.max(0,e.byteLength-n),f=await e.slice(i,e.byteLength),o=new DataView(f);if(o.getUint32(f.byteLength-4,!0)!==827474256)throw new Error("parquet file invalid (footer != PAR1)");let s=o.getUint32(f.byteLength-8,!0);if(s>e.byteLength-8)throw new Error(`parquet metadata length ${s} exceeds available buffer ${e.byteLength-8}`);if(s+8>n){let a=e.byteLength-s-8,d=await e.slice(a,i),u=new ArrayBuffer(s+8),l=new Uint8Array(u);return l.set(new Uint8Array(d)),l.set(new Uint8Array(f),i-a),je(u,{parsers:t,geoparquet:r})}else return je(f,{parsers:t,geoparquet:r})}function je(e,{parsers:t,geoparquet:n=!0}={}){if(!(e instanceof ArrayBuffer))throw new Error("parquet expected ArrayBuffer");let r=new DataView(e);if(t={...j,...t},r.byteLength<8)throw new Error("parquet file is too short");if(r.getUint32(r.byteLength-4,!0)!==827474256)throw new Error("parquet file invalid (footer != PAR1)");let i=r.byteLength-8,f=r.getUint32(i,!0);if(f>r.byteLength-8)throw new Error(`parquet metadata length ${f} exceeds available buffer ${r.byteLength-8}`);let o=i-f,a=C({view:r,offset:o}),d=a.field_1,u=a.field_2.map(h=>({type:Me[h.field_1],type_length:h.field_2,repetition_type:mt[h.field_3],name:P(h.field_4),num_children:h.field_5,converted_type:yt[h.field_6],scale:h.field_7,precision:h.field_8,field_id:h.field_9,logical_type:fn(h.field_10)})),l=u.filter(h=>h.type),c=a.field_3,p=a.field_4.map(h=>({columns:h.field_1.map((_,w)=>({file_path:P(_.field_1),file_offset:_.field_2,meta_data:_.field_3&&{type:Me[_.field_3.field_1],encodings:_.field_3.field_2?.map(g=>$[g]),path_in_schema:_.field_3.field_3.map(P),codec:gt[_.field_3.field_4],num_values:_.field_3.field_5,total_uncompressed_size:_.field_3.field_6,total_compressed_size:_.field_3.field_7,key_value_metadata:_.field_3.field_8?.map(g=>({key:P(g.field_1),value:P(g.field_2)})),data_page_offset:_.field_3.field_9,index_page_offset:_.field_3.field_10,dictionary_page_offset:_.field_3.field_11,statistics:on(_.field_3.field_12,l[w],t),encoding_stats:_.field_3.field_13?.map(g=>({page_type:ge[g.field_1],encoding:$[g.field_2],count:g.field_3})),bloom_filter_offset:_.field_3.field_14,bloom_filter_length:_.field_3.field_15,size_statistics:_.field_3.field_16&&{unencoded_byte_array_data_bytes:_.field_3.field_16.field_1,repetition_level_histogram:_.field_3.field_16.field_2,definition_level_histogram:_.field_3.field_16.field_3},geospatial_statistics:_.field_3.field_17&&{bbox:_.field_3.field_17.field_1&&{xmin:_.field_3.field_17.field_1.field_1,xmax:_.field_3.field_17.field_1.field_2,ymin:_.field_3.field_17.field_1.field_3,ymax:_.field_3.field_17.field_1.field_4,zmin:_.field_3.field_17.field_1.field_5,zmax:_.field_3.field_17.field_1.field_6,mmin:_.field_3.field_17.field_1.field_7,mmax:_.field_3.field_17.field_1.field_8},geospatial_types:_.field_3.field_17.field_2}},offset_index_offset:_.field_4,offset_index_length:_.field_5,column_index_offset:_.field_6,column_index_length:_.field_7,crypto_metadata:_.field_8,encrypted_column_metadata:_.field_9})),total_byte_size:h.field_2,num_rows:h.field_3,sorting_columns:h.field_4?.map(_=>({column_idx:_.field_1,descending:_.field_2,nulls_first:_.field_3})),file_offset:h.field_5,total_compressed_size:h.field_6,ordinal:h.field_7})),m=a.field_5?.map(h=>({key:P(h.field_1),value:P(h.field_2)})),y=P(a.field_6);return n&&Tt(u,m),{version:d,schema:u,num_rows:c,row_groups:p,key_value_metadata:m,created_by:y,metadata_length:f}}function G({schema:e}){return ve(e,[])[0]}function fn(e){return e?.field_1?{type:"STRING"}:e?.field_2?{type:"MAP"}:e?.field_3?{type:"LIST"}:e?.field_4?{type:"ENUM"}:e?.field_5?{type:"DECIMAL",scale:e.field_5.field_1,precision:e.field_5.field_2}:e?.field_6?{type:"DATE"}:e?.field_7?{type:"TIME",isAdjustedToUTC:e.field_7.field_1,unit:Lt(e.field_7.field_2)}:e?.field_8?{type:"TIMESTAMP",isAdjustedToUTC:e.field_8.field_1,unit:Lt(e.field_8.field_2)}:e?.field_10?{type:"INTEGER",bitWidth:e.field_10.field_1,isSigned:e.field_10.field_2}:e?.field_11?{type:"NULL"}:e?.field_12?{type:"JSON"}:e?.field_13?{type:"BSON"}:e?.field_14?{type:"UUID"}:e?.field_15?{type:"FLOAT16"}:e?.field_16?{type:"VARIANT",specification_version:e.field_16.field_1}:e?.field_17?{type:"GEOMETRY",crs:P(e.field_17.field_1)}:e?.field_18?{type:"GEOGRAPHY",crs:P(e.field_18.field_1),algorithm:wt[e.field_18.field_2]}:e}function Lt(e){if(e.field_1)return"MILLIS";if(e.field_2)return"MICROS";if(e.field_3)return"NANOS";throw new Error("parquet time unit required")}function on(e,t,n){return e&&{max:Ie(e.field_1,t,n),min:Ie(e.field_2,t,n),null_count:e.field_3,distinct_count:e.field_4,max_value:Ie(e.field_5,t,n),min_value:Ie(e.field_6,t,n),is_max_value_exact:e.field_7,is_min_value_exact:e.field_8}}function Ie(e,t,n){let{type:r,converted_type:i,logical_type:f}=t;if(e===void 0)return e;if(r==="BOOLEAN")return e[0]===1;if(r==="BYTE_ARRAY")return n.stringFromBytes(e);let o=new DataView(e.buffer,e.byteOffset,e.byteLength);return r==="FLOAT"&&o.byteLength===4?o.getFloat32(0,!0):r==="DOUBLE"&&o.byteLength===8?o.getFloat64(0,!0):r==="INT32"&&i==="DATE"?n.dateFromDays(o.getInt32(0,!0)):r==="INT64"&&i==="TIMESTAMP_MILLIS"?n.timestampFromMilliseconds(o.getBigInt64(0,!0)):r==="INT64"&&i==="TIMESTAMP_MICROS"?n.timestampFromMicroseconds(o.getBigInt64(0,!0)):r==="INT64"&&f?.type==="TIMESTAMP"&&f?.unit==="NANOS"?n.timestampFromNanoseconds(o.getBigInt64(0,!0)):r==="INT64"&&f?.type==="TIMESTAMP"&&f?.unit==="MICROS"?n.timestampFromMicroseconds(o.getBigInt64(0,!0)):r==="INT64"&&f?.type==="TIMESTAMP"?n.timestampFromMilliseconds(o.getBigInt64(0,!0)):r==="INT32"&&o.byteLength===4?o.getInt32(0,!0):r==="INT64"&&o.byteLength===8?o.getBigInt64(0,!0):i==="DECIMAL"?qe(e)*10**-(t.scale||0):f?.type==="FLOAT16"?Ye(e):f?.type==="UUID"?n.uuidFromBytes(e):e}function Rt(e){let t=C(e);return{page_locations:t.field_1.map(n=>({offset:n.field_1,compressed_page_size:n.field_2,first_row_index:n.field_3})),unencoded_byte_array_data_bytes:t.field_2}}var O=0xffffffffffffffffn,W=0x9e3779b185ebca87n,fe=0xc2b2ae3d27d4eb4fn,Nt=0x165667b19e3779f9n,Ot=0x85ebca77c2b2ae63n,Bt=0x27d4eb2f165667c5n;function z(e,t){return(e<<t|e>>64n-t)&O}function K(e,t){return e=e+t*fe&O,e=z(e,31n),e*W&O}function be(e,t){return e^=K(0n,t),e*W+Ot&O}function q(e,t=0n){let n=new DataView(e.buffer,e.byteOffset,e.byteLength),r=e.byteLength,i=0,f;if(r>=32){let o=t+W+fe&O,s=t+fe&O,a=t,d=t-W&O;for(;i+32<=r;)o=K(o,n.getBigUint64(i,!0)),i+=8,s=K(s,n.getBigUint64(i,!0)),i+=8,a=K(a,n.getBigUint64(i,!0)),i+=8,d=K(d,n.getBigUint64(i,!0)),i+=8;f=z(o,1n)+z(s,7n)+z(a,12n)+z(d,18n)&O,f=be(f,o),f=be(f,s),f=be(f,a),f=be(f,d)}else f=t+Bt&O;for(f=f+BigInt(r)&O;i+8<=r;)f^=K(0n,n.getBigUint64(i,!0)),f=z(f,27n)*W+Ot&O,i+=8;for(i+4<=r&&(f^=BigInt(n.getUint32(i,!0))*W&O,f=z(f,23n)*fe+Nt&O,i+=4);i<r;)f^=BigInt(n.getUint8(i))*Bt&O,f=z(f,11n)*W&O,i+=1;return f^=f>>33n,f=f*fe&O,f^=f>>29n,f=f*Nt&O,f^=f>>32n,f}var sn=new TextEncoder,ln=new Uint32Array([1203114875,1150766481,2284105051,2729912477,1884591559,770785867,2667333959,1550580529]);function an(e,t){return Number((e>>32n)*BigInt(t)>>32n)}function cn(e){let t=new Uint32Array(8),n=Number(e&0xffffffffn)|0;for(let r=0;r<8;r++)t[r]=1<<(Math.imul(n,ln[r])>>>27);return t}function He(e,t){let n=an(t,e.length>>3)<<3,r=cn(t);for(let i=0;i<8;i++)if((e[n+i]&r[i])===0)return!1;return!0}function St(e){let t=C(e),n=t.field_1;if(typeof n!="number"||n<=0||n%32!==0||!t.field_2?.field_1||!t.field_3?.field_1||!t.field_4?.field_1)return;let{view:r,offset:i}=e;if(i+n>r.byteLength)throw new Error(`parquet bloom filter truncated: need ${n} bytes, have ${r.byteLength-i}`);let f=new Uint32Array(n>>2);for(let o=0;o<f.length;o++)f[o]=r.getUint32(i+o*4,!0);return e.offset=i+n,{numBytes:n,blocks:f}}function Ze(e,t){if(e==null)return;let{type:n,converted_type:r,logical_type:i}=t;if(n==="BOOLEAN")return typeof e!="boolean"?void 0:q(new Uint8Array([e?1:0]));if(n==="FLOAT"){if(typeof e!="number")return;let f=new ArrayBuffer(4);return new DataView(f).setFloat32(0,e,!0),q(new Uint8Array(f))}if(n==="DOUBLE"){if(typeof e!="number")return;let f=new ArrayBuffer(8);return new DataView(f).setFloat64(0,e,!0),q(new Uint8Array(f))}if(n==="INT32"){if(r==="DATE"||r==="DECIMAL"||r==="TIME_MILLIS"||i?.type==="DATE"||i?.type==="TIME"||i?.type==="DECIMAL"||typeof e!="number"||!Number.isInteger(e))return;let f=new ArrayBuffer(4);return new DataView(f).setInt32(0,e|0,!0),q(new Uint8Array(f))}if(n==="INT64"){if(r==="TIMESTAMP_MILLIS"||r==="TIMESTAMP_MICROS"||r==="TIME_MICROS"||r==="DECIMAL"||i?.type==="TIMESTAMP"||i?.type==="TIME"||i?.type==="DECIMAL")return;let f;if(typeof e=="bigint")f=e;else if(typeof e=="number"&&Number.isSafeInteger(e))f=BigInt(e);else return;let o=new ArrayBuffer(8);return new DataView(o).setBigUint64(0,BigInt.asUintN(64,f),!0),q(new Uint8Array(o))}if(n==="BYTE_ARRAY")return r==="JSON"||r==="BSON"||r==="DECIMAL"||i?.type==="JSON"||i?.type==="BSON"||i?.type==="VARIANT"||i?.type==="GEOMETRY"||i?.type==="GEOGRAPHY"?void 0:typeof e=="string"?q(sn.encode(e)):e instanceof Uint8Array?q(e):void 0;if(n==="FIXED_LEN_BYTE_ARRAY")return r==="DECIMAL"||r==="INTERVAL"||i?.type==="DECIMAL"||i?.type==="UUID"||i?.type==="FLOAT16"||i?.type==="GEOMETRY"||i?.type==="GEOGRAPHY"?void 0:e instanceof Uint8Array?q(e):void 0}function Dt(e){let t=new Set;return We(e,t),t}function We(e,t){if(e){if("$and"in e&&Array.isArray(e.$and)){for(let n of e.$and)We(n,t);return}if("$or"in e&&Array.isArray(e.$or)){for(let n of e.$or)We(n,t);return}if(!("$nor"in e))for(let[n,r]of Object.entries(e))n.startsWith("$")||(typeof r=="object"&&r!==null&&!Array.isArray(r)?("$eq"in r||"$in"in r)&&t.add(n):t.add(n))}}function Ke(e,t){for(let r=0;r<t.length;r+=1e4)e.push(...t.slice(r,r+1e4))}function Y(e,t,n=!0){if(n?e===t:e==t)return!0;if(!e||!t||typeof e!="object"||typeof t!="object")return!1;if(e instanceof Uint8Array&&t instanceof Uint8Array){if(e.length!==t.length)return!1;for(let i=0;i<e.length;i++)if(e[i]!==t[i])return!1;return!0}if(Array.isArray(e)&&Array.isArray(t)){if(e.length!==t.length)return!1;for(let i=0;i<e.length;i++)if(!Y(e[i],t[i],n))return!1;return!0}let r=Object.keys(e);if(r.length!==Object.keys(t).length)return!1;for(let i of r)if(!Y(e[i],t[i],n))return!1;return!0}function Je(e){if(!e)return[];if(e.length===1)return e[0];let t=[];for(let n of e)Ke(t,n);return t}function oe(e){if(!e)return[];let t=[];return"$and"in e&&Array.isArray(e.$and)?t.push(...e.$and.flatMap(oe)):"$or"in e&&Array.isArray(e.$or)?t.push(...e.$or.flatMap(oe)):"$nor"in e&&Array.isArray(e.$nor)?t.push(...e.$nor.flatMap(oe)):t.push(...Object.keys(e).map(n=>n.split(".")[0])),[...new Set(t)]}function J(e,t,n=!0){return"$and"in t&&Array.isArray(t.$and)?t.$and.every(r=>J(e,r,n)):"$or"in t&&Array.isArray(t.$or)?t.$or.some(r=>J(e,r,n)):"$nor"in t&&Array.isArray(t.$nor)?!t.$nor.some(r=>J(e,r,n)):Object.entries(t).every(([r,i])=>{let f=un(e,r);return typeof i!="object"||i===null||Array.isArray(i)?Y(f,i,n):Object.entries(i||{}).every(([o,s])=>o==="$gt"?f>s:o==="$gte"?f>=s:o==="$lt"?f<s:o==="$lte"?f<=s:o==="$eq"?Y(f,s,n):o==="$ne"?!Y(f,s,n):o==="$in"?Array.isArray(s)&&s.includes(f):o==="$nin"?Array.isArray(s)&&!s.includes(f):o==="$not"?!J({[r]:f},{[r]:s},n):!0)})}function se({rowGroup:e,physicalColumns:t,filter:n,strict:r=!0,bloomFilters:i,schemaElements:f}){if(!n)return!1;if("$and"in n&&Array.isArray(n.$and))return n.$and.some(o=>se({rowGroup:e,physicalColumns:t,filter:o,strict:r,bloomFilters:i,schemaElements:f}));if("$or"in n&&Array.isArray(n.$or))return n.$or.every(o=>se({rowGroup:e,physicalColumns:t,filter:o,strict:r,bloomFilters:i,schemaElements:f}));if("$nor"in n&&Array.isArray(n.$nor))return!1;for(let[o,s]of Object.entries(n)){let a=t.indexOf(o);if(a===-1)continue;let d=e.columns[a].meta_data?.statistics,{min:u,max:l,min_value:c,max_value:p}=d||{},m=c!==void 0?c:u,y=p!==void 0?p:l,h=m!==void 0&&y!==void 0,_=i?.[o],w=f?.[o];for(let[g,E]of Object.entries(s||{})){if(h&&(g==="$gt"&&y<=E||g==="$gte"&&y<E||g==="$lt"&&m>=E||g==="$lte"&&m>E||g==="$eq"&&(E<m||E>y)||g==="$ne"&&Y(m,y,r)&&Y(m,E,r)||g==="$in"&&Array.isArray(E)&&E.every(v=>v<m||v>y)||g==="$nin"&&Array.isArray(E)&&Y(m,y,r)&&E.includes(m)))return!0;if(_&&w){if(g==="$eq"){let v=Ze(E,w);if(v!==void 0&&!He(_.blocks,v))return!0}if(g==="$in"&&Array.isArray(E)&&E.length>0){let v=!0;for(let A of E){let L=Ze(A,w);if(L===void 0||He(_.blocks,L)){v=!1;break}}if(v)return!0}}}}return!1}function un(e,t){let n=e;for(let r of t.split("."))n=n?.[r];return n}var _n=1<<21;function Ut({metadata:e,rowStart:t=0,rowEnd:n=1/0,columns:r,filter:i,filterStrict:f=!0,useOffsetIndex:o=!1,bloomFiltersByGroup:s,schemaElements:a}){if(!e)throw new Error("parquetPlan requires metadata");let d=[],u=[],l=[],c=ke(G(e)),p=0,m=0;for(let y of e.row_groups){let h=Number(y.num_rows),_=p+h,w=s?.[m];if(h>0&&_>t&&p<n&&!se({rowGroup:y,physicalColumns:c,filter:i,strict:f,bloomFilters:w,schemaElements:a})){let g=[],E=1/0,v=-1/0;for(let R of y.columns){let x=R.meta_data;if(R.file_path)throw new Error("parquet file_path not supported");if(!x)throw new Error("parquet column metadata is undefined");if(!r||r.includes(x.path_in_schema[0])){let M=x.dictionary_page_offset||x.data_page_offset,D=Number(M),S=Number(M+x.total_compressed_size);if(D<E&&(E=D),S>v&&(v=S),o&&R.offset_index_offset&&R.offset_index_length&&(t>p||n<_)){let b=Number(R.offset_index_offset);g.push({columnMetadata:x,offsetIndex:{startByte:b,endByte:b+R.offset_index_length},range:{startByte:D,endByte:S}})}else g.push({columnMetadata:x,range:{startByte:D,endByte:S}})}}let A=Math.max(t-p,0),L=Math.min(n-p,h);d.push({chunks:g,rowGroup:y,groupStart:p,groupRows:h,selectStart:A,selectEnd:L});let T;for(let R of g)if("offsetIndex"in R)l.push(R.offsetIndex);else{let{range:x}=R;r?u.push(x):T&&x.endByte-T.startByte<=_n?T.endByte=x.endByte:(T&&u.push(T),T={...x})}T&&u.push(T)}p=_,m++}return isFinite(n)||(n=p),u.push(...l),{metadata:e,rowStart:t,rowEnd:n,columns:r,fetches:u,groups:d}}async function Mt({file:e,metadata:t,filter:n,filterStrict:r=!0}){let i=t.row_groups.map(()=>({})),f=Dt(n);if(f.size===0)return i;let o=ke(G(t)),s=[];return t.row_groups.forEach((a,d)=>{if(!se({rowGroup:a,physicalColumns:o,filter:n,strict:r}))for(let u of f){let l=o.indexOf(u);if(l===-1)continue;let c=a.columns[l]?.meta_data;if(!c?.bloom_filter_offset||!c.bloom_filter_length)continue;let p=Number(c.bloom_filter_offset),m=p+c.bloom_filter_length;s.push((async()=>{let y=await e.slice(p,m),h=St({view:new DataView(y),offset:0});h&&(i[d][u]=h)})())}}),s.length&&await Promise.all(s),i}function Pt(e,{fetches:t}){let n=t.map(({startByte:r,endByte:i})=>e.slice(r,i));return{byteLength:e.byteLength,slice(r,i=e.byteLength){let f=t.findIndex(({startByte:o,endByte:s})=>o<=r&&i<=s);if(f<0)return e.slice(r,i);if(t[f].startByte!==r||t[f].endByte!==i){let o=r-t[f].startByte,s=i-t[f].startByte;return n[f]instanceof Promise?n[f].then(a=>a.slice(o,s)):n[f].slice(o,s)}else return n[f]}}}var Xe=new TextDecoder,$t=new WeakMap;function et(e,t=j){if(Array.isArray(e))return e.map(n=>et(n,t));if(typeof e!="object")return e;if("metadata"in e){let n=dn(e.metadata),r=e.typed_value&&xe(e.typed_value,n,t),i=e.value&&le(Te(e.value),n,t);return r&&i?{...i,...r}:r??i}return e}function xe(e,t,n){if(e instanceof Date)return e;if(e&&typeof e=="object"&&!Array.isArray(e)&&!(e instanceof Uint8Array)){if("typed_value"in e&&e.typed_value!==null&&e.typed_value!==void 0)return xe(e.typed_value,t,n);if("value"in e&&e.value instanceof Uint8Array)return le(Te(e.value),t,n);if("typed_value"in e||"value"in e)return null;let r={};for(let[i,f]of Object.entries(e))t.dictionary.includes(i)&&(r[i]=xe(f,t,n));return r}return e instanceof Uint8Array?le(Te(e),t,n):Array.isArray(e)?e.map(r=>xe(r,t,n)):e}function Te(e){return{view:new DataView(e.buffer,e.byteOffset,e.byteLength),offset:0}}function dn(e){let t=$t.get(e.buffer);t||(t=new Map,$t.set(e.buffer,t));let n=`${e.byteOffset}:${e.byteLength}`,r=t.get(n);if(r)return r;let i=Te(e),f=i.view.getUint8(i.offset++),o=f&15;if(o!==1)throw new Error(`parquet unsupported variant metadata version: ${o}`);let s=(f>>4&1)===1,a=(f>>6&3)+1,d=H(i,a),u=new Array(d+1);for(let m=0;m<u.length;m++)u[m]=H(i,a);let l=i.offset,c=new Array(d);for(let m=0;m<d;m++){let y=u[m],h=u[m+1],_=new Uint8Array(e.buffer,e.byteOffset+l+y,h-y);c[m]=Xe.decode(_)}let p={dictionary:c,sorted:s};return t.set(n,p),p}function H(e,t){let n=0;for(let r=0;r<t;r++)n|=e.view.getUint8(e.offset+r)<<r*8;return e.offset+=t,n}function le(e,t,n){let r=e.view.getUint8(e.offset++),i=r&3,f=r>>2;if(i===0)return hn(e,f,n);if(i===2)return pn(e,f,t,n);if(i===3)return mn(e,f,t,n);let o=new Uint8Array(e.view.buffer,e.view.byteOffset+e.offset,f);return e.offset+=f,Xe.decode(o)}function hn(e,t,n){switch(t){case 0:return null;case 1:return!0;case 2:return!1;case 3:{let r=e.view.getInt8(e.offset);return e.offset+=1,r}case 4:{let r=e.view.getInt16(e.offset,!0);return e.offset+=2,r}case 5:{let r=e.view.getInt32(e.offset,!0);return e.offset+=4,r}case 6:{let r=e.view.getBigInt64(e.offset,!0);return e.offset+=8,r}case 7:{let r=e.view.getFloat64(e.offset,!0);return e.offset+=8,r}case 8:return Qe(e,4);case 9:return Qe(e,8);case 10:return Qe(e,16);case 11:{let r=e.view.getInt32(e.offset,!0);return e.offset+=4,n.dateFromDays(r)}case 12:case 13:{let r=e.view.getBigInt64(e.offset,!0);return e.offset+=8,n.timestampFromMicroseconds(r)}case 14:{let r=e.view.getFloat32(e.offset,!0);return e.offset+=4,r}case 15:return Ft(e);case 16:{let r=Ft(e);return Xe.decode(r)}case 17:{let r=e.view.getBigInt64(e.offset,!0);return e.offset+=8,r}case 18:case 19:{let r=e.view.getBigInt64(e.offset,!0);return e.offset+=8,n.timestampFromNanoseconds(r)}case 20:{let r=new Uint8Array(e.view.buffer,e.view.byteOffset+e.offset,16);e.offset+=16;let i=Array.from(r,f=>f.toString(16).padStart(2,"0")).join("");return`${i.slice(0,8)}-${i.slice(8,12)}-${i.slice(12,16)}-${i.slice(16,20)}-${i.slice(20)}`}default:throw new Error(`parquet unsupported variant primitive type: ${t}`)}}function pn(e,t,n,r){let i=(t&3)+1,f=(t>>2&3)+1,s=t>>4&1?H(e,4):e.view.getUint8(e.offset++),a=new Array(s);for(let l=0;l<s;l++)a[l]=H(e,f);let d=new Array(s+1);for(let l=0;l<d.length;l++)d[l]=H(e,i);let u={};for(let l=0;l<s;l++){let c=n.dictionary[a[l]],p={view:e.view,offset:e.offset+d[l]};u[c]=le(p,n,r)}return e.offset+=d[d.length-1],u}function mn(e,t,n,r){let i=t&3,f=t>>2&1,o=i+1,s=H(e,f?4:1),a=new Array(s+1);for(let l=0;l<a.length;l++)a[l]=H(e,o);let d=e.offset,u=new Array(s);for(let l=0;l<s;l++){let c={view:e.view,offset:d+a[l]};u[l]=le(c,n,r)}return e.offset=d+a[a.length-1],u}function Qe(e,t){let n=e.view.getUint8(e.offset);e.offset+=1;let r;if(t===4)r=BigInt(e.view.getInt32(e.offset,!0)),e.offset+=4;else if(t===8)r=e.view.getBigInt64(e.offset,!0),e.offset+=8;else{let i=e.view.getBigUint64(e.offset,!0);r=e.view.getBigInt64(e.offset+8,!0)<<64n|i,e.offset+=16}return Number(r)*10**-n}function Ft(e){let t=e.view.getUint32(e.offset,!0);e.offset+=4;let n=new Uint8Array(e.view.buffer,e.view.byteOffset+e.offset,t);return e.offset+=t,n}function tt(e,t,n,r,i){let f=re(i);if(!t?.length&&!n.length){if(!f||!r.length)return r;t=new Array(r.length).fill(f)}let o=t?.length||n.length,s=i.map(({element:m})=>m.repetition_type),a=0,d=[e],u=e,l=0,c=0,p=0;if(n[0])for(;l<s.length-2&&p<n[0];)l++,s[l]!=="REQUIRED"&&(u=u.at(-1),d.push(u),c++),s[l]==="REPEATED"&&p++;for(let m=0;m<o;m++){let y=t?.length?t[m]:f,h=n[m];for(;l&&(h<p||s[l]!=="REPEATED");)s[l]!=="REQUIRED"&&(d.pop(),c--),s[l]==="REPEATED"&&p--,l--;for(u=d.at(-1);(l<s.length-2||s[l+1]==="REPEATED")&&(c<y||s[l+1]==="REQUIRED");){if(l++,s[l]!=="REQUIRED"){let _=[];u.push(_),u=_,d.push(_),c++}s[l]==="REPEATED"&&p++}y===f?u.push(r[a++]):l===s.length-2?u.push(null):u.push([])}if(!e.length)for(let m=0;m<f;m++){let y=[];u.push(y),u=y}return e}function Q(e,t,n,r=0){let i=t.path.join("."),f=t.element.repetition_type==="OPTIONAL",o=f?r+1:r;if(It(t)){let s=t.children[0],a=o;s.children.length===1&&(s=s.children[0],a++),Q(e,s,n,a);let d=s.path.join("."),u=e.get(d);if(!u)throw new Error("parquet list column missing values");f&&Le(u,r),e.set(i,u),e.delete(d);return}if(bt(t)){let s=t.children[0].element.name;Q(e,t.children[0].children[0],n,o+1),Q(e,t.children[0].children[1],n,o+1);let a=e.get(`${i}.${s}.key`),d=e.get(`${i}.${s}.value`);if(!a)throw new Error("parquet map column missing keys");if(!d)throw new Error("parquet map column missing values");if(a.length!==d.length)throw new Error("parquet map column key/value length mismatch");let u=Ct(a,d,o);f&&Le(u,r),e.delete(`${i}.${s}.key`),e.delete(`${i}.${s}.value`),e.set(i,u);return}if(t.children.length){let s=t.element.repetition_type==="REQUIRED"?r:r+1,a={};for(let u of t.children){Q(e,u,n,s);let l=e.get(u.path.join("."));if(!l)throw new Error("parquet struct missing child data");a[u.element.name]=l}for(let u of t.children)e.delete(u.path.join("."));let d=qt(a,s);t.element.logical_type?.type==="VARIANT"&&(d=et(d,n)),f&&Le(d,r),e.set(i,d)}}function Le(e,t){for(let n=0;n<e.length;n++)t?Le(e[n],t-1):e[n]=e[n][0]}function Ct(e,t,n){let r=[];for(let i=0;i<e.length;i++)if(n)r.push(Ct(e[i],t[i],n-1));else if(e[i]){let f={};for(let o=0;o<e[i].length;o++){let s=t[i][o];f[e[i][o]]=s===void 0?null:s}r.push(f)}else r.push(void 0);return r}function qt(e,t){let n=Object.keys(e),r=e[n[0]]?.length,i=[];for(let f=0;f<r;f++){let o={};for(let s of n){if(e[s].length!==r)throw new Error("parquet struct parsing error");o[s]=e[s][f]}t?i.push(qt(o,t-1)):i.push(o)}return i}function X(e,t,n){let r=n instanceof Int32Array,i=F(e),f=F(e);F(e);let o=Ee(e),s=0;n[s++]=r?Number(o):o;let a=i/f;for(;s<t;){let d=Ee(e),u=new Uint8Array(f);for(let l=0;l<f;l++)u[l]=e.view.getUint8(e.offset++);for(let l=0;l<f&&s<t;l++){let c=BigInt(u[l]);if(c){let p=0n,m=a,y=(1n<<c)-1n;for(;m&&s<t;){let h=BigInt(e.view.getUint8(e.offset))>>p&y;for(p+=c;p>=8;)p-=8n,e.offset++,p&&(h|=BigInt(e.view.getUint8(e.offset))<<c-p&y);let _=d+h;o+=_,n[s++]=r?Number(o):o,m--}m&&(e.offset+=Math.ceil((m*Number(c)+Number(p))/8))}else for(let p=0;p<a&&s<t;p++)o+=d,n[s++]=r?Number(o):o}}}function nt(e,t,n){let r=new Int32Array(t);X(e,t,r);for(let i=0;i<t;i++)n[i]=new Uint8Array(e.view.buffer,e.view.byteOffset+e.offset,r[i]),e.offset+=r[i]}function Yt(e,t,n){let r=new Int32Array(t);X(e,t,r);let i=new Int32Array(t);X(e,t,i);for(let f=0;f<t;f++){let o=new Uint8Array(e.view.buffer,e.view.byteOffset+e.offset,i[f]);r[f]?(n[f]=new Uint8Array(r[f]+i[f]),n[f].set(n[f-1].subarray(0,r[f])),n[f].set(o,r[f])):n[f]=o,e.offset+=i[f]}}function k(e,t,n,r){r===void 0&&(r=e.view.getUint32(e.offset,!0),e.offset+=4);let i=e.offset,f=0;for(;f<n.length;){let o=F(e);if(o&1)f=gn(e,o,t,n,f);else{let s=o>>>1;yn(e,s,t,n,f),f+=s}}e.offset=i+r}function yn(e,t,n,r,i){let f=n+7>>3,o=0;for(let s=0;s<f;s++)o|=e.view.getUint8(e.offset++)<<(s<<3);for(let s=0;s<t;s++)r[i+s]=o}function gn(e,t,n,r,i){let f=t>>1<<3,o=(1<<n)-1,s=0;if(e.offset<e.view.byteLength)s=e.view.getUint8(e.offset++);else if(o)throw new Error(`parquet bitpack offset ${e.offset} out of range`);let a=8,d=0;for(;f;)d>8?(d-=8,a-=8,s>>>=8):a-d<n?(s|=e.view.getUint8(e.offset)<<a,e.offset++,a+=8):(i<r.length&&(r[i++]=s>>d&o),f--,d+=n);return i}function rt(e,t,n,r){let i=wn(n,r),f=new Uint8Array(t*i);for(let o=0;o<i;o++)for(let s=0;s<t;s++)f[s*i+o]=e.view.getUint8(e.offset++);if(n==="FLOAT")return new Float32Array(f.buffer);if(n==="DOUBLE")return new Float64Array(f.buffer);if(n==="INT32")return new Int32Array(f.buffer);if(n==="INT64")return new BigInt64Array(f.buffer);if(n==="FIXED_LEN_BYTE_ARRAY"){let o=new Array(t);for(let s=0;s<t;s++)o[s]=f.subarray(s*i,(s+1)*i);return o}throw new Error(`parquet byte_stream_split unsupported type: ${n}`)}function wn(e,t){switch(e){case"INT32":case"FLOAT":return 4;case"INT64":case"DOUBLE":return 8;case"FIXED_LEN_BYTE_ARRAY":if(!t)throw new Error("parquet byteWidth missing type_length");return t;default:throw new Error(`parquet unsupported type: ${e}`)}}function ae(e,t,n,r){if(n===0)return[];if(t==="BOOLEAN")return An(e,n);if(t==="INT32")return vn(e,n);if(t==="INT64")return En(e,n);if(t==="INT96")return In(e,n);if(t==="FLOAT")return bn(e,n);if(t==="DOUBLE")return xn(e,n);if(t==="BYTE_ARRAY")return Tn(e,n);if(t==="FIXED_LEN_BYTE_ARRAY"){if(!r)throw new Error("parquet missing fixed length");return Ln(e,n,r)}else throw new Error(`parquet unhandled type: ${t}`)}function An(e,t){let n=new Array(t);for(let r=0;r<t;r++){let i=e.offset+(r/8|0),f=r%8,o=e.view.getUint8(i);n[r]=(o&1<<f)!==0}return e.offset+=Math.ceil(t/8),n}function vn(e,t){let n=(e.view.byteOffset+e.offset)%4?new Int32Array(Re(e.view.buffer,e.view.byteOffset+e.offset,t*4)):new Int32Array(e.view.buffer,e.view.byteOffset+e.offset,t);return e.offset+=t*4,n}function En(e,t){let n=(e.view.byteOffset+e.offset)%8?new BigInt64Array(Re(e.view.buffer,e.view.byteOffset+e.offset,t*8)):new BigInt64Array(e.view.buffer,e.view.byteOffset+e.offset,t);return e.offset+=t*8,n}function In(e,t){let n=new Array(t);for(let r=0;r<t;r++){let i=e.view.getBigInt64(e.offset+r*12,!0),f=e.view.getInt32(e.offset+r*12+8,!0);n[r]=BigInt(f)<<64n|i}return e.offset+=t*12,n}function bn(e,t){let n=(e.view.byteOffset+e.offset)%4?new Float32Array(Re(e.view.buffer,e.view.byteOffset+e.offset,t*4)):new Float32Array(e.view.buffer,e.view.byteOffset+e.offset,t);return e.offset+=t*4,n}function xn(e,t){let n=(e.view.byteOffset+e.offset)%8?new Float64Array(Re(e.view.buffer,e.view.byteOffset+e.offset,t*8)):new Float64Array(e.view.buffer,e.view.byteOffset+e.offset,t);return e.offset+=t*8,n}function Tn(e,t){let n=new Array(t);for(let r=0;r<t;r++){let i=e.view.getUint32(e.offset,!0);e.offset+=4,n[r]=new Uint8Array(e.view.buffer,e.view.byteOffset+e.offset,i),e.offset+=i}return n}function Ln(e,t,n){let r=new Array(t);for(let i=0;i<t;i++)r[i]=new Uint8Array(e.view.buffer,e.view.byteOffset+e.offset,n),e.offset+=n;return r}function Re(e,t,n){let r=new ArrayBuffer(n);return new Uint8Array(r).set(new Uint8Array(e,t,n)),r}var Rn=[0,255,65535,16777215,4294967295];function kt(e,t,n,r,i){for(let f=0;f<i;f++)n[r+f]=e[t+f]}function Gt(e,t){let n=e.byteLength,r=t.byteLength,i=0,f=0;for(;i<n;){let o=e[i];if(i++,o<128)break}if(r&&i>=n)throw new Error("invalid snappy length header");for(;i<n;){let o=e[i],s=0;if(i++,i>=n)throw new Error("missing eof marker");if((o&3)===0){let a=(o>>>2)+1;if(a>60){if(i+3>=n)throw new Error("snappy error literal pos + 3 >= inputLength");let d=a-60;a=e[i]+(e[i+1]<<8)+(e[i+2]<<16)+(e[i+3]<<24),a=(a&Rn[d])+1,i+=d}if(i+a>n)throw new Error("snappy error literal exceeds input length");kt(e,i,t,f,a),i+=a,f+=a}else{let a=0;switch(o&3){case 1:s=(o>>>2&7)+4,a=e[i]+(o>>>5<<8),i++;break;case 2:if(n<=i+1)throw new Error("snappy error end of input");s=(o>>>2)+1,a=e[i]+(e[i+1]<<8),i+=2;break;case 3:if(n<=i+3)throw new Error("snappy error end of input");s=(o>>>2)+1,a=e[i]+(e[i+1]<<8)+(e[i+2]<<16)+(e[i+3]<<24),i+=4;break;default:break}if(a===0||isNaN(a))throw new Error(`invalid offset ${a} pos ${i} inputLength ${n}`);if(a>f)throw new Error("cannot copy from before start of buffer");kt(t,f-a,t,f,s),f+=s}}if(f!==r)throw new Error("premature end of input")}function zt(e,t,{type:n,element:r,schemaPath:i}){let f=new DataView(e.buffer,e.byteOffset,e.byteLength),o={view:f,offset:0},s,a=Nn(o,t,i),{definitionLevels:d,numNulls:u}=Bn(o,t,i),l=t.num_values-u;if(t.encoding==="PLAIN")s=ae(o,n,l,r.type_length);else if(t.encoding==="PLAIN_DICTIONARY"||t.encoding==="RLE_DICTIONARY"||t.encoding==="RLE"){let c=n==="BOOLEAN"?1:f.getUint8(o.offset++);c?(s=new Array(l),n==="BOOLEAN"?(k(o,c,s),s=s.map(p=>!!p)):k(o,c,s,f.byteLength-o.offset)):s=new Uint8Array(l)}else if(t.encoding==="BYTE_STREAM_SPLIT")s=rt(o,l,n,r.type_length);else if(t.encoding==="DELTA_BINARY_PACKED")s=n==="INT32"?new Int32Array(l):new BigInt64Array(l),X(o,l,s);else if(t.encoding==="DELTA_LENGTH_BYTE_ARRAY")s=new Array(l),nt(o,l,s);else throw new Error(`parquet unsupported encoding: ${t.encoding}`);return{definitionLevels:d,repetitionLevels:a,dataPage:s}}function Nn(e,t,n){if(n.length>1){let r=Ge(n);if(r){let i=new Array(t.num_values);return k(e,Be(r),i),i}}return[]}function Bn(e,t,n){let r=re(n);if(!r)return{definitionLevels:[],numNulls:0};let i=new Array(t.num_values);k(e,Be(r),i);let f=t.num_values;for(let o of i)o===r&&f--;return f===0&&(i.length=0),{definitionLevels:i,numNulls:f}}function Ne(e,t,n,r){let i,f=r?.[n];if(n==="UNCOMPRESSED")i=e;else if(f)i=f(e,t);else if(n==="SNAPPY")i=new Uint8Array(t),Gt(e,i);else throw new Error(`parquet unsupported compression codec: ${n}`);if(i?.length!==t)throw new Error(`parquet decompressed page length ${i?.length} does not match header ${t}`);return i}function Vt(e,t,n){let i={view:new DataView(e.buffer,e.byteOffset,e.byteLength),offset:0},{type:f,element:o,schemaPath:s,codec:a,compressors:d}=n,u=t.data_page_header_v2;if(!u)throw new Error("parquet data page header v2 is undefined");let l=On(i,u,s);i.offset=u.repetition_levels_byte_length;let c=Sn(i,u,s),p=t.uncompressed_page_size-u.definition_levels_byte_length-u.repetition_levels_byte_length,m=e.subarray(i.offset);u.is_compressed!==!1&&(m=Ne(m,p,a,d));let y=new DataView(m.buffer,m.byteOffset,m.byteLength),h={view:y,offset:0},_,w=u.num_values-u.num_nulls;if(u.encoding==="PLAIN")_=ae(h,f,w,o.type_length);else if(u.encoding==="RLE")_=new Array(w),k(h,1,_),_=_.map(g=>!!g);else if(u.encoding==="PLAIN_DICTIONARY"||u.encoding==="RLE_DICTIONARY"){let g=y.getUint8(h.offset++);_=new Array(w),k(h,g,_,p-1)}else if(u.encoding==="DELTA_BINARY_PACKED")_=f==="INT32"?new Int32Array(w):new BigInt64Array(w),X(h,w,_);else if(u.encoding==="DELTA_LENGTH_BYTE_ARRAY")_=new Array(w),nt(h,w,_);else if(u.encoding==="DELTA_BYTE_ARRAY")_=new Array(w),Yt(h,w,_);else if(u.encoding==="BYTE_STREAM_SPLIT")_=rt(h,w,f,o.type_length);else throw new Error(`parquet unsupported encoding: ${u.encoding}`);return{definitionLevels:c,repetitionLevels:l,dataPage:_}}function On(e,t,n){let r=Ge(n);if(!r)return[];let i=new Array(t.num_values);return k(e,Be(r),i,t.repetition_levels_byte_length),i}function Sn(e,t,n){let r=re(n);if(r){let i=new Array(t.num_values);return k(e,Be(r),i,t.definition_levels_byte_length),i}}function Be(e){return 32-Math.clz32(e)}function it(e,{groupStart:t,selectStart:n,selectEnd:r},i,f){let{pathInSchema:o,schemaPath:s}=i,a=ze(s),d=[],u,l,c=0,p=0,m=f&&(()=>{l&&f({pathInSchema:o,columnData:l,rowStart:t+c-l.length,rowEnd:t+c})});for(;(a?c<r:e.offset<e.view.byteLength-1)&&!(e.offset>=e.view.byteLength-1);){let y=Dn(e);if(y.type==="DICTIONARY_PAGE"){let{data:h}=jt(e,y,i,u,void 0,0);h&&(u=Ce(h,i))}else{let h=l?.length||0,_=jt(e,y,i,u,l,n-c);_.skipped?(d.length||(p+=_.skipped),c+=_.skipped):_.data&&l===_.data?c+=_.data.length-h:_.data&&_.data.length&&(m?.(),d.push(_.data),c+=_.data.length,l=_.data)}}return m?.(),{data:d,skipped:p}}function jt(e,t,n,r,i,f){let{type:o,element:s,schemaPath:a,codec:d,compressors:u}=n,l=new Uint8Array(e.view.buffer,e.view.byteOffset+e.offset,t.compressed_page_size);if(e.offset+=t.compressed_page_size,t.type==="DATA_PAGE"){let c=t.data_page_header;if(!c)throw new Error("parquet data page header is undefined");if(f>c.num_values&&ze(a))return{skipped:c.num_values};let p=Ne(l,Number(t.uncompressed_page_size),d,u),{definitionLevels:m,repetitionLevels:y,dataPage:h}=zt(p,c,n),_=Fe(h,r,c.encoding,n),w=Array.isArray(i)?i:[];return{skipped:0,data:tt(w,m,y,_,a)}}else if(t.type==="DATA_PAGE_V2"){let c=t.data_page_header_v2;if(!c)throw new Error("parquet data page header v2 is undefined");if(f>c.num_rows)return{skipped:c.num_values};let{definitionLevels:p,repetitionLevels:m,dataPage:y}=Vt(l,t,n),h=Fe(y,r,c.encoding,n),_=Array.isArray(i)?i:[];return{skipped:0,data:tt(_,p,m,h,a)}}else if(t.type==="DICTIONARY_PAGE"){let c=t.dictionary_page_header;if(!c)throw new Error("parquet dictionary page header is undefined");let p=Ne(l,Number(t.uncompressed_page_size),d,u),m={view:new DataView(p.buffer,p.byteOffset,p.byteLength),offset:0};return{skipped:0,data:ae(m,o,c.num_values,s.type_length)}}else throw new Error(`parquet unsupported page type: ${t.type}`)}function Dn(e){let t=C(e),n=ge[t.field_1],r=t.field_2,i=t.field_3,f=t.field_4,o=t.field_5&&{num_values:t.field_5.field_1,encoding:$[t.field_5.field_2],definition_level_encoding:$[t.field_5.field_3],repetition_level_encoding:$[t.field_5.field_4],statistics:t.field_5.field_5&&{max:t.field_5.field_5.field_1,min:t.field_5.field_5.field_2,null_count:t.field_5.field_5.field_3,distinct_count:t.field_5.field_5.field_4,max_value:t.field_5.field_5.field_5,min_value:t.field_5.field_5.field_6}},s=t.field_6,a=t.field_7&&{num_values:t.field_7.field_1,encoding:$[t.field_7.field_2],is_sorted:t.field_7.field_3},d=t.field_8&&{num_values:t.field_8.field_1,num_nulls:t.field_8.field_2,num_rows:t.field_8.field_3,encoding:$[t.field_8.field_4],definition_levels_byte_length:t.field_8.field_5,repetition_levels_byte_length:t.field_8.field_6,is_compressed:t.field_8.field_7===void 0?!0:t.field_8.field_7,statistics:t.field_8.field_8};return{type:n,uncompressed_page_size:r,compressed_page_size:i,crc:f,data_page_header:o,index_page_header:s,dictionary_page_header:a,data_page_header_v2:d}}function Wt(e,{metadata:t},n){let r=[];for(let i of n.chunks){let{data_page_offset:f,dictionary_page_offset:o,path_in_schema:s}=i.columnMetadata,a=ve(t.schema,s),d={pathInSchema:s,element:a[a.length-1].element,schemaPath:a,parsers:{...j,...e.parsers},...e,...i.columnMetadata},{startByte:u,endByte:l}=i.range;if(!("offsetIndex"in i)){r.push({pathInSchema:s,data:Promise.resolve(e.file.slice(u,l)).then(c=>{let p={view:new DataView(c),offset:0};return it(p,n,d,e.onPage)})});continue}r.push({pathInSchema:s,data:Promise.resolve(e.file.slice(i.offsetIndex.startByte,i.offsetIndex.endByte)).then(async c=>{let{selectStart:p,selectEnd:m}=n,y=Rt({view:new DataView(c),offset:0}).page_locations,h=-1,_=o||f<y[0].offset;for(let L=0;L<y.length;L++){let T=y[L],R=Number(T.first_row_index),x=L+1<y.length?Number(y[L+1].first_row_index):n.groupRows;h<0&&!_&&x>p&&(u=Number(T.offset),h=R),R<m&&(l=Number(T.offset)+T.compressed_page_size)}h<0&&(h=0);let w=await e.file.slice(u,l),g={view:new DataView(w),offset:0},E=h?{...n,groupStart:n.groupStart+h,selectStart:n.selectStart-h,selectEnd:n.selectEnd-h}:n,{data:v,skipped:A}=it(g,E,d,e.onPage);return{data:v,skipped:h+A}})})}return{groupStart:n.groupStart,groupRows:n.groupRows,asyncColumns:r}}async function ft({asyncColumns:e},t,n,r,i){let f=await Promise.all(e.map(l=>l.data.then(({skipped:c,data:p})=>({skipped:c,data:Je(p)})))),o=n-t;if(i==="object"){let l=Array(o);for(let c=0;c<o;c++){let p={};for(let m=0;m<e.length;m++){let{data:y,skipped:h}=f[m];p[e[m].pathInSchema[0]]=y[t+c-h]}l[c]=p}return l}let s=e.map(l=>l.pathInSchema[0]).filter(l=>!r||r.includes(l)),a=r??s,d=a.map(l=>e.findIndex(c=>c.pathInSchema[0]===l)),u=Array(o);for(let l=0;l<o;l++){let c=Array(e.length);for(let p=0;p<a.length;p++){let m=d[p];if(m<0)throw new Error(`parquet column not found: ${a[p]}`);let{data:y,skipped:h}=f[m];c[p]=y[t+l-h]}u[l]=c}return u}function Ht(e,t,n){let{asyncColumns:r}=e;n={...j,...n};let i=[];for(let f of t.children)if(f.children.length){let o=r.filter(s=>s.pathInSchema[0]===f.element.name);if(!o.length)continue;i.push({pathInSchema:f.path,data:(async()=>{let s=await Promise.all(o.map(l=>l.data)),a=new Map,d=1/0;for(let l=0;l<o.length;l++){let c=Je(s[l].data);a.set(o[l].pathInSchema.join("."),c),d=Math.min(d,c.length)}for(let[l,c]of a)c.length>d&&a.set(l,c.slice(0,d));Q(a,f,n);let u=a.get(f.element.name);if(!u)throw new Error("parquet column data not assembled");return{data:[u],skipped:0}})()})}else{let o=r.find(s=>s.pathInSchema[0]===f.element.name);o&&i.push(o)}return{...e,asyncColumns:i}}async function Zt(e){e.metadata??=await ie(e.file,e);let{rowStart:t=0,rowEnd:n,columns:r,onChunk:i,onComplete:f,rowFormat:o,filter:s,filterStrict:a=!0}=e;if(s&&o!=="object")throw new Error('parquet filter requires rowFormat: "object"');let d=oe(s);if(d.length){let h=G(e.metadata).children.map(w=>w.element.name),_=d.filter(w=>!h.includes(w));if(_.length)throw new Error(`parquet filter columns not found: ${_.join(", ")}`)}let u=r,l=!1;if(r&&s){let h=d.filter(_=>!r.includes(_));h.length&&(u=[...r,...h],l=!0)}let c=u!==r?{...e,columns:u}:e;c=await Mn(c);let p=Un(c);if(!f&&!i){await ot(p);return}let m=G(e.metadata),y=p.map(h=>Ht(h,m,e.parsers));if(i)for(let h of y)for(let _ of h.asyncColumns)_.data.then(({data:w,skipped:g})=>{let E=h.groupStart+g;for(let v of w)i({columnName:_.pathInSchema[0],columnData:v,rowStart:E,rowEnd:E+v.length}),E+=v.length},()=>{});if(f){await ot(y);let h=[];for(let _ of y){let w=Math.max(t-_.groupStart,0),g=Math.min((n??1/0)-_.groupStart,_.groupRows),E=o==="object"?await ft(_,w,g,u,"object"):await ft(_,w,g,r,"array");if(s){for(let v of E)if(J(v,s,a)){if(l&&r)for(let A of d)r.includes(A)||delete v[A];h.push(v)}}else Ke(h,E)}f(h)}else await ot(y)}async function ot(e){let t=e.flatMap(i=>i.asyncColumns.map(f=>f.data)),r=(await Promise.allSettled(t)).find(i=>i.status==="rejected");if(r)throw r.reason}function Un(e){if(!e.metadata)throw new Error("parquet requires metadata");let t=Ut(e);return e.file=Pt(e.file,t),t.groups.map(n=>Wt(e,t,n))}async function Mn(e){if(!e.useBloomFilters||!e.filter||!e.metadata)return e;let t=G(e.metadata),n={};for(let i of t.children)n[i.element.name]=i.element;let r=await Mt({file:e.file,metadata:e.metadata,filter:e.filter,filterStrict:e.filterStrict});return{...e,bloomFiltersByGroup:r,schemaElements:n}}function st(e){return new Promise((t,n)=>{Zt({...e,rowFormat:"object",onComplete:t}).catch(n)})}var Pn=ArrayBuffer,N=Uint8Array,Oe=Uint16Array,$n=Int16Array;var Se=Int32Array,lt=function(e,t,n){if(N.prototype.slice)return N.prototype.slice.call(e,t,n);(t==null||t<0)&&(t=0),(n==null||n>e.length)&&(n=e.length);var r=new N(n-t);return r.set(e.subarray(t,n)),r},ue=function(e,t,n,r){if(N.prototype.fill)return N.prototype.fill.call(e,t,n,r);for((n==null||n<0)&&(n=0),(r==null||r>e.length)&&(r=e.length);n<r;++n)e[n]=t;return e},Fn=function(e,t,n,r){if(N.prototype.copyWithin)return N.prototype.copyWithin.call(e,t,n,r);for((n==null||n<0)&&(n=0),(r==null||r>e.length)&&(r=e.length);n<r;)e[t++]=e[n++]};var Cn=["invalid zstd data","window size too large (>2046MB)","invalid block type","FSE accuracy too high","match distance too far back","unexpected EOF"],B=function(e,t,n){var r=new Error(t||Cn[e]);if(r.code=e,Error.captureStackTrace&&Error.captureStackTrace(r,B),!n)throw r;return r},Kt=function(e,t,n){for(var r=0,i=0;r<n;++r)i|=e[t++]<<(r<<3);return i},qn=function(e,t){return(e[t]|e[t+1]<<8|e[t+2]<<16|e[t+3]<<24)>>>0},Yn=function(e,t){var n=e[0]|e[1]<<8|e[2]<<16;if(n==3126568&&e[3]==253){var r=e[4],i=r>>5&1,f=r>>2&1,o=r&3,s=r>>6;r&8&&B(0);var a=6-i,d=o==3?4:o,u=Kt(e,a,d);a+=d;var l=s?1<<s:i,c=Kt(e,a,l)+(s==1&&256),p=c;if(!i){var m=1<<10+(e[5]>>3);p=m+(m>>3)*(e[5]&7)}p>2145386496&&B(1);var y=new N((t==1?c||p:t?0:p)+12);return y[0]=1,y[4]=4,y[8]=8,{b:a+l,y:0,l:0,d:u,w:t&&t!=1?t:y.subarray(12),e:p,o:new Se(y.buffer,0,3),u:c,c:f,m:Math.min(131072,p)}}else if((n>>4|e[3]<<20)==25481893)return qn(e,4)+8;B(0)},Z=function(e){for(var t=0;1<<t<=e;++t);return t-1},_e=function(e,t,n){var r=(t<<3)+4,i=(e[t]&15)+5;i>n&&B(3);for(var f=1<<i,o=f,s=-1,a=-1,d=-1,u=f,l=new Pn(512+(f<<2)),c=new $n(l,0,256),p=new Oe(l,0,256),m=new Oe(l,512,f),y=512+(f<<1),h=new N(l,y,f),_=new N(l,y+f);s<255&&o>0;){var w=Z(o+1),g=r>>3,E=(1<<w+1)-1,v=(e[g]|e[g+1]<<8|e[g+2]<<16)>>(r&7)&E,A=(1<<w)-1,L=E-o-1,T=v&A;if(T<L?(r+=w,v=T):(r+=w+1,v>A&&(v-=L)),c[++s]=--v,v==-1?(o+=v,h[--u]=s):o-=v,!v)do{var R=r>>3;a=(e[R]|e[R+1]<<8)>>(r&7)&3,r+=2,s+=a}while(a==3)}(s>255||o)&&B(0);for(var x=0,M=(f>>1)+(f>>3)+3,D=f-1,S=0;S<=s;++S){var b=c[S];if(b<1){p[S]=-b;continue}for(d=0;d<b;++d){h[x]=S;do x=x+M&D;while(x>=u)}}for(x&&B(0),d=0;d<f;++d){var I=p[h[d]]++,U=_[d]=i-Z(I);m[d]=(I<<U)-f}return[r+7>>3,{b:i,s:h,n:_,t:m}]},kn=function(e,t){var n=0,r=-1,i=new N(292),f=e[t],o=i.subarray(0,256),s=i.subarray(256,268),a=new Oe(i.buffer,268);if(f<128){var d=_e(e,t+1,6),u=d[0],l=d[1];t+=f;var c=u<<3,p=e[t];p||B(0);for(var m=0,y=0,h=l.b,_=h,w=(++t<<3)-8+Z(p);w-=h,!(w<c);){var g=w>>3;if(m+=(e[g]|e[g+1]<<8)>>(w&7)&(1<<h)-1,o[++r]=l.s[m],w-=_,w<c)break;g=w>>3,y+=(e[g]|e[g+1]<<8)>>(w&7)&(1<<_)-1,o[++r]=l.s[y],h=l.n[m],m=l.t[m],_=l.n[y],y=l.t[y]}++r>255&&B(0)}else{for(r=f-127;n<r;n+=2){var E=e[++t];o[n]=E>>4,o[n+1]=E&15}++t}var v=0;for(n=0;n<r;++n){var A=o[n];A>11&&B(0),v+=A&&1<<A-1}var L=Z(v)+1,T=1<<L,R=T-v;for(R&R-1&&B(0),o[r++]=Z(R)+1,n=0;n<r;++n){var A=o[n];++s[o[n]=A&&L+1-A]}var x=new N(T<<1),M=x.subarray(0,T),D=x.subarray(T);for(a[L]=0,n=L;n>0;--n){var S=a[n];ue(D,n,S,a[n-1]=S+s[n]*(1<<L-n))}for(a[0]!=T&&B(0),n=0;n<r;++n){var b=o[n];if(b){var I=a[b];ue(M,n,I,a[b]=I+(1<<L-b))}}return[t,{n:D,b:L,s:M}]},Gn=_e(new N([81,16,99,140,49,198,24,99,12,33,196,24,99,102,102,134,70,146,4]),0,6)[1],zn=_e(new N([33,20,196,24,99,140,33,132,16,66,8,33,132,16,66,8,33,68,68,68,68,68,68,68,68,36,9]),0,6)[1],Vn=_e(new N([32,132,16,66,102,70,68,68,68,68,36,73,2]),0,5)[1],Jt=function(e,t){for(var n=e.length,r=new Se(n),i=0;i<n;++i)r[i]=t,t+=1<<e[i];return r},at=new N(new Se([0,0,0,0,16843009,50528770,134678020,202050057,269422093]).buffer,0,36),jn=Jt(at,0),ct=new N(new Se([0,0,0,0,0,0,0,0,16843009,50528770,117769220,185207048,252579084,16]).buffer,0,53),Wn=Jt(ct,3),ce=function(e,t,n){var r=e.length,i=t.length,f=e[r-1],o=(1<<n.b)-1,s=-n.b;f||B(0);for(var a=0,d=n.b,u=(r<<3)-8+Z(f)-d,l=-1;u>s&&l<i;){var c=u>>3,p=(e[c]|e[c+1]<<8|e[c+2]<<16)>>(u&7);a=(a<<d|p)&o,t[++l]=n.s[a],u-=d=n.n[a]}(u!=s||l+1!=i)&&B(0)},Hn=function(e,t,n){var r=6,i=t.length,f=i+3>>2,o=f<<1,s=f+o;ce(e.subarray(r,r+=e[0]|e[1]<<8),t.subarray(0,f),n),ce(e.subarray(r,r+=e[2]|e[3]<<8),t.subarray(f,o),n),ce(e.subarray(r,r+=e[4]|e[5]<<8),t.subarray(o,s),n),ce(e.subarray(r),t.subarray(s),n)},Zn=function(e,t,n){var r,i=t.b,f=e[i],o=f>>1&3;t.l=f&1;var s=f>>3|e[i+1]<<5|e[i+2]<<13,a=(i+=3)+s;if(o==1)return i>=e.length?void 0:(t.b=i+1,n?(ue(n,e[i],t.y,t.y+=s),n):ue(new N(s),e[i]));if(!(a>e.length)){if(o==0)return t.b=a,n?(n.set(e.subarray(i,a),t.y),t.y+=s,n):lt(e,i,a);if(o==2){var d=e[i],u=d&3,l=d>>2&3,c=d>>4,p=0,m=0;u<2?l&1?c|=e[++i]<<4|(l&2&&e[++i]<<12):c=d>>3:(m=l,l<2?(c|=(e[++i]&63)<<4,p=e[i]>>6|e[++i]<<2):l==2?(c|=e[++i]<<4|(e[++i]&3)<<12,p=e[i]>>2|e[++i]<<6):(c|=e[++i]<<4|(e[++i]&63)<<12,p=e[i]>>6|e[++i]<<2|e[++i]<<10)),++i;var y=n?n.subarray(t.y,t.y+t.m):new N(t.m),h=y.length-c;if(u==0)y.set(e.subarray(i,i+=c),h);else if(u==1)ue(y,e[i++],h);else{var _=t.h;if(u==2){var w=kn(e,i);p+=i-(i=w[0]),t.h=_=w[1]}else _||B(0);(m?Hn:ce)(e.subarray(i,i+=p),y.subarray(h),_)}var g=e[i++];if(g){g==255?g=(e[i++]|e[i++]<<8)+32512:g>127&&(g=g-128<<8|e[i++]);var E=e[i++];E&3&&B(0);for(var v=[zn,Vn,Gn],A=2;A>-1;--A){var L=E>>(A<<1)+2&3;if(L==1){var T=new N([0,0,e[i++]]);v[A]={s:T.subarray(2,3),n:T.subarray(0,1),t:new Oe(T.buffer,0,1),b:0}}else L==2?(r=_e(e,i,9-(A&1)),i=r[0],v[A]=r[1]):L==3&&(t.t||B(0),v[A]=t.t[A])}var R=t.t=v,x=R[0],M=R[1],D=R[2],S=e[a-1];S||B(0);var b=(a<<3)-8+Z(S)-D.b,I=b>>3,U=0,de=(e[I]|e[I+1]<<8)>>(b&7)&(1<<D.b)-1;I=(b-=M.b)>>3;var he=(e[I]|e[I+1]<<8)>>(b&7)&(1<<M.b)-1;I=(b-=x.b)>>3;var pe=(e[I]|e[I+1]<<8)>>(b&7)&(1<<x.b)-1;for(++g;--g;){var De=D.s[de],ut=D.n[de],Ue=x.s[pe],_t=x.n[pe],dt=M.s[he],ht=M.n[he];I=(b-=dt)>>3;var pt=1<<dt,V=pt+((e[I]|e[I+1]<<8|e[I+2]<<16|e[I+3]<<24)>>>(b&7)&pt-1);I=(b-=ct[Ue])>>3;var ee=Wn[Ue]+((e[I]|e[I+1]<<8|e[I+2]<<16)>>(b&7)&(1<<ct[Ue])-1);I=(b-=at[De])>>3;var me=jn[De]+((e[I]|e[I+1]<<8|e[I+2]<<16)>>(b&7)&(1<<at[De])-1);if(I=(b-=ut)>>3,de=D.t[de]+((e[I]|e[I+1]<<8)>>(b&7)&(1<<ut)-1),I=(b-=_t)>>3,pe=x.t[pe]+((e[I]|e[I+1]<<8)>>(b&7)&(1<<_t)-1),I=(b-=ht)>>3,he=M.t[he]+((e[I]|e[I+1]<<8)>>(b&7)&(1<<ht)-1),V>3)t.o[2]=t.o[1],t.o[1]=t.o[0],t.o[0]=V-=3;else{var ye=V-(me!=0);ye?(V=ye==3?t.o[0]-1:t.o[ye],ye>1&&(t.o[2]=t.o[1]),t.o[1]=t.o[0],t.o[0]=V):V=t.o[0]}for(var A=0;A<me;++A)y[U+A]=y[h+A];U+=me,h+=me;var te=U-V;if(te<0){var ne=-te,Xt=t.e+te;ne>ee&&(ne=ee);for(var A=0;A<ne;++A)y[U+A]=t.w[Xt+A];U+=ne,ee-=ne,te=0}for(var A=0;A<ee;++A)y[U+A]=y[te+A];U+=ee}if(U!=h)for(;h<y.length;)y[U++]=y[h++];else U=y.length;n?t.y+=U:y=lt(y,0,U)}else if(n){if(t.y+=c,h)for(var A=0;A<c;++A)y[A]=y[h+A]}else h&&(y=lt(y,h));return t.b=a,y}B(2)}},Kn=function(e,t){if(e.length==1)return e[0];for(var n=new N(t),r=0,i=0;r<e.length;++r){var f=e[r];n.set(f,i),i+=f.length}return n};function Qt(e,t){for(var n=[],r=+!t,i=0,f=0;e.length;){var o=Yn(e,r||t);if(typeof o=="object"){for(r?(t=null,o.w.length==o.u&&(n.push(t=o.w),f+=o.u)):(n.push(t),o.e=0);!o.l;){var s=Zn(e,o,t);s||B(5),t?o.e=o.y:(n.push(s),f+=s.length,Fn(o.w,0,s.length),o.w.set(s,o.w.length-s.length))}i=o.b+o.c*4}else i=o;e=e.subarray(i)}return Kn(n,f)}var Jn={ZSTD:e=>Qt(e)};window.HyParquet={parquetReadObjects:st,parquetMetadataAsync:ie,compressors:Jn};})();
+
+</script>
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+const state = {
+  videoFile: null,
+  videoUrl: null,
+  videoDuration: 0,
+  fps: 30,
+  tracks: [],              // see makeTrack()
+  activeTrackId: null,
+  selectedLabelId: null,
+  pending: { in: null, out: null }, // video seconds
+  emitNullGaps: true,      // export unlabeled spans as name: null
+  signalMode: 'pc1',       // pc1 | pc2 | pc3 | accel | gyro
+  // A watch face shows whole seconds, so "0:10" covers workout time [10,11).
+  // 'tick' = user is on the frame it flips (bias 0). 'mid' = any readable
+  // frame, so the true time averages half a second later (bias +0.5).
+  watchConvention: 'tick',
+  exerciseNames: ['Squat','Push-up','Sit-up','Lunge','Burpee','Jumping Jack','Plank','Pull-up','Deadlift','Mountain Climber','REST'],
+  armedName: 'Squat',     // exercise applied to the next drawn label
+};
+
+let _trackSeq = 0, _labelSeq = 0;
+function makeTrack() {
+  return {
+    id: 'trk' + (++_trackSeq),
+    name: 'Person ' + (_trackSeq),
+    imuFile: null, jsonFile: null,
+    imuData: null, sourceJson: null,
+    signals: null, _env: null,
+    offset: 0,                 // videoTime = workoutTime + offset
+    syncVideoTime: null,       // video time at which the watch was read
+    watchTyped: null,          // the value the user read off the watch face
+    watchSeconds: null,        // effective workout time at syncVideoTime (typed + convention bias)
+    synced: false,
+    labels: [],                // { id, name, startTime, endTime (workout s), reps:[{workoutTime}], modified, _origRaw }
+  };
+}
+function activeTrack() { return state.tracks.find(t => t.id === state.activeTrackId) || null; }
+function selectedLabel() {
+  const t = activeTrack(); if (!t) return null;
+  return t.labels.find(l => l.id === state.selectedLabelId) || null;
+}
+
+// time conversions (per track)
+function wToV(t, wt) { return wt + t.offset; }
+function vToW(t, vt) { return vt - t.offset; }
+
+function round3(x) { return Math.round(x * 1000) / 1000; }
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function nameHue(name) {
+  let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return h;
+}
+function nameColor(name) {
+  if (!name) return '#888';
+  if (name.toUpperCase() === 'REST') return '#666';
+  return `hsl(${nameHue(name)}, 62%, 58%)`;
+}
+function nameColorA(name, a) {
+  if (!name) return `rgba(136,136,136,${a})`;
+  if (name.toUpperCase() === 'REST') return `rgba(102,102,102,${a})`;
+  return `hsla(${nameHue(name)}, 62%, 58%, ${a})`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STAGE 1 — LOAD
+// ═══════════════════════════════════════════════════════════════════════════
+function setupDrop(dropEl, inputEl, onFile) {
+  inputEl.addEventListener('change', e => { const f = e.target.files[0]; if (f) onFile(f); });
+  ['dragover','dragenter'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.add('dragover'); }));
+  ['dragleave'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.remove('dragover'); }));
+  dropEl.addEventListener('drop', e => {
+    e.preventDefault(); dropEl.classList.remove('dragover');
+    const f = e.dataTransfer.files[0]; if (f) onFile(f);
+  });
+}
+
+// video drop
+setupDrop(document.getElementById('dropVideo'), document.getElementById('fileVideo'), f => {
+  state.videoFile = f;
+  if (state.videoUrl) URL.revokeObjectURL(state.videoUrl);
+  state.videoUrl = URL.createObjectURL(f);
+  const d = document.getElementById('dropVideo');
+  d.classList.add('loaded'); d.querySelector('.name').textContent = f.name;
+  checkProceed();
+});
+
+function renderTrackCards() {
+  const wrap = document.getElementById('trackCards');
+  wrap.innerHTML = '';
+  state.tracks.forEach(track => {
+    const card = document.createElement('div');
+    card.className = 'track-card';
+    card.innerHTML = `
+      <div class="person-field">
+        <label>Person / label</label>
+        <input type="text" value="${escapeHtml(track.name)}" data-role="name">
+      </div>
+      <label class="mini-drop ${track.imuFile ? 'loaded' : ''}" data-role="imu-drop">
+        <span class="tag">IMU parquet (required)</span>
+        ${track.imuFile ? escapeHtml(track.imuFile.name) : '.parquet'}
+        <input type="file" accept=".parquet" data-role="imu-input">
+      </label>
+      <label class="mini-drop ${track.jsonFile ? 'loaded' : ''}" data-role="json-drop">
+        <span class="tag">Results or plan JSON (optional)</span>
+        ${track.jsonFile ? escapeHtml(track.jsonFile.name) : 'edit / seed timeline'}
+        <input type="file" accept=".json,application/json" data-role="json-input">
+      </label>
+      <button class="remove-track" data-role="remove">✕</button>
+    `;
+    card.querySelector('[data-role="name"]').addEventListener('input', e => { track.name = e.target.value; });
+    setupDrop(card.querySelector('[data-role="imu-drop"]'), card.querySelector('[data-role="imu-input"]'), f => {
+      track.imuFile = f; renderTrackCards(); checkProceed();
+    });
+    setupDrop(card.querySelector('[data-role="json-drop"]'), card.querySelector('[data-role="json-input"]'), f => {
+      track.jsonFile = f; renderTrackCards(); checkProceed();
+    });
+    card.querySelector('[data-role="remove"]').addEventListener('click', () => {
+      if (state.tracks.length <= 1) { flash('Keep at least one track', 'warn'); return; }
+      state.tracks = state.tracks.filter(t => t.id !== track.id); renderTrackCards(); checkProceed();
+    });
+    wrap.appendChild(card);
+  });
+}
+
+document.getElementById('btnAddTrack').addEventListener('click', () => { state.tracks.push(makeTrack()); renderTrackCards(); });
+state.tracks.push(makeTrack()); renderTrackCards();
+
+function checkProceed() {
+  const ready = state.videoFile && state.tracks.length > 0 && state.tracks.every(t => t.imuFile);
+  const btn = document.getElementById('btnProceed');
+  btn.disabled = !ready;
+  document.getElementById('loadStatus').textContent = ready
+    ? `${state.tracks.length} track${state.tracks.length>1?'s':''} ready`
+    : 'Need a video and an IMU file for every track.';
+}
+
+document.getElementById('btnProceed').addEventListener('click', async () => {
+  const errBox = document.getElementById('loadError'); errBox.innerHTML = '';
+  const btn = document.getElementById('btnProceed');
+  const status = document.getElementById('loadStatus');
+  btn.disabled = true;
+  const yield_ = () => new Promise(r => setTimeout(r, 0)); // let the status paint
+  try {
+    for (let i = 0; i < state.tracks.length; i++) {
+      const track = state.tracks[i];
+      status.textContent = `Reading ${track.name} (${i+1}/${state.tracks.length})…`;
+      await yield_();
+      track.imuData = await parseImu(track.imuFile);
+      if (track.jsonFile) await loadTrackJson(track);
+      status.textContent = `Running PCA for ${track.name} (${i+1}/${state.tracks.length})…`;
+      await yield_();
+      track.signals = computeSignals(track.imuData);
+      track._env = null;
+    }
+    status.textContent = '';
+    state.activeTrackId = state.tracks[0].id;
+    goToSync();
+  } catch (err) {
+    errBox.innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
+    status.textContent = '';
+    btn.disabled = false;
+    console.error(err);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILE PARSERS
+// ═══════════════════════════════════════════════════════════════════════════
+async function parseImu(file) {
+  const HP = window.HyParquet;
+  if (!HP) throw new Error('Parquet reader failed to load — reopen the tool.');
+  const ab = await file.arrayBuffer();
+  const pf = { byteLength: ab.byteLength, slice: (s, e) => ab.slice(s, e == null ? ab.byteLength : e) };
+
+  let meta;
+  try { meta = await HP.parquetMetadataAsync(pf); }
+  catch (e) { throw new Error(`${file.name}: not a readable parquet file (${e.message})`); }
+
+  const colNames = meta.schema.filter(s => s.type).map(s => s.name);
+  const required = ['t_sec', 'ax', 'ay', 'az'];
+  const missing = required.filter(c => !colNames.includes(c));
+  if (missing.length) throw new Error(`${file.name}: missing column(s) ${missing.join(', ')}. Found: ${colNames.join(', ')}`);
+
+  const N = Number(meta.num_rows);
+  if (N < 10) throw new Error(`${file.name}: only ${N} rows`);
+
+  const hasGyro = ['gx','gy','gz'].every(c => colNames.includes(c));
+  const cols = required.concat(hasGyro ? ['gx','gy','gz'] : []);
+  const rows = await HP.parquetReadObjects({ file: pf, compressors: HP.compressors, columns: cols });
+  const n = rows.length;
+
+  const t = new Float64Array(n), ax = new Float32Array(n), ay = new Float32Array(n), az = new Float32Array(n);
+  const gx = hasGyro ? new Float32Array(n) : null, gy = hasGyro ? new Float32Array(n) : null, gz = hasGyro ? new Float32Array(n) : null;
+  for (let i = 0; i < n; i++) {
+    const r = rows[i];
+    t[i] = r.t_sec; ax[i] = r.ax; ay[i] = r.ay; az[i] = r.az;
+    if (hasGyro) { gx[i] = r.gx; gy[i] = r.gy; gz[i] = r.gz; }
+  }
+  const tStart = n ? t[0] : 0, tEnd = n ? t[n-1] : 0;
+  return { t, ax, ay, az, gx, gy, gz, nSamples: n, tStart, tEnd, duration: tEnd - tStart };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SIGNALS — PCA over ax/ay/az/gx/gy/gz, plus raw magnitudes
+// ═══════════════════════════════════════════════════════════════════════════
+// Channels are z-scored first: accel (g) and gyro (rad/s) live on different
+// scales, so without standardizing, PC1 would just track whichever has the
+// larger raw variance. Standardizing makes this a PCA of the correlation matrix.
+const CHAN_NAMES = ['ax','ay','az','gx','gy','gz'];
+
+function robustRange(arr, symmetric) {
+  const n = arr.length;
+  const step = Math.max(1, Math.floor(n / 20000));
+  const samp = [];
+  for (let i = 0; i < n; i += step) samp.push(arr[i]);
+  samp.sort((a, b) => a - b);
+  let lo = samp[Math.floor(samp.length * 0.01)];
+  let hi = samp[Math.floor(samp.length * 0.99)];
+  if (!isFinite(lo)) lo = -1;
+  if (!isFinite(hi)) hi = 1;
+  if (symmetric) { const a = Math.max(Math.abs(lo), Math.abs(hi)) || 1; lo = -a; hi = a; }
+  if (hi - lo < 1e-9) hi = lo + 1;
+  return { lo, hi };
+}
+
+// Largest eigenpair of a small symmetric matrix, by power iteration.
+function powerIter(C, k) {
+  let v = new Float64Array(k).fill(1 / Math.sqrt(k));
+  for (let it = 0; it < 300; it++) {
+    const w = new Float64Array(k);
+    for (let a = 0; a < k; a++) { let s = 0; for (let b = 0; b < k; b++) s += C[a][b] * v[b]; w[a] = s; }
+    let norm = 0; for (let a = 0; a < k; a++) norm += w[a] * w[a];
+    norm = Math.sqrt(norm);
+    if (norm < 1e-14) break;
+    let diff = 0;
+    for (let a = 0; a < k; a++) { w[a] /= norm; diff += Math.abs(w[a] - v[a]); }
+    v = w;
+    if (diff < 1e-12) break;
+  }
+  let lambda = 0;
+  for (let a = 0; a < k; a++) { let s = 0; for (let b = 0; b < k; b++) s += C[a][b] * v[b]; lambda += v[a] * s; }
+  return { v, lambda };
+}
+
+function computeSignals(imu) {
+  const all = [imu.ax, imu.ay, imu.az, imu.gx, imu.gy, imu.gz];
+  const keep = [];
+  all.forEach((c, i) => { if (c) keep.push(i); });
+  const chans = keep.map(i => all[i]);
+  const names = keep.map(i => CHAN_NAMES[i]);
+  const k = chans.length, n = imu.nSamples;
+  if (!k || !n) return null;
+
+  // per-channel mean / std
+  const means = new Float64Array(k), stds = new Float64Array(k);
+  for (let j = 0; j < k; j++) {
+    let s = 0; for (let i = 0; i < n; i++) s += chans[j][i];
+    const m = s / n; means[j] = m;
+    let v = 0; for (let i = 0; i < n; i++) { const d = chans[j][i] - m; v += d * d; }
+    stds[j] = Math.sqrt(v / n) || 1;
+  }
+  // correlation matrix (k×k, k≤6)
+  const C = Array.from({ length: k }, () => new Float64Array(k));
+  for (let a = 0; a < k; a++) {
+    for (let b = a; b < k; b++) {
+      let s = 0;
+      for (let i = 0; i < n; i++) {
+        s += ((chans[a][i] - means[a]) / stds[a]) * ((chans[b][i] - means[b]) / stds[b]);
+      }
+      s /= n; C[a][b] = s; C[b][a] = s;
+    }
+  }
+  // top eigenpairs by power iteration + deflation. trace(correlation) == k,
+  // so explained variance for a component is lambda / k.
+  const D = C.map(r => Float64Array.from(r));
+  const comps = [];
+  const nComp = Math.min(3, k);
+  for (let c = 0; c < nComp; c++) {
+    const { v, lambda } = powerIter(D, k);
+    // sign convention: largest-magnitude loading positive, so the trace does
+    // not flip arbitrarily between tracks or sessions
+    let bi = 0; for (let a = 1; a < k; a++) if (Math.abs(v[a]) > Math.abs(v[bi])) bi = a;
+    if (v[bi] < 0) for (let a = 0; a < k; a++) v[a] = -v[a];
+    comps.push({ v, lambda: Math.max(0, lambda) });
+    for (let a = 0; a < k; a++) for (let b = 0; b < k; b++) D[a][b] -= lambda * v[a] * v[b]; // deflate
+  }
+
+  // project onto each kept component
+  const pcs = comps.map(({ v, lambda }) => {
+    const data = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      let s = 0;
+      for (let j = 0; j < k; j++) s += ((chans[j][i] - means[j]) / stds[j]) * v[j];
+      data[i] = s;
+    }
+    const { lo, hi } = robustRange(data, true);
+    const loadings = {};
+    names.forEach((nm, j) => { loadings[nm] = round3(v[j]); });
+    return { data, lo, hi, explained: Math.max(0, Math.min(1, lambda / k)), loadings, symmetric: true };
+  });
+
+  // raw magnitudes — often easier to read than any single PC
+  const mkMag = (a, b, c) => {
+    if (!a || !b || !c) return null;
+    const data = new Float32Array(n);
+    for (let i = 0; i < n; i++) data[i] = Math.sqrt(a[i]*a[i] + b[i]*b[i] + c[i]*c[i]);
+    const { lo, hi } = robustRange(data, false);
+    return { data, lo, hi, symmetric: false };
+  };
+  const accel = mkMag(imu.ax, imu.ay, imu.az);
+  const gyro  = mkMag(imu.gx, imu.gy, imu.gz);
+
+  return { pcs, accel, gyro, k, channels: names };
+}
+
+function loadTrackJson(track) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        let parsed = JSON.parse(e.target.result);
+        // Accept either a raw workout JSON or the {workout, sync} bundle produced by this tool
+        if (parsed.workout) {
+          if (parsed.sync && typeof parsed.sync.offset === 'number') {
+            track.offset = parsed.sync.offset; track.synced = true;
+          }
+          parsed = parsed.workout;
+        }
+
+        const round = parsed.roundResults && parsed.roundResults[0];
+        if (round && Array.isArray(round.exerciseResults)) {
+          // ── Results format: labels already have real timestamps ──────────
+          track.sourceJson = parsed;
+          track.labels = round.exerciseResults.map(ex => ({
+            id: 'lbl' + (++_labelSeq),
+            name: ex.name,
+            startTime: ex.startTime,
+            endTime: ex.endTime,
+            reps: Array.isArray(ex.reps) ? ex.reps.map(r => ({ workoutTime: r.workoutTime })) : [],
+            modified: false,
+            _origRaw: ex,
+          }));
+        } else if (Array.isArray(parsed.exercises)) {
+          // ── Plan / template format: no timestamps, so lay the prescribed ──
+          // durations end-to-end from t=0 to seed an editable timeline.
+          track.sourceJson = null;
+          track.planMeta = { title: parsed.title || null, type: parsed.type || null };
+          let cursor = 0;
+          track.labels = parsed.exercises.map(ex => {
+            const dur = Array.isArray(ex.endConditionValues) ? (Number(ex.endConditionValues[0]) || 0) : 0;
+            const label = {
+              id: 'lbl' + (++_labelSeq),
+              name: ex.name || ex.canonicalName || 'Exercise',
+              startTime: round3(cursor),
+              endTime: round3(cursor + dur),
+              reps: [],
+              modified: false,
+              _fromPlan: true,
+            };
+            cursor += dur;
+            return label;
+          });
+        } else {
+          track.sourceJson = parsed;
+          track.labels = [];
+        }
+
+        // Surface any label names as autocomplete suggestions.
+        track.labels.forEach(l => { if (l.name && !state.exerciseNames.includes(l.name)) state.exerciseNames.push(l.name); });
+        resolve();
+      } catch (err) { reject(new Error(`${track.jsonFile.name}: ${err.message}`)); }
+    };
+    reader.onerror = () => reject(new Error(`Failed to read ${track.jsonFile.name}`));
+    reader.readAsText(track.jsonFile);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STAGE 2 — SYNC (read each watch timer off the video)
+// ═══════════════════════════════════════════════════════════════════════════
+// Accepts "7", "7.5", "1:07", "1:07.5", or "1:02:03" and returns seconds.
+function parseTimer(str) {
+  if (str == null) return NaN;
+  str = String(str).trim();
+  if (!str) return NaN;
+  const parts = str.split(':').map(p => parseFloat(p));
+  if (parts.some(p => isNaN(p))) return NaN;
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return NaN;
+}
+function fmtClock(s) {
+  if (s == null || isNaN(s)) return '—';
+  const sign = s < 0 ? '-' : ''; s = Math.abs(s);
+  const m = Math.floor(s / 60), sec = s - m * 60;
+  return `${sign}${m}:${sec.toFixed(2).padStart(5,'0')}`;
+}
+// How a whole-second watch face would render an elapsed time.
+function fmtClockWhole(s) {
+  if (s == null || isNaN(s)) return '—';
+  s = Math.max(0, Math.floor(s));
+  const m = Math.floor(s / 60), sec = s % 60;
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+function watchBias() { return state.watchConvention === 'mid' ? 0.5 : 0; }
+
+function goToSync() {
+  document.getElementById('screenLoad').classList.add('hidden');
+  document.getElementById('screenSync').classList.remove('hidden');
+  setStage('sync');
+  document.getElementById('btnReset').classList.remove('hidden');
+  document.getElementById('fileInfo').textContent = state.videoFile.name;
+
+  const v = document.getElementById('syncVideo');
+  v.src = state.videoUrl; v.currentTime = 0;
+  v.addEventListener('timeupdate', () => {
+    document.getElementById('syncVideoTime').textContent = v.currentTime.toFixed(3);
+    updateSyncPreviews(v.currentTime);
+  });
+  v.addEventListener('seeked', () => updateSyncPreviews(v.currentTime));
+  document.querySelectorAll('#screenSync .video-controls button').forEach(b => {
+    b.addEventListener('click', () => { v.currentTime = Math.max(0, v.currentTime + parseFloat(b.dataset.skip)); });
+  });
+
+  const conv = document.getElementById('watchConvention');
+  conv.value = state.watchConvention;
+  const noteFor = () => state.watchConvention === 'tick'
+    ? 'Step frame-by-frame to the flip. Accurate to ~1 frame.'
+    : 'Assumes you are ~0.5s into the displayed second.';
+  document.getElementById('convNote').textContent = noteFor();
+  conv.addEventListener('change', e => {
+    state.watchConvention = e.target.value;
+    document.getElementById('convNote').textContent = noteFor();
+    // re-apply to any track already set, so the choice takes effect immediately
+    state.tracks.forEach(t => {
+      if (t.synced && t.watchTyped != null && t.syncVideoTime != null) {
+        t.watchSeconds = round3(t.watchTyped + watchBias());
+        t.offset = round3(t.syncVideoTime - t.watchSeconds);
+        t._env = null;
+      }
+    });
+    renderSyncRows();
+    updateSyncPreviews(v.currentTime);
+  });
+
+  renderSyncRows();
+}
+
+function renderSyncRows() {
+  const wrap = document.getElementById('syncTrackRows');
+  wrap.innerHTML = '';
+  state.tracks.forEach((track, ti) => {
+    const row = document.createElement('div');
+    row.className = 'sync-track-row';
+    const setInfo = track.synced
+      ? `video ${track.syncVideoTime.toFixed(3)}s · read ${fmtClock(track.watchTyped)} → workout ${track.watchSeconds.toFixed(3)}s`
+      : 'not set';
+    row.innerHTML = `
+      <div class="row-head">
+        <span class="dot" style="background:${nameColor(track.name)}"></span>
+        <span class="nm">${escapeHtml(track.name)}</span>
+        <span class="spacer"></span>
+        <span class="badge">${track.imuData ? track.imuData.nSamples.toLocaleString()+' samples · '+track.imuData.duration.toFixed(1)+'s' : ''}</span>
+        <span class="badge" id="off_${track.id}" style="margin-left:10px;">${track.synced ? 'offset '+track.offset.toFixed(3)+'s' : 'offset —'}</span>
+      </div>
+      <div class="sync-set-row">
+        <label>Watch shows</label>
+        <input type="text" data-timer placeholder="mm:ss or s" value="${track.watchTyped!=null ? fmtClock(track.watchTyped) : ''}">
+        <button data-set>Set from this frame</button>
+      </div>
+      <div class="ctrls">
+        <span class="set-info" id="info_${track.id}">${setInfo}</span>
+        <span class="spacer-flex"></span>
+        <button data-nudge="-0.1">−0.1</button>
+        <button data-nudge="-0.033">−1f</button>
+        <button data-nudge="0.033">+1f</button>
+        <button data-nudge="0.1">+0.1</button>
+      </div>
+      <div class="pred" id="pre_${track.id}"></div>
+    `;
+    row.querySelector('[data-set]').addEventListener('click', () => {
+      const v = document.getElementById('syncVideo');
+      const typed = parseTimer(row.querySelector('[data-timer]').value);
+      if (isNaN(typed)) { flash('Enter the watch time as mm:ss or seconds', 'warn'); return; }
+      const bias = watchBias();
+      track.watchTyped = round3(typed);
+      track.watchSeconds = round3(typed + bias);   // true workout time at this frame
+      track.syncVideoTime = round3(v.currentTime);
+      track.offset = round3(track.syncVideoTime - track.watchSeconds);
+      track.synced = true;
+      track._env = null;
+      renderSyncRows();
+      updateSyncPreviews(v.currentTime);
+    });
+    row.querySelectorAll('[data-nudge]').forEach(b => b.addEventListener('click', () => {
+      track.synced = true;
+      track.offset = round3(track.offset + parseFloat(b.dataset.nudge));
+      // keep the effective watch time consistent with the manual offset
+      if (track.syncVideoTime != null) track.watchSeconds = round3(track.syncVideoTime - track.offset);
+      track._env = null;
+      renderSyncRows();
+      updateSyncPreviews(document.getElementById('syncVideo').currentTime);
+    }));
+    wrap.appendChild(row);
+  });
+  updateSyncPreviews(document.getElementById('syncVideo').currentTime);
+}
+
+// Live check: at the current video frame, what workout time does each synced
+// track map to — and what would the watch face actually be displaying?
+function updateSyncPreviews(videoTime) {
+  state.tracks.forEach(track => {
+    const el = document.getElementById('pre_' + track.id);
+    if (!el) return;
+    if (!track.synced) { el.textContent = 'Scrub to this person\u2019s watch, type what it reads, then Set.'; return; }
+    const wt = videoTime - track.offset;
+    if (wt < 0) { el.textContent = `at video ${videoTime.toFixed(2)}s \u2192 before this watch started`; return; }
+    el.textContent = `at video ${videoTime.toFixed(2)}s \u2192 watch face should show ${fmtClockWhole(wt)} (elapsed ${wt.toFixed(2)}s)`;
+  });
+}
+
+document.getElementById('btnSkipSync').addEventListener('click', () => {
+  state.tracks.forEach(t => { t.offset = 0; t.synced = false; t.syncVideoTime = null; t.watchSeconds = null; });
+  goToEdit();
+});
+document.getElementById('btnConfirmSync').addEventListener('click', goToEdit);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STAGE 3 — EDITOR
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Exercise-name list: shared across all tracks in the session. Any name that
+// gets used (typed, picked, or loaded from JSON) lives here so it can be
+// reused via one-click chips instead of retyping.
+function addExerciseName(name) {
+  name = (name || '').trim();
+  if (!name) return;
+  if (!state.exerciseNames.includes(name)) { state.exerciseNames.push(name); renderExerciseNames(); }
+}
+function armName(name, { rename = true } = {}) {
+  name = (name || '').trim();
+  if (!name) return;
+  state.armedName = name;
+  const input = document.getElementById('newName');
+  if (input) input.value = name;
+  // If a label is selected, applying a chip also renames it (per the UX choice).
+  if (rename) {
+    const label = selectedLabel();
+    if (label && label.name !== name) {
+      label.name = name; label.modified = true;
+      renderLanes(); renderLabelList(); renderDetail(); renderTrackPills();
+    }
+  }
+  renderExerciseNames();
+}
+function removeExerciseName(name) {
+  state.exerciseNames = state.exerciseNames.filter(n => n !== name);
+  if (state.armedName === name) {
+    state.armedName = state.exerciseNames[0] || '';
+    const input = document.getElementById('newName');
+    if (input) input.value = state.armedName;
+  }
+  renderExerciseNames();
+}
+function renderExerciseNames() {
+  const dl = document.getElementById('exerciseList');
+  if (dl) dl.innerHTML = state.exerciseNames.map(n => `<option value="${escapeHtml(n)}">`).join('');
+  const wrap = document.getElementById('exChips');
+  if (wrap) {
+    if (!state.exerciseNames.length) {
+      wrap.innerHTML = '<span class="ex-chips-empty">Type a name below to start your list.</span>';
+    } else {
+      wrap.innerHTML = '';
+      state.exerciseNames.forEach(name => {
+        const chip = document.createElement('span');
+        chip.className = 'ex-chip' + (name === state.armedName ? ' armed' : '');
+        chip.style.borderLeftColor = nameColor(name);
+        chip.innerHTML = `<span class="nm"></span><span class="x" title="Remove from list">✕</span>`;
+        chip.querySelector('.nm').textContent = name;
+        chip.addEventListener('click', e => {
+          if (e.target.classList.contains('x')) { removeExerciseName(name); return; }
+          armName(name);
+        });
+        wrap.appendChild(chip);
+      });
+    }
+  }
+  const note = document.getElementById('armedNote');
+  if (note) note.textContent = state.armedName ? `· next: ${state.armedName}` : '';
+}
+
+function goToEdit() {
+  document.getElementById('screenSync').classList.add('hidden');
+  document.getElementById('screenEdit').classList.remove('hidden');
+  setStage('edit');
+
+  // exercise name list (datalist + quick-pick chips)
+  if (!state.exerciseNames.includes(state.armedName)) state.armedName = state.exerciseNames[0] || '';
+  document.getElementById('newName').value = state.armedName;
+  renderExerciseNames();
+
+  const v = document.getElementById('editVideo');
+  v.src = state.videoUrl;
+  v.addEventListener('loadedmetadata', () => {
+    state.videoDuration = v.duration || 0;
+    renderRuler(); renderLanes(); updatePlayhead();
+  });
+  v.addEventListener('timeupdate', () => {
+    document.getElementById('editVideoTime').textContent = v.currentTime.toFixed(3);
+    updatePlayhead();
+  });
+  v.addEventListener('seeked', updatePlayhead);
+
+  document.querySelectorAll('#screenEdit .controls-bar button[data-skip]').forEach(b => {
+    b.addEventListener('click', () => { v.currentTime = Math.max(0, v.currentTime + parseFloat(b.dataset.skip)); });
+  });
+  document.getElementById('btnPlay').addEventListener('click', () => { v.paused ? v.play() : v.pause(); });
+  document.querySelectorAll('#screenEdit .speed-field button[data-rate]').forEach(b => {
+    b.addEventListener('click', () => {
+      v.playbackRate = parseFloat(b.dataset.rate);
+      document.querySelectorAll('#screenEdit .speed-field button').forEach(x => x.classList.toggle('active', x === b));
+    });
+  });
+  document.getElementById('fpsInput').addEventListener('change', e => { state.fps = Math.max(1, parseFloat(e.target.value) || 30); });
+
+  document.getElementById('btnSetIn').addEventListener('click', setIn);
+  document.getElementById('btnSetOut').addEventListener('click', setOut);
+  document.getElementById('btnClearInOut').addEventListener('click', () => { state.pending = { in: null, out: null }; renderInOut(); });
+  document.getElementById('btnAddLabel').addEventListener('click', addLabelFromForm);
+  const newNameInput = document.getElementById('newName');
+  // typing arms the name live (chip highlight follows); committing adds it to the list
+  newNameInput.addEventListener('input', () => {
+    state.armedName = newNameInput.value.trim();
+    renderExerciseNames();
+  });
+  newNameInput.addEventListener('change', () => { addExerciseName(newNameInput.value); });
+  document.getElementById('optNullGaps').addEventListener('change', e => { state.emitNullGaps = e.target.checked; });
+  const sel = document.getElementById('signalSelect');
+  // annotate PC options with this session's explained variance
+  const s0 = state.tracks[0] && state.tracks[0].signals;
+  if (s0) {
+    ['pc1','pc2','pc3'].forEach((m, i) => {
+      const opt = sel.querySelector(`option[value="${m}"]`);
+      if (!opt) return;
+      if (s0.pcs[i]) opt.textContent = `PC${i+1} (${(s0.pcs[i].explained*100).toFixed(0)}%)`;
+      else opt.remove();
+    });
+    if (!s0.gyro) { const o = sel.querySelector('option[value="gyro"]'); if (o) o.remove(); }
+    if (!s0.accel) { const o = sel.querySelector('option[value="accel"]'); if (o) o.remove(); }
+  }
+  sel.value = state.signalMode;
+  sel.addEventListener('change', e => {
+    state.signalMode = e.target.value;
+    state.tracks.forEach(t => { t._env = null; });
+    renderLanes();
+  });
+  document.getElementById('btnExportActive').addEventListener('click', () => { const t = activeTrack(); if (t) downloadTrack(t); });
+  document.getElementById('btnExportAll').addEventListener('click', exportAll);
+
+  document.addEventListener('keydown', handleHotkey);
+
+  renderTrackPills(); renderActiveTrackName(); renderLabelList(); renderDetail(); renderInOut();
+  if (state.videoDuration) { renderRuler(); renderLanes(); updatePlayhead(); }
+}
+
+function setStage(stage) {
+  ['Load','Sync','Edit'].forEach(s => {
+    const el = document.getElementById('stage'+s);
+    el.classList.remove('active','done');
+  });
+  if (stage === 'sync') { document.getElementById('stageLoad').classList.add('done'); document.getElementById('stageSync').classList.add('active'); }
+  if (stage === 'edit') { document.getElementById('stageLoad').classList.add('done'); document.getElementById('stageSync').classList.add('done'); document.getElementById('stageEdit').classList.add('active'); }
+}
+
+// ── timeline geometry ─────────────────────────────────────────────────────
+const GUTTER = 120;
+const LANE_H = 76;   // keep in sync with .lane height in CSS
+function laneTrackWidth() {
+  const lanesEl = document.getElementById('lanes');
+  return Math.max(50, lanesEl.clientWidth - GUTTER);
+}
+function videoToX(vt) { return (state.videoDuration ? vt / state.videoDuration : 0) * laneTrackWidth(); }
+function xToVideo(px) { return state.videoDuration ? (px / laneTrackWidth()) * state.videoDuration : 0; }
+
+function renderRuler() {
+  const ruler = document.getElementById('ruler');
+  ruler.innerHTML = '';
+  const dur = state.videoDuration; if (!dur) return;
+  const w = laneTrackWidth();
+  // choose a tick step that gives ~8-12 ticks
+  const targets = [1,2,5,10,15,30,60,120,300];
+  let step = targets.find(s => dur / s <= 12) || 600;
+  for (let s = 0; s <= dur; s += step) {
+    const tick = document.createElement('div');
+    tick.className = 'tick';
+    tick.style.left = (s / dur * w) + 'px';
+    tick.innerHTML = `<span>${formatT(s)}</span>`;
+    ruler.appendChild(tick);
+  }
+}
+function formatT(s) {
+  const m = Math.floor(s / 60), sec = (s % 60);
+  return m > 0 ? `${m}:${sec.toFixed(0).padStart(2,'0')}` : sec.toFixed(1) + 's';
+}
+
+function renderLanes() {
+  const lanesEl = document.getElementById('lanes');
+  lanesEl.innerHTML = '';
+  const w = laneTrackWidth();
+  state.tracks.forEach((track, ti) => {
+    const lane = document.createElement('div');
+    lane.className = 'lane' + (track.id === state.activeTrackId ? ' active' : '');
+    lane.dataset.trackId = track.id;
+
+    const gutter = document.createElement('div');
+    gutter.className = 'lane-gutter';
+    const pcaInfo = signalLabel(track);
+    gutter.innerHTML = `<div class="g-name">${ti+1}. ${escapeHtml(track.name)}</div>
+      <div class="g-sub">${track.labels.length} lbl${track.synced ? ' · off '+track.offset.toFixed(2) : ''}</div>
+      <div class="g-pca">${pcaInfo}</div>`;
+    gutter.addEventListener('click', () => setActiveTrack(track.id));
+    lane.appendChild(gutter);
+
+    const laneTrack = document.createElement('div');
+    laneTrack.className = 'lane-track';
+    laneTrack.dataset.trackId = track.id;
+
+    // IMU signal (PC1) behind everything, aligned to video time via track.offset
+    const canvas = document.createElement('canvas');
+    canvas.className = 'lane-signal';
+    laneTrack.appendChild(canvas);
+
+    // label blocks
+    track.labels.forEach(label => {
+      const left = videoToX(wToV(track, label.startTime));
+      const width = videoToX(label.endTime - label.startTime);  // offset cancels
+      const block = document.createElement('div');
+      block.className = 'label-block' + (label.name.toUpperCase()==='REST' ? ' rest' : '')
+                        + (label.id === state.selectedLabelId && track.id === state.activeTrackId ? ' selected' : '');
+      block.style.left = left + 'px';
+      block.style.width = Math.max(2, width) + 'px';
+      block.style.background = nameColorA(label.name, 0.42);
+      block.style.borderColor = nameColor(label.name);
+      block.title = `${label.name}  ${wToV(track,label.startTime).toFixed(2)}–${wToV(track,label.endTime).toFixed(2)}s (video)`;
+      block.textContent = label.name;
+      block.innerHTML += '<div class="handle left"></div><div class="handle right"></div>';
+      block.dataset.labelId = label.id;
+      lane._track = track; // for handlers
+      laneTrack.appendChild(block);
+
+      // reps
+      (label.reps || []).forEach(rep => {
+        const inSeg = rep.workoutTime >= label.startTime && rep.workoutTime <= label.endTime;
+        const tick = document.createElement('div');
+        tick.className = 'rep-tick' + (inSeg ? '' : ' orphan');
+        tick.style.left = videoToX(wToV(track, rep.workoutTime)) + 'px';
+        laneTrack.appendChild(tick);
+      });
+    });
+
+    lane.appendChild(laneTrack);
+    lanesEl.appendChild(lane);
+    drawLaneSignal(canvas, track);   // after mount, so the element has a width
+    attachLaneHandlers(laneTrack, track);
+  });
+}
+
+// ── IMU signal rendering ──────────────────────────────────────────────────
+// Bucket every sample into its pixel column and keep the min/max, so a 160k-
+// sample trace draws as a faithful envelope at any width without downsampling
+// away the spikes. Cached per (width, offset) — label drags don't recompute it.
+// Resolve the currently selected signal for a track.
+function currentSignal(track) {
+  const s = track.signals; if (!s) return null;
+  const m = state.signalMode;
+  if (m === 'accel') return s.accel;
+  if (m === 'gyro') return s.gyro;
+  const i = m === 'pc3' ? 2 : m === 'pc2' ? 1 : 0;
+  return s.pcs[i] || s.pcs[0] || null;
+}
+function signalLabel(track) {
+  const s = track.signals; if (!s) return '';
+  const m = state.signalMode;
+  if (m === 'accel') return '|accel|';
+  if (m === 'gyro') return '|gyro|';
+  const i = m === 'pc3' ? 2 : m === 'pc2' ? 1 : 0;
+  const pc = s.pcs[i]; if (!pc) return '';
+  return `PC${i+1} ${(pc.explained*100).toFixed(0)}%`;
+}
+
+function getEnvelope(track, W) {
+  const key = `${W}|${round3(track.offset)}|${round3(state.videoDuration)}|${state.signalMode}`;
+  if (track._env && track._env.key === key) return track._env;
+  const imu = track.imuData, sig = currentSignal(track);
+  if (!imu || !sig || !W) return null;
+  const min = new Float32Array(W).fill(Infinity);
+  const max = new Float32Array(W).fill(-Infinity);
+  const t = imu.t, d = sig.data, n = imu.nSamples;
+  const dur = state.videoDuration || 1;
+  for (let i = 0; i < n; i++) {
+    const vt = t[i] + track.offset;                 // workout → video time
+    const x = Math.floor((vt / dur) * W);
+    if (x < 0 || x >= W) continue;
+    const p = d[i];
+    if (p < min[x]) min[x] = p;
+    if (p > max[x]) max[x] = p;
+  }
+  track._env = { key, min, max };
+  return track._env;
+}
+
+function drawLaneSignal(canvas, track) {
+  const W = Math.floor(laneTrackWidth()), H = LANE_H;
+  const sig = currentSignal(track);
+  if (!W || !state.videoDuration || !sig) return;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.floor(W * dpr); canvas.height = Math.floor(H * dpr);
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const env = getEnvelope(track, W);
+  if (!env) return;
+
+  const yTop = H * 0.06, yBot = H * 0.94, span = yBot - yTop;
+  const lo = sig.lo, hi = sig.hi, range = (hi - lo) || 1;
+  const yOf = v => yBot - (Math.max(lo, Math.min(hi, v)) - lo) / range * span;
+
+  // baseline: zero for PCs (they are centered), floor for magnitudes
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 1;
+  const baseY = sig.symmetric ? yOf(0) : yBot;
+  ctx.beginPath(); ctx.moveTo(0, baseY); ctx.lineTo(W, baseY); ctx.stroke();
+
+  // envelope band, drawn as contiguous runs so unsampled gaps stay empty
+  ctx.fillStyle = track.id === state.activeTrackId ? 'rgba(74,158,255,0.75)' : 'rgba(150,160,175,0.5)';
+  let x = 0;
+  while (x < W) {
+    if (env.min[x] === Infinity) { x++; continue; }
+    let end = x;
+    while (end < W && env.min[end] !== Infinity) end++;
+    ctx.beginPath();
+    for (let i = x; i < end; i++) ctx.lineTo(i + 0.5, yOf(env.max[i]));
+    for (let i = end - 1; i >= x; i--) ctx.lineTo(i + 0.5, yOf(env.min[i]));
+    ctx.closePath(); ctx.fill();
+    x = end;
+  }
+}
+
+function updatePlayhead() {
+  const v = document.getElementById('editVideo');
+  const ph = document.getElementById('playhead');
+  ph.style.left = (GUTTER + videoToX(v.currentTime)) + 'px';
+}
+
+// ── lane pointer interactions: create (drag empty), move/resize (drag block), seek (click empty) ──
+function attachLaneHandlers(laneTrack, track) {
+  laneTrack.addEventListener('pointerdown', e => {
+    const rect = laneTrack.getBoundingClientRect();
+    const blockEl = e.target.closest('.label-block');
+    const v = document.getElementById('editVideo');
+
+    if (blockEl) {
+      // editing existing label — only on its own track (which it is)
+      setActiveTrack(track.id);
+      const label = track.labels.find(l => l.id === blockEl.dataset.labelId);
+      selectLabel(label.id);
+      const isHandle = e.target.classList.contains('handle');
+      const side = e.target.classList.contains('left') ? 'left' : (e.target.classList.contains('right') ? 'right' : null);
+      const startVideoStart = wToV(track, label.startTime);
+      const startVideoEnd = wToV(track, label.endTime);
+      const grabVideo = xToVideo(e.clientX - rect.left);
+      const drag = { mode: isHandle ? 'resize' : 'move', side, label, track, startVideoStart, startVideoEnd, grabVideo, rect, moved: false };
+      beginDrag(e, drag);
+      e.preventDefault();
+      return;
+    }
+
+    // empty area
+    if (track.id !== state.activeTrackId) { setActiveTrack(track.id); }
+    const downVideo = clampV(xToVideo(e.clientX - rect.left));
+    const drag = { mode: 'create', track, downVideo, rect, ghost: null, moved: false };
+    beginDrag(e, drag);
+    e.preventDefault();
+  });
+}
+
+let _drag = null;
+function beginDrag(e, drag) {
+  _drag = drag;
+  drag.pointerId = e.pointerId;
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', onDragUp);
+}
+function onDragMove(e) {
+  if (!_drag) return;
+  const d = _drag;
+  const curVideo = clampV(xToVideo(e.clientX - d.rect.left));
+  d.moved = d.moved || Math.abs(e.clientX - (d.rect.left + videoToX(d.downVideo ?? d.grabVideo))) > 3;
+
+  if (d.mode === 'create') {
+    const a = Math.min(d.downVideo, curVideo), b = Math.max(d.downVideo, curVideo);
+    if (!d.ghost) {
+      d.ghost = document.createElement('div'); d.ghost.className = 'ghost';
+      const lt = document.querySelector(`.lane-track[data-track-id="${d.track.id}"]`);
+      lt && lt.appendChild(d.ghost);
+    }
+    d.ghost.style.left = videoToX(a) + 'px';
+    d.ghost.style.width = Math.max(1, videoToX(b - a)) + 'px';
+    d._a = a; d._b = b;
+  } else if (d.mode === 'move') {
+    const delta = curVideo - d.grabVideo;
+    let ns = d.startVideoStart + delta, ne = d.startVideoEnd + delta;
+    const dur = ne - ns;
+    // clamp to neighbors / bounds
+    const { lo, hi } = neighborBounds(d.track, d.label, null);
+    ns = Math.max(loToVideo(d.track, lo), Math.min(ns, hiToVideo(d.track, hi) - dur));
+    ne = ns + dur;
+    d.label.startTime = round3(vToW(d.track, ns));
+    d.label.endTime = round3(vToW(d.track, ne));
+    d.label.modified = true;
+    renderLanes(); selectLabel(d.label.id, true);
+  } else if (d.mode === 'resize') {
+    if (d.side === 'left') {
+      let ns = Math.min(curVideo, d.startVideoEnd - 0.02);
+      const { lo } = neighborBounds(d.track, d.label, 'left');
+      ns = Math.max(loToVideo(d.track, lo), ns);
+      d.label.startTime = round3(vToW(d.track, ns));
+    } else {
+      let ne = Math.max(curVideo, d.startVideoStart + 0.02);
+      const { hi } = neighborBounds(d.track, d.label, 'right');
+      ne = Math.min(hiToVideo(d.track, hi), ne);
+      d.label.endTime = round3(vToW(d.track, ne));
+    }
+    d.label.modified = true;
+    renderLanes(); selectLabel(d.label.id, true);
+  }
+}
+function onDragUp(e) {
+  window.removeEventListener('pointermove', onDragMove);
+  window.removeEventListener('pointerup', onDragUp);
+  const d = _drag; _drag = null;
+  if (!d) return;
+  if (d.mode === 'create') {
+    if (d.ghost) d.ghost.remove();
+    if (d.moved && d._b - d._a > 0.05) {
+      createLabel(d.track, d._a, d._b, currentDrawName());
+    } else {
+      // treat as a seek
+      document.getElementById('editVideo').currentTime = clampV(d.downVideo);
+    }
+  } else {
+    renderLabelList(); renderDetail(); renderTrackPills();
+  }
+}
+function clampV(v) { return Math.max(0, Math.min(v, state.videoDuration || v)); }
+
+// neighbor bounds in WORKOUT time for a label on a track; returns lo/hi workout bounds
+function neighborBounds(track, label, sideOnly) {
+  const others = track.labels.filter(l => l.id !== label.id).sort((a,b)=>a.startTime-b.startTime);
+  let lo = 0, hi = (state.videoDuration ? vToW(track, state.videoDuration) : Infinity);
+  others.forEach(o => {
+    if (o.endTime <= label.startTime && o.endTime > lo) lo = o.endTime;
+    if (o.startTime >= label.endTime && o.startTime < hi) hi = o.startTime;
+  });
+  return { lo, hi };
+}
+function loToVideo(track, loWorkout) { return wToV(track, loWorkout); }
+function hiToVideo(track, hiWorkout) { return isFinite(hiWorkout) ? wToV(track, hiWorkout) : (state.videoDuration || 1e9); }
+
+// ── create / edit / delete labels ─────────────────────────────────────────
+function createLabel(track, videoStart, videoEnd, name) {
+  const ws = round3(vToW(track, videoStart)), we = round3(vToW(track, videoEnd));
+  // overlap check (workout time)
+  const overlap = track.labels.some(l => ws < l.endTime && we > l.startTime);
+  if (overlap) { flash('Overlaps an existing label on this track', 'warn'); return null; }
+  const finalName = (name || '').trim() || 'Exercise';
+  const label = { id: 'lbl' + (++_labelSeq), name: finalName, startTime: ws, endTime: we, reps: [], modified: true };
+  track.labels.push(label);
+  track.labels.sort((a,b)=>a.startTime-b.startTime);
+  // remember this name for the rest of the session and keep it armed for the
+  // next label, so drawing the same exercise repeatedly needs no typing
+  state.armedName = finalName;
+  addExerciseName(finalName);
+  // Deselect the freshly-added label: leaving it selected means the next chip
+  // click (to arm the following exercise) would retroactively rename it.
+  state.selectedLabelId = null;
+  renderLanes(); renderLabelList(); renderTrackPills(); renderDetail(); renderExerciseNames();
+  flash(`Added "${label.name}" ${videoStart.toFixed(2)}–${videoEnd.toFixed(2)}s`, 'ok');
+  return label;
+}
+
+// Name to apply to a newly drawn label: whatever is typed wins, else the armed chip.
+function currentDrawName() {
+  const typed = (document.getElementById('newName').value || '').trim();
+  return typed || state.armedName || 'Exercise';
+}
+
+function addLabelFromForm() {
+  const track = activeTrack(); if (!track) return;
+  const name = currentDrawName();
+  let vs = parseFloat(document.getElementById('newStart').value);
+  let ve = parseFloat(document.getElementById('newEnd').value);
+  // fall back to in/out points
+  if (isNaN(vs) && state.pending.in != null) vs = state.pending.in;
+  if (isNaN(ve) && state.pending.out != null) ve = state.pending.out;
+  if (isNaN(vs) || isNaN(ve)) { flash('Set start and end (type them or use in/out points)', 'warn'); return; }
+  if (ve <= vs) { flash('End must be after start', 'warn'); return; }
+  const lbl = createLabel(track, clampV(vs), clampV(ve), name);
+  if (lbl) {
+    document.getElementById('newStart').value = '';
+    document.getElementById('newEnd').value = '';
+    state.pending = { in: null, out: null }; renderInOut();
+  }
+}
+
+function deleteLabel(track, labelId) {
+  track.labels = track.labels.filter(l => l.id !== labelId);
+  if (state.selectedLabelId === labelId) state.selectedLabelId = null;
+  renderLanes(); renderLabelList(); renderDetail(); renderTrackPills();
+}
+
+function selectLabel(id, keepScroll) {
+  state.selectedLabelId = id;
+  if (!keepScroll) {
+    const t = activeTrack(); const l = t && t.labels.find(x => x.id === id);
+    // no-op scroll; selection visual handled by renders
+  }
+  renderLanes(); renderLabelList(); renderDetail();
+}
+
+// ── in/out points ─────────────────────────────────────────────────────────
+function setIn()  { const v = document.getElementById('editVideo'); state.pending.in = round3(v.currentTime); if (state.pending.out!=null && state.pending.out < state.pending.in) state.pending.out = null; renderInOut(); }
+function setOut() { const v = document.getElementById('editVideo'); state.pending.out = round3(v.currentTime); if (state.pending.in!=null && state.pending.in > state.pending.out) state.pending.in = null; renderInOut(); }
+function renderInOut() {
+  document.getElementById('inReadout').textContent = state.pending.in != null ? state.pending.in.toFixed(3)+'s' : '—';
+  document.getElementById('outReadout').textContent = state.pending.out != null ? state.pending.out.toFixed(3)+'s' : '—';
+}
+
+// ── track selection / sidebar ─────────────────────────────────────────────
+function setActiveTrack(id) {
+  if (state.activeTrackId === id) return;
+  state.activeTrackId = id;
+  state.selectedLabelId = null;
+  renderTrackPills(); renderActiveTrackName(); renderLanes(); renderLabelList(); renderDetail();
+}
+function renderActiveTrackName() {
+  const t = activeTrack();
+  document.getElementById('activeTrackName').textContent = t ? '→ ' + t.name : '';
+}
+function renderTrackPills() {
+  const wrap = document.getElementById('trackPills'); wrap.innerHTML = '';
+  state.tracks.forEach((track, i) => {
+    const pill = document.createElement('div');
+    pill.className = 'track-pill' + (track.id === state.activeTrackId ? ' active' : '');
+    pill.innerHTML = `<span class="dot" style="background:${nameColor(track.name)}"></span>
+      <span class="nm">${i+1}. ${escapeHtml(track.name)} <span class="cnt">(${track.labels.length})</span></span>
+      <button class="exp" title="Export this track">⤓</button>`;
+    pill.addEventListener('click', e => { if (e.target.classList.contains('exp')) return; setActiveTrack(track.id); });
+    pill.querySelector('.exp').addEventListener('click', e => { e.stopPropagation(); downloadTrack(track); });
+    wrap.appendChild(pill);
+  });
+}
+
+function renderLabelList() {
+  const list = document.getElementById('labelList');
+  const track = activeTrack();
+  const labels = track ? [...track.labels].sort((a,b)=>a.startTime-b.startTime) : [];
+  document.getElementById('labelCount').textContent = labels.length;
+  if (!labels.length) { list.innerHTML = '<div class="list-empty">No labels yet. Drag on the lane or add one above.</div>'; return; }
+  list.innerHTML = '';
+  labels.forEach(label => {
+    const row = document.createElement('div');
+    row.className = 'label-row' + (label.id === state.selectedLabelId ? ' selected' : '');
+    const repBadge = label.reps && label.reps.length ? `<span class="rep-badge">${label.reps.length}</span>` : '';
+    row.innerHTML = `<span class="swatch" style="background:${nameColor(label.name)}"></span>
+      <span class="nm">${escapeHtml(label.name)}${repBadge}</span>
+      <span class="tm">${wToV(track,label.startTime).toFixed(2)}–${wToV(track,label.endTime).toFixed(2)}</span>
+      <button class="jump" title="Jump to start">↪</button>
+      <button class="del" title="Delete label">✕</button>`;
+    row.addEventListener('click', e => {
+      if (e.target.classList.contains('del')) { deleteLabel(track, label.id); return; }
+      selectLabel(label.id);
+      if (e.target.classList.contains('jump')) document.getElementById('editVideo').currentTime = clampV(wToV(track, label.startTime));
+    });
+    list.appendChild(row);
+  });
+}
+
+function renderDetail() {
+  const body = document.getElementById('detailBody');
+  const track = activeTrack(); const label = selectedLabel();
+  if (!track || !label) { body.innerHTML = '<div class="list-empty">No label selected.</div>'; return; }
+  body.innerHTML = `
+    <input type="text" class="detail-name" id="dName" list="exerciseList" value="${escapeHtml(label.name)}">
+    <div class="field"><label>Start</label><input type="number" id="dStart" step="0.001" value="${wToV(track,label.startTime).toFixed(3)}"><button id="dSetStart">Set [</button></div>
+    <div class="field"><label>End</label><input type="number" id="dEnd" step="0.001" value="${wToV(track,label.endTime).toFixed(3)}"><button id="dSetEnd">Set ]</button></div>
+    <div class="detail-actions"><button class="danger-btn" id="dDelete">Delete label</button></div>
+    <div class="reps-block">
+      <h4 style="margin:10px 0 6px;font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;">Reps <span style="color:var(--accent-warm);font-family:monospace;">${(label.reps||[]).length}</span></h4>
+      <div class="reps-list" id="dReps"></div>
+    </div>`;
+  document.getElementById('dName').addEventListener('change', e => {
+    const nm = e.target.value.trim(); if (!nm) return;
+    label.name = nm; label.modified = true;
+    addExerciseName(nm);
+    renderLanes(); renderLabelList(); renderTrackPills();
+  });
+  document.getElementById('dStart').addEventListener('change', e => setLabelStartVideo(parseFloat(e.target.value)));
+  document.getElementById('dEnd').addEventListener('change', e => setLabelEndVideo(parseFloat(e.target.value)));
+  document.getElementById('dSetStart').addEventListener('click', () => setLabelStartVideo(document.getElementById('editVideo').currentTime));
+  document.getElementById('dSetEnd').addEventListener('click', () => setLabelEndVideo(document.getElementById('editVideo').currentTime));
+  document.getElementById('dDelete').addEventListener('click', () => deleteLabel(track, label.id));
+  renderRepsList(label, track);
+}
+
+function renderRepsList(label, track) {
+  const wrap = document.getElementById('dReps'); if (!wrap) return;
+  const reps = label.reps || [];
+  if (!reps.length) { wrap.innerHTML = '<div class="list-empty">No reps — press M at the playhead</div>'; return; }
+  wrap.innerHTML = '';
+  reps.forEach((rep, j) => {
+    const div = document.createElement('div'); div.className = 'rep-item';
+    div.innerHTML = `<span class="idx">#${j+1}</span><span class="t">${wToV(track,rep.workoutTime).toFixed(3)}s</span>
+      <button class="jump" title="Jump">↪</button><button class="del" title="Delete">✕</button>`;
+    div.querySelector('.jump').addEventListener('click', () => { document.getElementById('editVideo').currentTime = clampV(wToV(track, rep.workoutTime)); });
+    div.querySelector('.del').addEventListener('click', () => { label.reps.splice(j,1); label.modified = true; renderDetail(); renderLanes(); renderLabelList(); });
+    wrap.appendChild(div);
+  });
+}
+
+function setLabelStartVideo(videoStart) {
+  const track = activeTrack(), label = selectedLabel(); if (!track || !label) return;
+  let ws = round3(vToW(track, videoStart));
+  if (ws >= label.endTime) { flash('Start must be before end', 'warn'); renderDetail(); return; }
+  const { lo } = neighborBounds(track, label, 'left');
+  if (ws < lo) { flash('Would overlap the previous label', 'warn'); renderDetail(); return; }
+  label.startTime = ws; label.modified = true;
+  renderLanes(); renderLabelList(); renderDetail(); renderTrackPills();
+}
+function setLabelEndVideo(videoEnd) {
+  const track = activeTrack(), label = selectedLabel(); if (!track || !label) return;
+  let we = round3(vToW(track, videoEnd));
+  if (we <= label.startTime) { flash('End must be after start', 'warn'); renderDetail(); return; }
+  const { hi } = neighborBounds(track, label, 'right');
+  if (we > hi) { flash('Would overlap the next label', 'warn'); renderDetail(); return; }
+  label.endTime = we; label.modified = true;
+  renderLanes(); renderLabelList(); renderDetail(); renderTrackPills();
+}
+
+// ── reps ───────────────────────────────────────────────────────────────────
+function markRep() {
+  const track = activeTrack(); if (!track) return;
+  const v = document.getElementById('editVideo');
+  const wt = round3(vToW(track, v.currentTime));
+  // find label containing this time, else the selected one
+  let label = track.labels.find(l => wt >= l.startTime && wt <= l.endTime);
+  if (!label) { label = selectedLabel(); if (!label) { flash('No label here to attach a rep to', 'danger'); return; } flash(`Rep outside any label — attached to "${label.name}"`, 'warn'); }
+  if (!label.reps) label.reps = [];
+  if (label.reps.some(r => Math.abs(r.workoutTime - wt) < 0.05)) { flash('Rep already exists near here', 'warn'); return; }
+  label.reps.push({ workoutTime: wt }); label.reps.sort((a,b)=>a.workoutTime-b.workoutTime);
+  label.modified = true;
+  selectLabel(label.id);
+}
+
+// ── export ─────────────────────────────────────────────────────────────────
+function nullSeg(a, b) {
+  return { name: null, startTime: round3(a), endTime: round3(b), result: round3(b - a), reps: [] };
+}
+// Walks the sorted labels and inserts an explicit null segment wherever there
+// is a hole, spanning the full IMU recording (its own t_sec range).
+function fillNullGaps(track, labels, out) {
+  const EPS = 0.005;   // ignore sub-5ms slivers from rounding
+  const imu = track.imuData;
+  const rangeStart = imu ? round3(imu.tStart) : (labels.length ? labels[0].startTime : 0);
+  const rangeEnd   = imu ? round3(imu.tEnd)   : (labels.length ? labels[labels.length-1].endTime : 0);
+  const merged = [];
+  let cursor = rangeStart;
+  for (const seg of out) {
+    if (seg.startTime - cursor > EPS) merged.push(nullSeg(cursor, seg.startTime));
+    merged.push(seg);
+    cursor = Math.max(cursor, seg.endTime);
+  }
+  if (rangeEnd - cursor > EPS) merged.push(nullSeg(cursor, rangeEnd));
+  out.length = 0;
+  for (const m of merged) out.push(m);
+}
+
+function buildTrackBundle(track) {
+  const labels = [...track.labels].sort((a,b)=>a.startTime-b.startTime);
+  const exerciseResults = labels.map(l => Object.assign({}, l._origRaw || {}, {
+    name: l.name,
+    startTime: round3(l.startTime),
+    endTime: round3(l.endTime),
+    result: round3(l.endTime - l.startTime),
+    reps: (l.reps || []).map(r => ({ workoutTime: round3(r.workoutTime) })),
+  }));
+
+  // Unlabeled time is emitted explicitly as name: null, so the exported
+  // timeline covers the whole recording with no implicit holes.
+  if (state.emitNullGaps) fillNullGaps(track, labels, exerciseResults);
+
+  const startTime = exerciseResults.length ? round3(exerciseResults[0].startTime) : 0;
+  const endTime = exerciseResults.length ? round3(exerciseResults[exerciseResults.length-1].endTime) : 0;
+  let workout;
+  if (track.sourceJson) {
+    workout = JSON.parse(JSON.stringify(track.sourceJson));
+    if (!workout.roundResults || !workout.roundResults[0]) workout.roundResults = [{}];
+    workout.roundResults[0].exerciseResults = exerciseResults;
+    workout.roundResults[0].startTime = startTime;
+    workout.roundResults[0].endTime = endTime;
+    workout.startTime = startTime; workout.endTime = endTime;
+  } else {
+    workout = { roundResults: [{ startTime, endTime, exerciseResults }], startTime, endTime };
+  }
+  return {
+    workout,
+    sync: {
+      synced: track.synced,
+      method: 'watch_timer',
+      offset: round3(track.offset),
+      time_basis: track.synced ? 'workout' : 'video',
+      watch_typed: track.watchTyped,
+      watch_convention: state.watchConvention,   // 'tick' = flip frame, 'mid' = +0.5s
+      watch_seconds: track.watchSeconds,         // effective workout time at sync_video_time
+      sync_video_time: track.syncVideoTime,
+      track_name: track.name,
+      video_file: state.videoFile ? state.videoFile.name : null,
+      generated_at: new Date().toISOString(),
+    },
+    imu: track.imuData ? {
+      file: track.imuFile ? track.imuFile.name : null,
+      samples: track.imuData.nSamples,
+      t_start: round3(track.imuData.tStart),
+      t_end: round3(track.imuData.tEnd),
+      unlabeled_as_null: !!state.emitNullGaps,
+    } : null,
+  };
+}
+
+function downloadJson(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 0);
+}
+function safeName(s) { return String(s).replace(/[^a-z0-9._-]+/gi, '_'); }
+
+function downloadTrack(track) {
+  const bundle = buildTrackBundle(track);
+  const base = track.jsonFile ? track.jsonFile.name.replace(/\.json$/i,'') : safeName(track.name);
+  downloadJson(bundle, `${base}.events.json`);
+}
+function exportAll() {
+  const combined = {
+    video_file: state.videoFile ? state.videoFile.name : null,
+    generated_at: new Date().toISOString(),
+    tracks: state.tracks.map(t => ({ name: t.name, ...buildTrackBundle(t) })),
+  };
+  downloadJson(combined, `${safeName((state.videoFile&&state.videoFile.name)||'session').replace(/\.[^.]+$/,'')}.all-tracks.json`);
+}
+
+// ── hotkeys ────────────────────────────────────────────────────────────────
+function handleHotkey(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+  const v = document.getElementById('editVideo');
+  const frame = 1 / state.fps;
+  if (e.key >= '1' && e.key <= '9') {
+    const idx = parseInt(e.key, 10) - 1;
+    if (state.tracks[idx]) { setActiveTrack(state.tracks[idx].id); e.preventDefault(); }
+    return;
+  }
+  switch (e.key) {
+    case ' ': e.preventDefault(); v.paused ? v.play() : v.pause(); break;
+    case 'j': case 'J': v.currentTime = Math.max(0, v.currentTime - 1); break;
+    case 'l': case 'L': v.currentTime = v.currentTime + 1; break;
+    case ',': v.currentTime = Math.max(0, v.currentTime - frame); break;
+    case '.': v.currentTime = v.currentTime + frame; break;
+    case 'ArrowLeft': e.preventDefault(); v.currentTime = Math.max(0, v.currentTime - (e.shiftKey ? 0.2 : 0.05)); break;
+    case 'ArrowRight': e.preventDefault(); v.currentTime = v.currentTime + (e.shiftKey ? 0.2 : 0.05); break;
+    case 'i': case 'I': e.preventDefault(); setIn(); break;
+    case 'o': case 'O': e.preventDefault(); setOut(); break;
+    case 'Enter': e.preventDefault(); if (state.pending.in!=null && state.pending.out!=null) { const t=activeTrack(); if(t) createLabel(t, state.pending.in, state.pending.out, currentDrawName()) && (state.pending={in:null,out:null}, renderInOut()); } break;
+    case '[': e.preventDefault(); if (selectedLabel()) setLabelStartVideo(v.currentTime); break;
+    case ']': e.preventDefault(); if (selectedLabel()) setLabelEndVideo(v.currentTime); break;
+    case 'm': case 'M': e.preventDefault(); markRep(); break;
+    case 'Backspace': case 'Delete': {
+      e.preventDefault();
+      const t = activeTrack(), l = selectedLabel();
+      if (t && l) deleteLabel(t, l.id);
+      break;
+    }
+  }
+}
+
+// ── misc ───────────────────────────────────────────────────────────────────
+let _flashTimer = null;
+function flash(msg, kind) {
+  const colors = { warn: '#ff9a3c', danger: '#f87171', ok: '#4ade80' };
+  let el = document.getElementById('flashMsg');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'flashMsg';
+    el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:8px 16px;border-radius:6px;font-size:12px;z-index:9999;pointer-events:none;transition:opacity 0.2s;';
+    document.body.appendChild(el);
+  }
+  el.style.background = colors[kind] || '#444';
+  el.style.color = kind === 'danger' ? 'white' : 'black';
+  el.textContent = msg; el.style.opacity = '1';
+  clearTimeout(_flashTimer); _flashTimer = setTimeout(() => { el.style.opacity = '0'; }, 1800);
+}
+
+document.getElementById('btnReset').addEventListener('click', () => { if (confirm('Reset everything and reload?')) location.reload(); });
+window.addEventListener('resize', () => {
+  if (!document.getElementById('screenEdit').classList.contains('hidden')) { renderRuler(); renderLanes(); updatePlayhead(); }
+});
+</script>
+</body>
+</html>

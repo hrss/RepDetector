@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "session_id": "E35C95AD-FD74-4944-946D-1383FC6FBDE0",
+  "device": "apple_watch",
+  "device_model": null,
+  "wrist": "left",
+  "crown": "left",
+  "native_sample_rate_hz": 200,
+  "n_samples": 630858,
+  "duration_sec": 3154.285,
+  "canonical_frame_version": "v1",
+  "user_id": null,
+  "workout_id": "7963",
+  "source_format": "imubin_v2",
+  "source_file": "C:\\Users\\herna\\workspace\\RepDetector\\data\\raw\\apple\\new\\1_2026-07-14_E35C95AD-FD74-4944-946D-1383FC6FBDE0_gui.imubin",
+  "ingested_at": "2026-07-17T15:29:26+00:00",
+  "segments": []
+}

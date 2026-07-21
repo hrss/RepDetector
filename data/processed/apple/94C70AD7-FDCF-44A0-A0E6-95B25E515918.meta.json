@@ -1,0 +1,505 @@
+{
+  "schema_version": "v1",
+  "session_id": "94C70AD7-FDCF-44A0-A0E6-95B25E515918",
+  "device": "apple_watch",
+  "device_model": null,
+  "wrist": "right",
+  "crown": "right",
+  "native_sample_rate_hz": 200,
+  "n_samples": 280800,
+  "duration_sec": 1403.995,
+  "canonical_frame_version": "v1",
+  "athlete_id": "VS-01",
+  "workout_id": null,
+  "source_format": "events_json",
+  "source_file": "94C70AD7-FDCF-44A0-A0E6-95B25E515918.parquet",
+  "ingested_at": "2026-07-18T14:48:46+00:00",
+  "segments": [
+    {
+      "name": "UNKNOWN",
+      "start": 0,
+      "end": 4.287,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 4.287,
+      "end": 106.162,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 106.162,
+      "end": 111.335,
+      "reps": []
+    },
+    {
+      "name": "Snatch",
+      "start": 111.335,
+      "end": 115.593,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 115.593,
+      "end": 119.453,
+      "reps": []
+    },
+    {
+      "name": "Butterfly Pull Up",
+      "start": 119.453,
+      "end": 123.784,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 123.784,
+      "end": 125.93,
+      "reps": []
+    },
+    {
+      "name": "Box Jump",
+      "start": 125.93,
+      "end": 131.523,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 131.523,
+      "end": 133.293,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 133.293,
+      "end": 301.421,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 301.421,
+      "end": 302.459,
+      "reps": []
+    },
+    {
+      "name": "Snatch",
+      "start": 302.459,
+      "end": 310.367,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 310.367,
+      "end": 313.059,
+      "reps": []
+    },
+    {
+      "name": "Butterfly Pull Up",
+      "start": 313.059,
+      "end": 320.201,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 320.201,
+      "end": 321.78,
+      "reps": []
+    },
+    {
+      "name": "Box Jump",
+      "start": 321.78,
+      "end": 333.623,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 333.623,
+      "end": 338.634,
+      "reps": []
+    },
+    {
+      "name": "Snatch",
+      "start": 338.634,
+      "end": 347.962,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 347.962,
+      "end": 353.36,
+      "reps": []
+    },
+    {
+      "name": "Butterfly Pull Up",
+      "start": 353.36,
+      "end": 361.931,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 361.931,
+      "end": 363.996,
+      "reps": []
+    },
+    {
+      "name": "Box Jump",
+      "start": 363.996,
+      "end": 382.823,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 382.823,
+      "end": 386.456,
+      "reps": []
+    },
+    {
+      "name": "Snatch",
+      "start": 386.456,
+      "end": 403.249,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 403.249,
+      "end": 404.062,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 404.062,
+      "end": 413.719,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 413.719,
+      "end": 414.312,
+      "reps": []
+    },
+    {
+      "name": "Butterfly Pull Up",
+      "start": 414.312,
+      "end": 422.156,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 422.156,
+      "end": 424.534,
+      "reps": []
+    },
+    {
+      "name": "Box Jump",
+      "start": 424.534,
+      "end": 442.639,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 442.639,
+      "end": 443.171,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 443.171,
+      "end": 451.379,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 451.379,
+      "end": 451.434,
+      "reps": []
+    },
+    {
+      "name": "Row",
+      "start": 451.434,
+      "end": 483.095,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 483.096,
+      "end": 662.974,
+      "reps": []
+    },
+    {
+      "name": "Snatch",
+      "start": 662.974,
+      "end": 670.939,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 670.939,
+      "end": 673.99,
+      "reps": []
+    },
+    {
+      "name": "Butterfly Pull Up",
+      "start": 673.99,
+      "end": 681.53,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 681.53,
+      "end": 682.782,
+      "reps": []
+    },
+    {
+      "name": "Box Jump",
+      "start": 682.782,
+      "end": 694.751,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 694.751,
+      "end": 697.767,
+      "reps": []
+    },
+    {
+      "name": "Snatch",
+      "start": 697.767,
+      "end": 706.374,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 706.374,
+      "end": 713.782,
+      "reps": []
+    },
+    {
+      "name": "Butterfly Pull Up",
+      "start": 713.782,
+      "end": 721.815,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 721.815,
+      "end": 724.856,
+      "reps": []
+    },
+    {
+      "name": "Box Jump",
+      "start": 724.856,
+      "end": 743.215,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 743.215,
+      "end": 745.559,
+      "reps": []
+    },
+    {
+      "name": "Snatch",
+      "start": 745.559,
+      "end": 763.389,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 763.389,
+      "end": 770.314,
+      "reps": []
+    },
+    {
+      "name": "Butterfly Pull Up",
+      "start": 770.314,
+      "end": 778.077,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 778.077,
+      "end": 781.018,
+      "reps": []
+    },
+    {
+      "name": "Box Jump",
+      "start": 781.018,
+      "end": 802.195,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 802.195,
+      "end": 809.968,
+      "reps": []
+    },
+    {
+      "name": "Row",
+      "start": 809.968,
+      "end": 844.673,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 844.673,
+      "end": 847.951,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 847.951,
+      "end": 1022.321,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 1022.321,
+      "end": 1022.838,
+      "reps": []
+    },
+    {
+      "name": "Snatch",
+      "start": 1022.838,
+      "end": 1031.401,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 1031.401,
+      "end": 1034.988,
+      "reps": []
+    },
+    {
+      "name": "Butterfly Pull Up",
+      "start": 1034.988,
+      "end": 1042.615,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 1042.615,
+      "end": 1043.829,
+      "reps": []
+    },
+    {
+      "name": "Box Jump",
+      "start": 1043.829,
+      "end": 1055.865,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 1055.865,
+      "end": 1057.768,
+      "reps": []
+    },
+    {
+      "name": "Snatch",
+      "start": 1057.768,
+      "end": 1067.782,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 1067.782,
+      "end": 1072.667,
+      "reps": []
+    },
+    {
+      "name": "Butterfly Pull Up",
+      "start": 1072.667,
+      "end": 1080.8,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 1080.8,
+      "end": 1083.603,
+      "reps": []
+    },
+    {
+      "name": "Box Jump",
+      "start": 1083.603,
+      "end": 1103.276,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 1103.276,
+      "end": 1105.754,
+      "reps": []
+    },
+    {
+      "name": "Snatch",
+      "start": 1105.754,
+      "end": 1124.561,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 1124.561,
+      "end": 1135.994,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 1135.994,
+      "end": 1138.886,
+      "reps": []
+    },
+    {
+      "name": "Butterfly Pull Up",
+      "start": 1138.886,
+      "end": 1146.596,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 1146.596,
+      "end": 1148.978,
+      "reps": []
+    },
+    {
+      "name": "Box Jump",
+      "start": 1148.978,
+      "end": 1169.529,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 1169.529,
+      "end": 1175.644,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 1175.644,
+      "end": 1177.225,
+      "reps": []
+    },
+    {
+      "name": "Row",
+      "start": 1177.225,
+      "end": 1202.993,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 1202.993,
+      "end": 1207.808,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 1207.808,
+      "end": 1234.491,
+      "reps": []
+    },
+    {
+      "name": "UNKNOWN",
+      "start": 1234.491,
+      "end": 1403.995,
+      "reps": []
+    }
+  ]
+}
