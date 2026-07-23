@@ -126,6 +126,13 @@
   .video-controls button:hover { background: var(--border); }
   .time-display { font-family: monospace; font-size: 13px; color: var(--accent); padding: 8px 10px; background: var(--panel-2); border-radius: 4px; margin-top: 8px; }
   .anchor-state { margin-top: 8px; font-size: 11px; color: var(--text-dim); }
+  .conv-field { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+  .conv-field label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .conv-field select {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; padding: 7px 8px; font-size: 12px; cursor: pointer; width: 100%;
+  }
+  .conv-note { font-size: 11px; color: var(--accent-warm); font-family: monospace; min-height: 14px; }
 
   .sync-track-row {
     background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
@@ -259,6 +266,23 @@
   .opt-row code { background: var(--bg); padding: 0 4px; border-radius: 3px; color: var(--accent-warm); }
 
   .create-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ex-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .ex-chip {
+    display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+    background: var(--panel-2); border: 1px solid var(--border); border-left-width: 3px;
+    border-radius: 4px; padding: 4px 6px 4px 8px; font-size: 12px; color: var(--text);
+    user-select: none; transition: background 0.12s;
+  }
+  .ex-chip:hover { background: var(--border); }
+  .ex-chip.armed { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .ex-chip .x { color: var(--text-dim); font-size: 11px; line-height: 1; padding: 0 1px; border-radius: 2px; }
+  .ex-chip .x:hover { color: var(--danger); }
+  .ex-chip.armed .x { color: rgba(255,255,255,0.7); }
+  .ex-chip.armed .x:hover { color: #fff; }
+  .ex-chips-empty { font-size: 11px; color: var(--text-dim); font-style: italic; }
+  .armed-note { color: var(--text-dim); text-transform: none; letter-spacing: 0; font-size: 10px; }
+  .deselect-btn { background: var(--panel-2); color: var(--text-dim); border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; font-size: 10px; cursor: pointer; text-transform: none; letter-spacing: 0; }
+  .deselect-btn:hover { color: var(--text); border-color: var(--accent); }
   .create-grid .full { grid-column: 1 / -1; }
   .field-row { display: flex; flex-direction: column; gap: 3px; }
   .field-row label { font-size: 10px; color: var(--text-dim); }
@@ -360,7 +384,7 @@
 <!-- STAGE 2: SYNC -->
 <div class="sync-screen hidden" id="screenSync">
   <h2>Sync sensors to the video</h2>
-  <p class="hint">For each person, scrub the video to a frame where their watch timer is readable, type the time it shows, and press <strong>Set from this frame</strong>. That pins the sensor's clock to the video. People can show their watches at different moments — each track is set independently. Or skip and label in video time.</p>
+  <p class="hint">For each person, find the frame where their watch timer <strong>flips</strong> to a new value, type that value, and press <strong>Set from this frame</strong>. Use the −1f/+1f buttons to land on the flip exactly — a watch shows each value for a whole second, so picking any readable frame instead leaves the IMU trace looking up to 1s late. People can show their watches at different moments; each track is set independently. Or skip and label in video time.</p>
   <div class="sync-grid">
     <div class="sync-video-panel">
       <h3>Video</h3>
@@ -374,7 +398,15 @@
         <button data-skip="1">+1s</button>
       </div>
       <div class="time-display">video time: <span id="syncVideoTime">0.000</span>s</div>
-      <div class="anchor-state" id="anchorState">Scrub to a readable watch, then set each track on the right.</div>
+      <div class="conv-field">
+        <label for="watchConvention">What frame are you on?</label>
+        <select id="watchConvention">
+          <option value="tick">The frame where the timer FLIPS to the typed value — precise</option>
+          <option value="mid">Any frame showing the typed value — adds +0.5s</option>
+        </select>
+        <div class="conv-note" id="convNote"></div>
+      </div>
+      <div class="anchor-state" id="anchorState">A watch shows "0:10" for a whole second, so pick the flip frame to avoid a 0–1s error.</div>
     </div>
     <div>
       <div id="syncTrackRows"></div>
@@ -443,10 +475,11 @@
       </div>
       <div class="section">
         <h4>New label <span id="activeTrackName" style="color:var(--accent);text-transform:none;letter-spacing:0;"></span></h4>
+        <div class="ex-chips" id="exChips"></div>
         <div class="create-grid">
           <div class="field-row full">
-            <label>Exercise</label>
-            <input class="name-in" id="newName" list="exerciseList" placeholder="e.g. Squat" value="Squat">
+            <label>Exercise <span class="armed-note" id="armedNote"></span></label>
+            <input class="name-in" id="newName" list="exerciseList" placeholder="type a new name…" value="Squat">
             <datalist id="exerciseList"></datalist>
           </div>
           <div class="field-row"><label>Start (s)</label><input id="newStart" type="number" step="0.001" placeholder="4.000"></div>
@@ -463,7 +496,7 @@
         </div>
         <button class="btn-primary" id="btnAddLabel">Add label</button>
         <div class="help">
-          Drag across the active lane to draw a label, or set in/out points and add. Times are in video seconds.
+          Pick an exercise above (or type a new one), then drag across the active lane to draw it. Click a chip while a label is selected to rename it. Times are in video seconds.
         </div>
       </div>
       <div class="section">
@@ -471,7 +504,7 @@
         <div class="label-list" id="labelList"></div>
       </div>
       <div class="section" id="detailSection">
-        <h4>Selected label</h4>
+        <h4><span>Selected label</span><button id="btnDeselect" class="deselect-btn hidden">Deselect ⎋</button></h4>
         <div id="detailBody"><div class="list-empty">No label selected.</div></div>
       </div>
       <div class="section">
@@ -480,7 +513,8 @@
           <kbd>←</kbd>/<kbd>→</kbd> ±50ms &nbsp; <kbd>Shift</kbd>+ ±200ms<br>
           <kbd>I</kbd>/<kbd>O</kbd> set in/out &nbsp; <kbd>Enter</kbd> add label<br>
           <kbd>[</kbd>/<kbd>]</kbd> set selected start/end &nbsp; <kbd>M</kbd> mark rep<br>
-          <kbd>Del</kbd> delete label &nbsp; <kbd>1</kbd>–<kbd>9</kbd> switch track
+          <kbd>Del</kbd> delete label &nbsp; <kbd>1</kbd>–<kbd>9</kbd> switch track<br>
+          <kbd>Esc</kbd> deselect label
         </div>
       </div>
     </div>
@@ -507,7 +541,12 @@ const state = {
   pending: { in: null, out: null }, // video seconds
   emitNullGaps: true,      // export unlabeled spans as name: null
   signalMode: 'pc1',       // pc1 | pc2 | pc3 | accel | gyro
+  // A watch face shows whole seconds, so "0:10" covers workout time [10,11).
+  // 'tick' = user is on the frame it flips (bias 0). 'mid' = any readable
+  // frame, so the true time averages half a second later (bias +0.5).
+  watchConvention: 'tick',
   exerciseNames: ['Squat','Push-up','Sit-up','Lunge','Burpee','Jumping Jack','Plank','Pull-up','Deadlift','Mountain Climber','REST'],
+  armedName: 'Squat',     // exercise applied to the next drawn label
 };
 
 let _trackSeq = 0, _labelSeq = 0;
@@ -520,7 +559,8 @@ function makeTrack() {
     signals: null, _env: null,
     offset: 0,                 // videoTime = workoutTime + offset
     syncVideoTime: null,       // video time at which the watch was read
-    watchSeconds: null,        // workout time shown on the watch at that frame
+    watchTyped: null,          // the value the user read off the watch face
+    watchSeconds: null,        // effective workout time at syncVideoTime (typed + convention bias)
     synced: false,
     labels: [],                // { id, name, startTime, endTime (workout s), reps:[{workoutTime}], modified, _origRaw }
   };
@@ -887,6 +927,15 @@ function fmtClock(s) {
   const m = Math.floor(s / 60), sec = s - m * 60;
   return `${sign}${m}:${sec.toFixed(2).padStart(5,'0')}`;
 }
+// How a whole-second watch face would render an elapsed time.
+function fmtClockWhole(s) {
+  if (s == null || isNaN(s)) return '—';
+  s = Math.max(0, Math.floor(s));
+  const m = Math.floor(s / 60), sec = s % 60;
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+function watchBias() { return state.watchConvention === 'mid' ? 0.5 : 0; }
 
 function goToSync() {
   document.getElementById('screenLoad').classList.add('hidden');
@@ -906,6 +955,27 @@ function goToSync() {
     b.addEventListener('click', () => { v.currentTime = Math.max(0, v.currentTime + parseFloat(b.dataset.skip)); });
   });
 
+  const conv = document.getElementById('watchConvention');
+  conv.value = state.watchConvention;
+  const noteFor = () => state.watchConvention === 'tick'
+    ? 'Step frame-by-frame to the flip. Accurate to ~1 frame.'
+    : 'Assumes you are ~0.5s into the displayed second.';
+  document.getElementById('convNote').textContent = noteFor();
+  conv.addEventListener('change', e => {
+    state.watchConvention = e.target.value;
+    document.getElementById('convNote').textContent = noteFor();
+    // re-apply to any track already set, so the choice takes effect immediately
+    state.tracks.forEach(t => {
+      if (t.synced && t.watchTyped != null && t.syncVideoTime != null) {
+        t.watchSeconds = round3(t.watchTyped + watchBias());
+        t.offset = round3(t.syncVideoTime - t.watchSeconds);
+        t._env = null;
+      }
+    });
+    renderSyncRows();
+    updateSyncPreviews(v.currentTime);
+  });
+
   renderSyncRows();
 }
 
@@ -916,7 +986,7 @@ function renderSyncRows() {
     const row = document.createElement('div');
     row.className = 'sync-track-row';
     const setInfo = track.synced
-      ? `set from video ${track.syncVideoTime.toFixed(3)}s · watch ${fmtClock(track.watchSeconds)}`
+      ? `video ${track.syncVideoTime.toFixed(3)}s · read ${fmtClock(track.watchTyped)} → workout ${track.watchSeconds.toFixed(3)}s`
       : 'not set';
     row.innerHTML = `
       <div class="row-head">
@@ -928,7 +998,7 @@ function renderSyncRows() {
       </div>
       <div class="sync-set-row">
         <label>Watch shows</label>
-        <input type="text" data-timer placeholder="mm:ss or s" value="${track.watchSeconds!=null ? fmtClock(track.watchSeconds) : ''}">
+        <input type="text" data-timer placeholder="mm:ss or s" value="${track.watchTyped!=null ? fmtClock(track.watchTyped) : ''}">
         <button data-set>Set from this frame</button>
       </div>
       <div class="ctrls">
@@ -943,20 +1013,24 @@ function renderSyncRows() {
     `;
     row.querySelector('[data-set]').addEventListener('click', () => {
       const v = document.getElementById('syncVideo');
-      const watch = parseTimer(row.querySelector('[data-timer]').value);
-      if (isNaN(watch)) { flash('Enter the watch time as mm:ss or seconds', 'warn'); return; }
-      track.watchSeconds = round3(watch);
+      const typed = parseTimer(row.querySelector('[data-timer]').value);
+      if (isNaN(typed)) { flash('Enter the watch time as mm:ss or seconds', 'warn'); return; }
+      const bias = watchBias();
+      track.watchTyped = round3(typed);
+      track.watchSeconds = round3(typed + bias);   // true workout time at this frame
       track.syncVideoTime = round3(v.currentTime);
       track.offset = round3(track.syncVideoTime - track.watchSeconds);
       track.synced = true;
+      track._env = null;
       renderSyncRows();
       updateSyncPreviews(v.currentTime);
     });
     row.querySelectorAll('[data-nudge]').forEach(b => b.addEventListener('click', () => {
       track.synced = true;
       track.offset = round3(track.offset + parseFloat(b.dataset.nudge));
-      // keep syncVideoTime/watchSeconds consistent with the manual offset
+      // keep the effective watch time consistent with the manual offset
       if (track.syncVideoTime != null) track.watchSeconds = round3(track.syncVideoTime - track.offset);
+      track._env = null;
       renderSyncRows();
       updateSyncPreviews(document.getElementById('syncVideo').currentTime);
     }));
@@ -965,14 +1039,16 @@ function renderSyncRows() {
   updateSyncPreviews(document.getElementById('syncVideo').currentTime);
 }
 
-// Live check: at the current video frame, what workout time does each synced track map to?
+// Live check: at the current video frame, what workout time does each synced
+// track map to — and what would the watch face actually be displaying?
 function updateSyncPreviews(videoTime) {
   state.tracks.forEach(track => {
     const el = document.getElementById('pre_' + track.id);
     if (!el) return;
     if (!track.synced) { el.textContent = 'Scrub to this person\u2019s watch, type what it reads, then Set.'; return; }
     const wt = videoTime - track.offset;
-    el.textContent = `at video ${videoTime.toFixed(2)}s \u2192 watch should read ${fmtClock(wt)}`;
+    if (wt < 0) { el.textContent = `at video ${videoTime.toFixed(2)}s \u2192 before this watch started`; return; }
+    el.textContent = `at video ${videoTime.toFixed(2)}s \u2192 watch face should show ${fmtClockWhole(wt)} (elapsed ${wt.toFixed(2)}s)`;
   });
 }
 
@@ -985,14 +1061,76 @@ document.getElementById('btnConfirmSync').addEventListener('click', goToEdit);
 // ═══════════════════════════════════════════════════════════════════════════
 // STAGE 3 — EDITOR
 // ═══════════════════════════════════════════════════════════════════════════
+
+// Exercise-name list: shared across all tracks in the session. Any name that
+// gets used (typed, picked, or loaded from JSON) lives here so it can be
+// reused via one-click chips instead of retyping.
+function addExerciseName(name) {
+  name = (name || '').trim();
+  if (!name) return;
+  if (!state.exerciseNames.includes(name)) { state.exerciseNames.push(name); renderExerciseNames(); }
+}
+function armName(name, { rename = true } = {}) {
+  name = (name || '').trim();
+  if (!name) return;
+  state.armedName = name;
+  const input = document.getElementById('newName');
+  if (input) input.value = name;
+  // If a label is selected, applying a chip also renames it (per the UX choice).
+  if (rename) {
+    const label = selectedLabel();
+    if (label && label.name !== name) {
+      label.name = name; label.modified = true;
+      renderLanes(); renderLabelList(); renderDetail(); renderTrackPills();
+    }
+  }
+  renderExerciseNames();
+}
+function removeExerciseName(name) {
+  state.exerciseNames = state.exerciseNames.filter(n => n !== name);
+  if (state.armedName === name) {
+    state.armedName = state.exerciseNames[0] || '';
+    const input = document.getElementById('newName');
+    if (input) input.value = state.armedName;
+  }
+  renderExerciseNames();
+}
+function renderExerciseNames() {
+  const dl = document.getElementById('exerciseList');
+  if (dl) dl.innerHTML = state.exerciseNames.map(n => `<option value="${escapeHtml(n)}">`).join('');
+  const wrap = document.getElementById('exChips');
+  if (wrap) {
+    if (!state.exerciseNames.length) {
+      wrap.innerHTML = '<span class="ex-chips-empty">Type a name below to start your list.</span>';
+    } else {
+      wrap.innerHTML = '';
+      state.exerciseNames.forEach(name => {
+        const chip = document.createElement('span');
+        chip.className = 'ex-chip' + (name === state.armedName ? ' armed' : '');
+        chip.style.borderLeftColor = nameColor(name);
+        chip.innerHTML = `<span class="nm"></span><span class="x" title="Remove from list">✕</span>`;
+        chip.querySelector('.nm').textContent = name;
+        chip.addEventListener('click', e => {
+          if (e.target.classList.contains('x')) { removeExerciseName(name); return; }
+          armName(name);
+        });
+        wrap.appendChild(chip);
+      });
+    }
+  }
+  const note = document.getElementById('armedNote');
+  if (note) note.textContent = state.armedName ? `· next: ${state.armedName}` : '';
+}
+
 function goToEdit() {
   document.getElementById('screenSync').classList.add('hidden');
   document.getElementById('screenEdit').classList.remove('hidden');
   setStage('edit');
 
-  // exercise datalist
-  const dl = document.getElementById('exerciseList');
-  dl.innerHTML = state.exerciseNames.map(n => `<option value="${escapeHtml(n)}">`).join('');
+  // exercise name list (datalist + quick-pick chips)
+  if (!state.exerciseNames.includes(state.armedName)) state.armedName = state.exerciseNames[0] || '';
+  document.getElementById('newName').value = state.armedName;
+  renderExerciseNames();
 
   const v = document.getElementById('editVideo');
   v.src = state.videoUrl;
@@ -1022,6 +1160,14 @@ function goToEdit() {
   document.getElementById('btnSetOut').addEventListener('click', setOut);
   document.getElementById('btnClearInOut').addEventListener('click', () => { state.pending = { in: null, out: null }; renderInOut(); });
   document.getElementById('btnAddLabel').addEventListener('click', addLabelFromForm);
+  document.getElementById('btnDeselect').addEventListener('click', deselectLabel);
+  const newNameInput = document.getElementById('newName');
+  // typing arms the name live (chip highlight follows); committing adds it to the list
+  newNameInput.addEventListener('input', () => {
+    state.armedName = newNameInput.value.trim();
+    renderExerciseNames();
+  });
+  newNameInput.addEventListener('change', () => { addExerciseName(newNameInput.value); });
   document.getElementById('optNullGaps').addEventListener('change', e => { state.emitNullGaps = e.target.checked; });
   const sel = document.getElementById('signalSelect');
   // annotate PC options with this session's explained variance
@@ -1332,7 +1478,7 @@ function onDragUp(e) {
   if (d.mode === 'create') {
     if (d.ghost) d.ghost.remove();
     if (d.moved && d._b - d._a > 0.05) {
-      createLabel(d.track, d._a, d._b, document.getElementById('newName').value.trim() || 'Exercise');
+      createLabel(d.track, d._a, d._b, currentDrawName());
     } else {
       // treat as a seek
       document.getElementById('editVideo').currentTime = clampV(d.downVideo);
@@ -1362,22 +1508,31 @@ function createLabel(track, videoStart, videoEnd, name) {
   // overlap check (workout time)
   const overlap = track.labels.some(l => ws < l.endTime && we > l.startTime);
   if (overlap) { flash('Overlaps an existing label on this track', 'warn'); return null; }
-  const label = { id: 'lbl' + (++_labelSeq), name: name || 'Exercise', startTime: ws, endTime: we, reps: [], modified: true };
+  const finalName = (name || '').trim() || 'Exercise';
+  const label = { id: 'lbl' + (++_labelSeq), name: finalName, startTime: ws, endTime: we, reps: [], modified: true };
   track.labels.push(label);
   track.labels.sort((a,b)=>a.startTime-b.startTime);
-  if (!state.exerciseNames.includes(label.name)) {
-    state.exerciseNames.push(label.name);
-    document.getElementById('exerciseList').innerHTML = state.exerciseNames.map(n => `<option value="${escapeHtml(n)}">`).join('');
-  }
-  renderLanes(); renderLabelList(); renderTrackPills();
-  selectLabel(label.id);
+  // remember this name for the rest of the session and keep it armed for the
+  // next label, so drawing the same exercise repeatedly needs no typing
+  state.armedName = finalName;
+  addExerciseName(finalName);
+  // Deselect the freshly-added label: leaving it selected means the next chip
+  // click (to arm the following exercise) would retroactively rename it.
+  state.selectedLabelId = null;
+  renderLanes(); renderLabelList(); renderTrackPills(); renderDetail(); renderExerciseNames();
   flash(`Added "${label.name}" ${videoStart.toFixed(2)}–${videoEnd.toFixed(2)}s`, 'ok');
   return label;
 }
 
+// Name to apply to a newly drawn label: whatever is typed wins, else the armed chip.
+function currentDrawName() {
+  const typed = (document.getElementById('newName').value || '').trim();
+  return typed || state.armedName || 'Exercise';
+}
+
 function addLabelFromForm() {
   const track = activeTrack(); if (!track) return;
-  const name = document.getElementById('newName').value.trim() || 'Exercise';
+  const name = currentDrawName();
   let vs = parseFloat(document.getElementById('newStart').value);
   let ve = parseFloat(document.getElementById('newEnd').value);
   // fall back to in/out points
@@ -1405,6 +1560,11 @@ function selectLabel(id, keepScroll) {
     const t = activeTrack(); const l = t && t.labels.find(x => x.id === id);
     // no-op scroll; selection visual handled by renders
   }
+  renderLanes(); renderLabelList(); renderDetail();
+}
+function deselectLabel() {
+  if (state.selectedLabelId == null) return;
+  state.selectedLabelId = null;
   renderLanes(); renderLabelList(); renderDetail();
 }
 
@@ -1469,6 +1629,8 @@ function renderLabelList() {
 function renderDetail() {
   const body = document.getElementById('detailBody');
   const track = activeTrack(); const label = selectedLabel();
+  const btn = document.getElementById('btnDeselect');
+  if (btn) btn.classList.toggle('hidden', !(track && label));
   if (!track || !label) { body.innerHTML = '<div class="list-empty">No label selected.</div>'; return; }
   body.innerHTML = `
     <input type="text" class="detail-name" id="dName" list="exerciseList" value="${escapeHtml(label.name)}">
@@ -1482,7 +1644,7 @@ function renderDetail() {
   document.getElementById('dName').addEventListener('change', e => {
     const nm = e.target.value.trim(); if (!nm) return;
     label.name = nm; label.modified = true;
-    if (!state.exerciseNames.includes(nm)) { state.exerciseNames.push(nm); document.getElementById('exerciseList').innerHTML = state.exerciseNames.map(n=>`<option value="${escapeHtml(n)}">`).join(''); }
+    addExerciseName(nm);
     renderLanes(); renderLabelList(); renderTrackPills();
   });
   document.getElementById('dStart').addEventListener('change', e => setLabelStartVideo(parseFloat(e.target.value)));
@@ -1599,7 +1761,9 @@ function buildTrackBundle(track) {
       method: 'watch_timer',
       offset: round3(track.offset),
       time_basis: track.synced ? 'workout' : 'video',
-      watch_seconds: track.watchSeconds,
+      watch_typed: track.watchTyped,
+      watch_convention: state.watchConvention,   // 'tick' = flip frame, 'mid' = +0.5s
+      watch_seconds: track.watchSeconds,         // effective workout time at sync_video_time
       sync_video_time: track.syncVideoTime,
       track_name: track.name,
       video_file: state.videoFile ? state.videoFile.name : null,
@@ -1639,6 +1803,15 @@ function exportAll() {
 
 // ── hotkeys ────────────────────────────────────────────────────────────────
 function handleHotkey(e) {
+  // Escape works even from a focused field: first press blurs it, so a second
+  // press falls through to deselecting the label.
+  if (e.key === 'Escape') {
+    if (e.target && typeof e.target.blur === 'function' &&
+        ['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)) {
+      e.target.blur(); e.preventDefault(); return;
+    }
+    e.preventDefault(); deselectLabel(); return;
+  }
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
   const v = document.getElementById('editVideo');
   const frame = 1 / state.fps;
@@ -1657,7 +1830,7 @@ function handleHotkey(e) {
     case 'ArrowRight': e.preventDefault(); v.currentTime = v.currentTime + (e.shiftKey ? 0.2 : 0.05); break;
     case 'i': case 'I': e.preventDefault(); setIn(); break;
     case 'o': case 'O': e.preventDefault(); setOut(); break;
-    case 'Enter': e.preventDefault(); if (state.pending.in!=null && state.pending.out!=null) { const t=activeTrack(); if(t) createLabel(t, state.pending.in, state.pending.out, document.getElementById('newName').value.trim()||'Exercise') && (state.pending={in:null,out:null}, renderInOut()); } break;
+    case 'Enter': e.preventDefault(); if (state.pending.in!=null && state.pending.out!=null) { const t=activeTrack(); if(t) createLabel(t, state.pending.in, state.pending.out, currentDrawName()) && (state.pending={in:null,out:null}, renderInOut()); } break;
     case '[': e.preventDefault(); if (selectedLabel()) setLabelStartVideo(v.currentTime); break;
     case ']': e.preventDefault(); if (selectedLabel()) setLabelEndVideo(v.currentTime); break;
     case 'm': case 'M': e.preventDefault(); markRep(); break;
