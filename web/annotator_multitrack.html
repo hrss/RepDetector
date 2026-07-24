@@ -384,7 +384,7 @@
 <!-- STAGE 2: SYNC -->
 <div class="sync-screen hidden" id="screenSync">
   <h2>Sync sensors to the video</h2>
-  <p class="hint">For each person, find the frame where their watch timer <strong>flips</strong> to a new value, type that value, and press <strong>Set from this frame</strong>. Use the −1f/+1f buttons to land on the flip exactly — a watch shows each value for a whole second, so picking any readable frame instead leaves the IMU trace looking up to 1s late. People can show their watches at different moments; each track is set independently. Or skip and label in video time.</p>
+  <p class="hint">For each person, scrub to any frame where their watch timer is readable, type the value it shows, and press <strong>Set from this frame</strong>. A watch displays each value for a whole second, so a half-second is added automatically to compensate — leaving about ±0.5s of residual error. If you need it tighter, switch the dropdown to the flip-frame method. People can show their watches at different moments; each track is set independently. Or skip and label in video time.</p>
   <div class="sync-grid">
     <div class="sync-video-panel">
       <h3>Video</h3>
@@ -401,12 +401,12 @@
       <div class="conv-field">
         <label for="watchConvention">What frame are you on?</label>
         <select id="watchConvention">
-          <option value="tick">The frame where the timer FLIPS to the typed value — precise</option>
           <option value="mid">Any frame showing the typed value — adds +0.5s</option>
+          <option value="tick">The frame where the timer FLIPS to the typed value — precise</option>
         </select>
         <div class="conv-note" id="convNote"></div>
       </div>
-      <div class="anchor-state" id="anchorState">A watch shows "0:10" for a whole second, so pick the flip frame to avoid a 0–1s error.</div>
+      <div class="anchor-state" id="anchorState">A watch shows "0:10" for a whole second, so +0.5s is added to centre the estimate.</div>
     </div>
     <div>
       <div id="syncTrackRows"></div>
@@ -471,6 +471,10 @@
         <label class="opt-row" title="Unlabeled spans are exported as segments with name: null, covering the whole IMU recording">
           <input type="checkbox" id="optNullGaps" checked>
           <span>Export unlabeled time as <code>null</code></span>
+        </label>
+        <label class="opt-row" title="When you add a label, any gap between it and the labels either side is filled with a REST segment">
+          <input type="checkbox" id="optAutoRest">
+          <span>Auto-fill gaps with <code>REST</code></span>
         </label>
       </div>
       <div class="section">
@@ -540,11 +544,12 @@ const state = {
   selectedLabelId: null,
   pending: { in: null, out: null }, // video seconds
   emitNullGaps: true,      // export unlabeled spans as name: null
+  autoRest: false,         // insert REST segments into gaps around new labels
   signalMode: 'pc1',       // pc1 | pc2 | pc3 | accel | gyro
   // A watch face shows whole seconds, so "0:10" covers workout time [10,11).
   // 'tick' = user is on the frame it flips (bias 0). 'mid' = any readable
   // frame, so the true time averages half a second later (bias +0.5).
-  watchConvention: 'tick',
+  watchConvention: 'mid',
   exerciseNames: ['Squat','Push-up','Sit-up','Lunge','Burpee','Jumping Jack','Plank','Pull-up','Deadlift','Mountain Climber','REST'],
   armedName: 'Squat',     // exercise applied to the next drawn label
 };
@@ -959,7 +964,7 @@ function goToSync() {
   conv.value = state.watchConvention;
   const noteFor = () => state.watchConvention === 'tick'
     ? 'Step frame-by-frame to the flip. Accurate to ~1 frame.'
-    : 'Assumes you are ~0.5s into the displayed second.';
+    : 'Adds +0.5s, assuming you are mid-way into the displayed second. Residual ±0.5s.';
   document.getElementById('convNote').textContent = noteFor();
   conv.addEventListener('change', e => {
     state.watchConvention = e.target.value;
@@ -1080,7 +1085,7 @@ function armName(name, { rename = true } = {}) {
   if (rename) {
     const label = selectedLabel();
     if (label && label.name !== name) {
-      label.name = name; label.modified = true;
+      label.name = name; touchLabel(label);
       renderLanes(); renderLabelList(); renderDetail(); renderTrackPills();
     }
   }
@@ -1169,6 +1174,7 @@ function goToEdit() {
   });
   newNameInput.addEventListener('change', () => { addExerciseName(newNameInput.value); });
   document.getElementById('optNullGaps').addEventListener('change', e => { state.emitNullGaps = e.target.checked; });
+  document.getElementById('optAutoRest').addEventListener('change', e => { state.autoRest = e.target.checked; });
   const sel = document.getElementById('signalSelect');
   // annotate PC options with this session's explained variance
   const s0 = state.tracks[0] && state.tracks[0].signals;
@@ -1452,7 +1458,7 @@ function onDragMove(e) {
     ne = ns + dur;
     d.label.startTime = round3(vToW(d.track, ns));
     d.label.endTime = round3(vToW(d.track, ne));
-    d.label.modified = true;
+    touchLabel(d.label);
     renderLanes(); selectLabel(d.label.id, true);
   } else if (d.mode === 'resize') {
     if (d.side === 'left') {
@@ -1466,7 +1472,7 @@ function onDragMove(e) {
       ne = Math.min(hiToVideo(d.track, hi), ne);
       d.label.endTime = round3(vToW(d.track, ne));
     }
-    d.label.modified = true;
+    touchLabel(d.label);
     renderLanes(); selectLabel(d.label.id, true);
   }
 }
@@ -1506,8 +1512,14 @@ function hiToVideo(track, hiWorkout) { return isFinite(hiWorkout) ? wToV(track, 
 function createLabel(track, videoStart, videoEnd, name) {
   const ws = round3(vToW(track, videoStart)), we = round3(vToW(track, videoEnd));
   // overlap check (workout time)
-  const overlap = track.labels.some(l => ws < l.endTime && we > l.startTime);
-  if (overlap) { flash('Overlaps an existing label on this track', 'warn'); return null; }
+  const hits = track.labels.filter(l => ws < l.endTime && we > l.startTime);
+  // Auto-created RESTs are filler, not real annotation: a new label may carve
+  // straight through them. Anything the user actually placed still blocks.
+  if (hits.length && hits.every(l => l._autoRest)) {
+    carveRests(track, hits, ws, we);
+  } else if (hits.length) {
+    flash('Overlaps an existing label on this track', 'warn'); return null;
+  }
   const finalName = (name || '').trim() || 'Exercise';
   const label = { id: 'lbl' + (++_labelSeq), name: finalName, startTime: ws, endTime: we, reps: [], modified: true };
   track.labels.push(label);
@@ -1516,12 +1528,69 @@ function createLabel(track, videoStart, videoEnd, name) {
   // next label, so drawing the same exercise repeatedly needs no typing
   state.armedName = finalName;
   addExerciseName(finalName);
+  const rests = fillAutoRest(track, label);
   // Deselect the freshly-added label: leaving it selected means the next chip
   // click (to arm the following exercise) would retroactively rename it.
   state.selectedLabelId = null;
   renderLanes(); renderLabelList(); renderTrackPills(); renderDetail(); renderExerciseNames();
-  flash(`Added "${label.name}" ${videoStart.toFixed(2)}–${videoEnd.toFixed(2)}s`, 'ok');
+  flash(`Added "${label.name}" ${videoStart.toFixed(2)}–${videoEnd.toFixed(2)}s`
+        + (rests ? ` · +${rests} REST` : ''), 'ok');
   return label;
+}
+
+// Mark a label as user-edited. This also promotes an auto-created REST into a
+// real label, so once you touch it, later labels can no longer carve through it.
+function touchLabel(label) {
+  if (!label) return;
+  label.modified = true;
+  label._autoRest = false;
+}
+
+// ── auto-REST ─────────────────────────────────────────────────────────────
+const REST_NAME = 'REST';
+const AUTO_REST_MIN_GAP = 0.2;   // ignore slivers; they are usually drag noise
+
+// Remove [ws,we) from a set of auto-REST labels: drop the ones fully covered,
+// trim the ones clipped at one end, split the one that contains the range.
+function carveRests(track, rests, ws, we) {
+  const keep = [];
+  rests.forEach(r => {
+    const left = r.startTime, right = r.endTime;
+    if (left < ws - 1e-9 && right - 1e-9 > we) {          // new label sits inside
+      keep.push(makeRestLabel(left, ws), makeRestLabel(we, right));
+    } else if (left < ws - 1e-9) {                        // clipped on the right
+      keep.push(makeRestLabel(left, ws));
+    } else if (right - 1e-9 > we) {                       // clipped on the left
+      keep.push(makeRestLabel(we, right));
+    }                                                     // else fully covered: drop
+  });
+  const ids = new Set(rests.map(r => r.id));
+  track.labels = track.labels.filter(l => !ids.has(l.id));
+  keep.forEach(r => { if (r.endTime - r.startTime >= AUTO_REST_MIN_GAP) track.labels.push(r); });
+}
+
+function makeRestLabel(ws, we) {
+  return { id: 'lbl' + (++_labelSeq), name: REST_NAME,
+           startTime: round3(ws), endTime: round3(we),
+           reps: [], modified: true, _autoRest: true };
+}
+// Fill the gaps on either side of a just-added label with REST. Deliberately
+// operates on the immediate neighbours only, so it never touches parts of the
+// timeline the user has not just worked on.
+function fillAutoRest(track, label) {
+  if (!state.autoRest) return 0;
+  if (label.name.toUpperCase() === REST_NAME) return 0;   // don't ring a REST with RESTs
+  const sorted = [...track.labels].sort((a, b) => a.startTime - b.startTime);
+  const i = sorted.findIndex(l => l.id === label.id);
+  const prev = sorted[i - 1], next = sorted[i + 1];
+  const added = [];
+  if (prev && label.startTime - prev.endTime >= AUTO_REST_MIN_GAP) added.push(makeRestLabel(prev.endTime, label.startTime));
+  if (next && next.startTime - label.endTime >= AUTO_REST_MIN_GAP) added.push(makeRestLabel(label.endTime, next.startTime));
+  if (!added.length) return 0;
+  added.forEach(r => track.labels.push(r));
+  track.labels.sort((a, b) => a.startTime - b.startTime);
+  addExerciseName(REST_NAME);
+  return added.length;
 }
 
 // Name to apply to a newly drawn label: whatever is typed wins, else the armed chip.
@@ -1643,7 +1712,7 @@ function renderDetail() {
     </div>`;
   document.getElementById('dName').addEventListener('change', e => {
     const nm = e.target.value.trim(); if (!nm) return;
-    label.name = nm; label.modified = true;
+    label.name = nm; touchLabel(label);
     addExerciseName(nm);
     renderLanes(); renderLabelList(); renderTrackPills();
   });
@@ -1665,7 +1734,7 @@ function renderRepsList(label, track) {
     div.innerHTML = `<span class="idx">#${j+1}</span><span class="t">${wToV(track,rep.workoutTime).toFixed(3)}s</span>
       <button class="jump" title="Jump">↪</button><button class="del" title="Delete">✕</button>`;
     div.querySelector('.jump').addEventListener('click', () => { document.getElementById('editVideo').currentTime = clampV(wToV(track, rep.workoutTime)); });
-    div.querySelector('.del').addEventListener('click', () => { label.reps.splice(j,1); label.modified = true; renderDetail(); renderLanes(); renderLabelList(); });
+    div.querySelector('.del').addEventListener('click', () => { label.reps.splice(j,1); touchLabel(label); renderDetail(); renderLanes(); renderLabelList(); });
     wrap.appendChild(div);
   });
 }
@@ -1676,7 +1745,7 @@ function setLabelStartVideo(videoStart) {
   if (ws >= label.endTime) { flash('Start must be before end', 'warn'); renderDetail(); return; }
   const { lo } = neighborBounds(track, label, 'left');
   if (ws < lo) { flash('Would overlap the previous label', 'warn'); renderDetail(); return; }
-  label.startTime = ws; label.modified = true;
+  label.startTime = ws; touchLabel(label);
   renderLanes(); renderLabelList(); renderDetail(); renderTrackPills();
 }
 function setLabelEndVideo(videoEnd) {
@@ -1685,7 +1754,7 @@ function setLabelEndVideo(videoEnd) {
   if (we <= label.startTime) { flash('End must be after start', 'warn'); renderDetail(); return; }
   const { hi } = neighborBounds(track, label, 'right');
   if (we > hi) { flash('Would overlap the next label', 'warn'); renderDetail(); return; }
-  label.endTime = we; label.modified = true;
+  label.endTime = we; touchLabel(label);
   renderLanes(); renderLabelList(); renderDetail(); renderTrackPills();
 }
 
@@ -1700,7 +1769,7 @@ function markRep() {
   if (!label.reps) label.reps = [];
   if (label.reps.some(r => Math.abs(r.workoutTime - wt) < 0.05)) { flash('Rep already exists near here', 'warn'); return; }
   label.reps.push({ workoutTime: wt }); label.reps.sort((a,b)=>a.workoutTime-b.workoutTime);
-  label.modified = true;
+  touchLabel(label);
   selectLabel(label.id);
 }
 
