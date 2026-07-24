@@ -393,12 +393,14 @@
       <h3>Video</h3>
       <div class="sync-video-holder"><video id="syncVideo" controls></video></div>
       <div class="video-controls">
+        <button data-skip="-5">−5s</button>
         <button data-skip="-1">−1s</button>
         <button data-skip="-0.1">−0.1s</button>
         <button data-skip="-0.033">−1f</button>
         <button data-skip="0.033">+1f</button>
         <button data-skip="0.1">+0.1s</button>
         <button data-skip="1">+1s</button>
+        <button data-skip="5">+5s</button>
         <button id="btnRotateSync" title="Rotate video 90°">⟳ 0°</button>
       </div>
       <div class="time-display">video time: <span id="syncVideoTime">0.000</span>s</div>
@@ -427,11 +429,13 @@
   <div class="video-col">
     <div class="video-wrap"><video id="editVideo" controls></video></div>
     <div class="controls-bar">
+      <button data-skip="-5">−5s</button>
       <button data-skip="-1">J −1s</button>
       <button data-skip="-0.033">, −1f</button>
       <button id="btnPlay">⏯</button>
       <button data-skip="0.033">. +1f</button>
       <button data-skip="1">L +1s</button>
+      <button data-skip="5">+5s</button>
       <button id="btnRotate" title="Rotate video 90°">⟳ 0°</button>
       <div class="spacer"></div>
       <div class="signal-field">
