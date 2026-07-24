@@ -1,0 +1,349 @@
+{
+  "workout": {
+    "roundResults": [
+      {
+        "startTime": 0,
+        "endTime": 2588.96,
+        "exerciseResults": [
+          {
+            "name": null,
+            "startTime": 0,
+            "endTime": 1297.085,
+            "result": 1297.085,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 1297.085,
+            "endTime": 1819.106,
+            "result": 522.021,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1819.106,
+            "endTime": 1821.148,
+            "result": 2.042,
+            "reps": []
+          },
+          {
+            "name": "Deadlift",
+            "startTime": 1821.148,
+            "endTime": 1848.961,
+            "result": 27.813,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1848.961,
+            "endTime": 1855.602,
+            "result": 6.641,
+            "reps": []
+          },
+          {
+            "name": "Hang Clean",
+            "startTime": 1855.602,
+            "endTime": 1878.94,
+            "result": 23.338,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1878.94,
+            "endTime": 1879.04,
+            "result": 0.1,
+            "reps": []
+          },
+          {
+            "name": "Push Press",
+            "startTime": 1879.04,
+            "endTime": 1891.239,
+            "result": 12.199,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1891.239,
+            "endTime": 1902.304,
+            "result": 11.065,
+            "reps": []
+          },
+          {
+            "name": "Snatch",
+            "startTime": 1902.304,
+            "endTime": 1922.522,
+            "result": 20.218,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1922.522,
+            "endTime": 1923.199,
+            "result": 0.677,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 1923.199,
+            "endTime": 1928.799,
+            "result": 5.6,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1928.799,
+            "endTime": 1929.199,
+            "result": 0.4,
+            "reps": []
+          },
+          {
+            "name": "Snatch",
+            "startTime": 1929.199,
+            "endTime": 1946.732,
+            "result": 17.533,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1946.732,
+            "endTime": 1952.534,
+            "result": 5.802,
+            "reps": []
+          },
+          {
+            "name": "Snatch",
+            "startTime": 1952.534,
+            "endTime": 1961.549,
+            "result": 9.015,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1961.549,
+            "endTime": 1971.564,
+            "result": 10.015,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 1971.564,
+            "endTime": 2059.832,
+            "result": 88.268,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2059.832,
+            "endTime": 2060.404,
+            "result": 0.572,
+            "reps": []
+          },
+          {
+            "name": "Deadlift",
+            "startTime": 2060.404,
+            "endTime": 2086.316,
+            "result": 25.912,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2086.316,
+            "endTime": 2091.197,
+            "result": 4.881,
+            "reps": []
+          },
+          {
+            "name": "Hang Clean",
+            "startTime": 2091.197,
+            "endTime": 2114.711,
+            "result": 23.514,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2114.711,
+            "endTime": 2124.877,
+            "result": 10.166,
+            "reps": []
+          },
+          {
+            "name": "Push Press",
+            "startTime": 2124.877,
+            "endTime": 2138.829,
+            "result": 13.952,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2138.829,
+            "endTime": 2153.3,
+            "result": 14.471,
+            "reps": []
+          },
+          {
+            "name": "Snatch",
+            "startTime": 2153.3,
+            "endTime": 2185.385,
+            "result": 32.085,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2185.385,
+            "endTime": 2193.301,
+            "result": 7.916,
+            "reps": []
+          },
+          {
+            "name": "Snatch",
+            "startTime": 2193.301,
+            "endTime": 2202.677,
+            "result": 9.376,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2202.677,
+            "endTime": 2204.504,
+            "result": 1.827,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 2204.504,
+            "endTime": 2300.166,
+            "result": 95.662,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2300.166,
+            "endTime": 2300.43,
+            "result": 0.264,
+            "reps": []
+          },
+          {
+            "name": "Deadlift",
+            "startTime": 2300.43,
+            "endTime": 2334.605,
+            "result": 34.175,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2334.605,
+            "endTime": 2342.888,
+            "result": 8.283,
+            "reps": []
+          },
+          {
+            "name": "Hang Clean",
+            "startTime": 2342.888,
+            "endTime": 2354.993,
+            "result": 12.105,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2354.993,
+            "endTime": 2358.249,
+            "result": 3.256,
+            "reps": []
+          },
+          {
+            "name": "Hang Clean",
+            "startTime": 2358.249,
+            "endTime": 2367.535,
+            "result": 9.286,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2367.535,
+            "endTime": 2375.787,
+            "result": 8.252,
+            "reps": []
+          },
+          {
+            "name": "Hang Clean",
+            "startTime": 2375.787,
+            "endTime": 2382.839,
+            "result": 7.052,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2382.839,
+            "endTime": 2394.55,
+            "result": 11.711,
+            "reps": []
+          },
+          {
+            "name": "Push Press",
+            "startTime": 2394.55,
+            "endTime": 2413.548,
+            "result": 18.998,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2413.548,
+            "endTime": 2439.744,
+            "result": 26.196,
+            "reps": []
+          },
+          {
+            "name": "Snatch",
+            "startTime": 2439.744,
+            "endTime": 2452.149,
+            "result": 12.405,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2452.149,
+            "endTime": 2452.744,
+            "result": 0.595,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 2452.744,
+            "endTime": 2489.952,
+            "result": 37.208,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2489.952,
+            "endTime": 2588.96,
+            "result": 99.008,
+            "reps": []
+          }
+        ]
+      }
+    ],
+    "startTime": 0,
+    "endTime": 2588.96
+  },
+  "sync": {
+    "synced": true,
+    "method": "watch_timer",
+    "offset": -1.701,
+    "time_basis": "workout",
+    "watch_typed": 4,
+    "watch_convention": "mid",
+    "watch_seconds": 4.5,
+    "sync_video_time": 2.799,
+    "track_name": "FR-01",
+    "video_file": "20260714-2.MOV",
+    "generated_at": "2026-07-24T00:40:49.505Z"
+  },
+  "imu": {
+    "file": "20260714-2_FR-01_REL01.parquet",
+    "samples": 64725,
+    "t_start": 0,
+    "t_end": 2588.96,
+    "unlabeled_as_null": true
+  }
+}

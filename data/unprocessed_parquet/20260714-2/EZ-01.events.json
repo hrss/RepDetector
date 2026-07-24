@@ -1,0 +1,377 @@
+{
+  "workout": {
+    "roundResults": [
+      {
+        "startTime": 0,
+        "endTime": 2457.085,
+        "exerciseResults": [
+          {
+            "name": null,
+            "startTime": 0,
+            "endTime": 1473.624,
+            "result": 1473.624,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 1473.624,
+            "endTime": 1621.047,
+            "result": 147.423,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1621.047,
+            "endTime": 1635.475,
+            "result": 14.428,
+            "reps": []
+          },
+          {
+            "name": "Deadlift",
+            "startTime": 1635.475,
+            "endTime": 1661.837,
+            "result": 26.362,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1661.837,
+            "endTime": 1669.365,
+            "result": 7.528,
+            "reps": []
+          },
+          {
+            "name": "Hang clean",
+            "startTime": 1669.365,
+            "endTime": 1691.863,
+            "result": 22.498,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1691.863,
+            "endTime": 1692.044,
+            "result": 0.181,
+            "reps": []
+          },
+          {
+            "name": "Push press",
+            "startTime": 1692.044,
+            "endTime": 1701.673,
+            "result": 9.629,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1701.673,
+            "endTime": 1704.36,
+            "result": 2.687,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 1704.36,
+            "endTime": 1716.56,
+            "result": 12.2,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1716.56,
+            "endTime": 1720.719,
+            "result": 4.159,
+            "reps": []
+          },
+          {
+            "name": "Hang snacth",
+            "startTime": 1720.719,
+            "endTime": 1727.384,
+            "result": 6.665,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1727.384,
+            "endTime": 1751.579,
+            "result": 24.195,
+            "reps": []
+          },
+          {
+            "name": "Hang snacth",
+            "startTime": 1751.579,
+            "endTime": 1761.219,
+            "result": 9.64,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1761.219,
+            "endTime": 1772.467,
+            "result": 11.248,
+            "reps": []
+          },
+          {
+            "name": "Hang snacth",
+            "startTime": 1772.467,
+            "endTime": 1778.277,
+            "result": 5.81,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1778.277,
+            "endTime": 1778.941,
+            "result": 0.664,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 1778.941,
+            "endTime": 1874.493,
+            "result": 95.552,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1874.493,
+            "endTime": 1876.448,
+            "result": 1.955,
+            "reps": []
+          },
+          {
+            "name": "Deadlift",
+            "startTime": 1876.448,
+            "endTime": 1904.281,
+            "result": 27.833,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1904.281,
+            "endTime": 1915.531,
+            "result": 11.25,
+            "reps": []
+          },
+          {
+            "name": "Hang clean",
+            "startTime": 1915.531,
+            "endTime": 1937.043,
+            "result": 21.512,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1937.043,
+            "endTime": 1939.354,
+            "result": 2.311,
+            "reps": []
+          },
+          {
+            "name": "Push press",
+            "startTime": 1939.354,
+            "endTime": 1947.557,
+            "result": 8.203,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1947.557,
+            "endTime": 1948.646,
+            "result": 1.089,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 1948.646,
+            "endTime": 1973.548,
+            "result": 24.902,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1973.548,
+            "endTime": 1978.526,
+            "result": 4.978,
+            "reps": []
+          },
+          {
+            "name": "Hang snacth",
+            "startTime": 1978.526,
+            "endTime": 1984.367,
+            "result": 5.841,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1984.367,
+            "endTime": 1992.778,
+            "result": 8.411,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 1992.778,
+            "endTime": 2006.186,
+            "result": 13.408,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2006.186,
+            "endTime": 2008.357,
+            "result": 2.171,
+            "reps": []
+          },
+          {
+            "name": "Hang snacth",
+            "startTime": 2008.357,
+            "endTime": 2016.282,
+            "result": 7.925,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2016.282,
+            "endTime": 2016.524,
+            "result": 0.242,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 2016.524,
+            "endTime": 2114.515,
+            "result": 97.991,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2114.515,
+            "endTime": 2115.362,
+            "result": 0.847,
+            "reps": []
+          },
+          {
+            "name": "Deadlift",
+            "startTime": 2115.362,
+            "endTime": 2143.247,
+            "result": 27.885,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2143.247,
+            "endTime": 2143.799,
+            "result": 0.552,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 2143.799,
+            "endTime": 2158.976,
+            "result": 15.177,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2158.976,
+            "endTime": 2160.259,
+            "result": 1.283,
+            "reps": []
+          },
+          {
+            "name": "Hang clean",
+            "startTime": 2160.259,
+            "endTime": 2179.163,
+            "result": 18.904,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2179.163,
+            "endTime": 2200.35,
+            "result": 21.187,
+            "reps": []
+          },
+          {
+            "name": "Push press",
+            "startTime": 2200.35,
+            "endTime": 2209.327,
+            "result": 8.977,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2209.327,
+            "endTime": 2236.599,
+            "result": 27.272,
+            "reps": []
+          },
+          {
+            "name": "Hang snacth",
+            "startTime": 2236.599,
+            "endTime": 2250.969,
+            "result": 14.37,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2250.969,
+            "endTime": 2262.867,
+            "result": 11.898,
+            "reps": []
+          },
+          {
+            "name": "Hang snacth",
+            "startTime": 2262.867,
+            "endTime": 2265.83,
+            "result": 2.963,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2265.83,
+            "endTime": 2267.319,
+            "result": 1.489,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 2267.319,
+            "endTime": 2304.113,
+            "result": 36.794,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 2304.113,
+            "endTime": 2457.085,
+            "result": 152.972,
+            "reps": []
+          }
+        ]
+      }
+    ],
+    "startTime": 0,
+    "endTime": 2457.085
+  },
+  "sync": {
+    "synced": true,
+    "method": "watch_timer",
+    "offset": 183.469,
+    "time_basis": "workout",
+    "watch_typed": 5,
+    "watch_convention": "mid",
+    "watch_seconds": 5.5,
+    "sync_video_time": 188.969,
+    "track_name": "EZ-01",
+    "video_file": "20260714-2.MOV",
+    "generated_at": "2026-07-24T01:15:03.381Z"
+  },
+  "imu": {
+    "file": "20260714-2_EZ-01_REL02.parquet",
+    "samples": 491418,
+    "t_start": 0,
+    "t_end": 2457.085,
+    "unlabeled_as_null": true
+  }
+}
