@@ -1,0 +1,237 @@
+{
+  "workout": {
+    "roundResults": [
+      {
+        "startTime": 0,
+        "endTime": 1312.65,
+        "exerciseResults": [
+          {
+            "name": null,
+            "startTime": 0,
+            "endTime": 162.765,
+            "result": 162.765,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 162.765,
+            "endTime": 283.17,
+            "result": 120.405,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 283.17,
+            "endTime": 285.571,
+            "result": 2.401,
+            "reps": []
+          },
+          {
+            "name": "Run",
+            "startTime": 285.571,
+            "endTime": 311.984,
+            "result": 26.413,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 311.984,
+            "endTime": 349.032,
+            "result": 37.048,
+            "reps": []
+          },
+          {
+            "name": "Burpee Jump Over",
+            "startTime": 349.032,
+            "endTime": 386.422,
+            "result": 37.39,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 386.422,
+            "endTime": 405.975,
+            "result": 19.553,
+            "reps": []
+          },
+          {
+            "name": "Single Under",
+            "startTime": 405.975,
+            "endTime": 466.692,
+            "result": 60.717,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 466.692,
+            "endTime": 525.693,
+            "result": 59.001,
+            "reps": []
+          },
+          {
+            "name": "Run",
+            "startTime": 525.693,
+            "endTime": 554.165,
+            "result": 28.472,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 554.165,
+            "endTime": 585.038,
+            "result": 30.873,
+            "reps": []
+          },
+          {
+            "name": "Burpee Jump Over",
+            "startTime": 585.038,
+            "endTime": 619.341,
+            "result": 34.303,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 619.341,
+            "endTime": 646.097,
+            "result": 26.756,
+            "reps": []
+          },
+          {
+            "name": "Single Under",
+            "startTime": 646.097,
+            "endTime": 708.186,
+            "result": 62.089,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 708.186,
+            "endTime": 766.845,
+            "result": 58.659,
+            "reps": []
+          },
+          {
+            "name": "Run",
+            "startTime": 766.845,
+            "endTime": 791.886,
+            "result": 25.041,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 791.886,
+            "endTime": 823.788,
+            "result": 31.902,
+            "reps": []
+          },
+          {
+            "name": "Burpee Jump Over",
+            "startTime": 823.788,
+            "endTime": 861.521,
+            "result": 37.733,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 861.521,
+            "endTime": 887.249,
+            "result": 25.728,
+            "reps": []
+          },
+          {
+            "name": "Single Under",
+            "startTime": 887.249,
+            "endTime": 947.622,
+            "result": 60.373,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 947.622,
+            "endTime": 1007.653,
+            "result": 60.031,
+            "reps": []
+          },
+          {
+            "name": "Run",
+            "startTime": 1007.653,
+            "endTime": 1031.322,
+            "result": 23.669,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 1031.322,
+            "endTime": 1056.706,
+            "result": 25.384,
+            "reps": []
+          },
+          {
+            "name": "Burpee Jump Over",
+            "startTime": 1056.706,
+            "endTime": 1101.301,
+            "result": 44.595,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 1101.301,
+            "endTime": 1127.028,
+            "result": 25.727,
+            "reps": []
+          },
+          {
+            "name": "Single Under",
+            "startTime": 1127.028,
+            "endTime": 1189.117,
+            "result": 62.089,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1189.117,
+            "endTime": 1189.46,
+            "result": 0.343,
+            "reps": []
+          },
+          {
+            "name": "REST",
+            "startTime": 1189.46,
+            "endTime": 1213.129,
+            "result": 23.669,
+            "reps": []
+          },
+          {
+            "name": null,
+            "startTime": 1213.129,
+            "endTime": 1312.65,
+            "result": 99.521,
+            "reps": []
+          }
+        ]
+      }
+    ],
+    "startTime": 0,
+    "endTime": 1312.65
+  },
+  "sync": {
+    "synced": true,
+    "method": "watch_timer",
+    "offset": -157.963,
+    "time_basis": "workout",
+    "watch_typed": 164,
+    "watch_convention": "mid",
+    "watch_seconds": 164.5,
+    "sync_video_time": 6.537,
+    "track_name": "Tiemili",
+    "video_file": "20260715-1.MOV",
+    "generated_at": "2026-07-26T16:32:12.198Z"
+  },
+  "imu": {
+    "file": "C8D4BB00-5083-479B-9482-83A37776684E.parquet",
+    "samples": 262531,
+    "t_start": 0,
+    "t_end": 1312.65,
+    "unlabeled_as_null": true
+  }
+}
