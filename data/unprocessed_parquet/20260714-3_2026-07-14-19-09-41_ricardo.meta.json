@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "session_id": "20260714-3_2026-07-14-19-09-41_ricardo",
+  "device": "garmin",
+  "device_model": null,
+  "wrist": "right",
+  "crown": null,
+  "native_sample_rate_hz": 25,
+  "n_samples": 31525,
+  "duration_sec": 1260.96,
+  "canonical_frame_version": "v1",
+  "user_id": null,
+  "workout_id": null,
+  "source_format": "fit",
+  "source_file": "C:\\Users\\herna\\workspace\\RepDetector\\data\\raw\\garmin\\20260714-3_2026-07-14-19-09-41_ricardo.fit",
+  "ingested_at": "2026-07-26T16:09:44+00:00",
+  "segments": []
+}
