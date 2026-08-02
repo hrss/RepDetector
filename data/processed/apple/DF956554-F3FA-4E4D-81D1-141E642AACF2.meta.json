@@ -1,0 +1,169 @@
+{
+  "schema_version": "v1",
+  "session_id": "DF956554-F3FA-4E4D-81D1-141E642AACF2",
+  "device": "apple_watch",
+  "device_model": null,
+  "wrist": "right",
+  "crown": "right",
+  "native_sample_rate_hz": 200,
+  "n_samples": 159736,
+  "duration_sec": 798.675,
+  "canonical_frame_version": "v1",
+  "user_id": null,
+  "workout_id": "7822",
+  "source_format": "imubin_v2",
+  "source_file": "C:\\Users\\herna\\workspace\\RepDetector\\data\\raw\\didi\\1_2026-08-01_DF956554-F3FA-4E4D-81D1-141E642AACF2.imubin",
+  "ingested_at": "2026-08-02T02:25:50+00:00",
+  "segments": [
+    {
+      "name": "Setup",
+      "start": 2.484025157380529,
+      "end": 32.48470448238072,
+      "reps": []
+    },
+    {
+      "name": "Air squat",
+      "start": 32.48470448238072,
+      "end": 62.48538380738091,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 62.48538380738091,
+      "end": 92.4860631323811,
+      "reps": []
+    },
+    {
+      "name": "Push-up",
+      "start": 92.4860631323811,
+      "end": 122.48674245738107,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 122.48674245738107,
+      "end": 152.48742178238126,
+      "reps": []
+    },
+    {
+      "name": "Sit-up",
+      "start": 152.48742178238126,
+      "end": 182.48810110738145,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 182.48810110738145,
+      "end": 212.48878043238165,
+      "reps": []
+    },
+    {
+      "name": "Burpee",
+      "start": 212.48878043238165,
+      "end": 257.4897994198818,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 257.4897994198818,
+      "end": 287.490478744882,
+      "reps": []
+    },
+    {
+      "name": "Walking lunge",
+      "start": 287.490478744882,
+      "end": 332.4914977323824,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 332.4914977323824,
+      "end": 362.4921770573824,
+      "reps": []
+    },
+    {
+      "name": "Box jump",
+      "start": 362.4921770573824,
+      "end": 407.49319604488255,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 407.49319604488255,
+      "end": 437.49387536988297,
+      "reps": []
+    },
+    {
+      "name": "KB swing",
+      "start": 437.49387536988297,
+      "end": 467.49455469488294,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 467.49455469488294,
+      "end": 497.4952340198831,
+      "reps": []
+    },
+    {
+      "name": "KB swing",
+      "start": 497.4952340198831,
+      "end": 527.4959133448833,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 527.4959133448833,
+      "end": 557.4965926698835,
+      "reps": []
+    },
+    {
+      "name": "Wall ball",
+      "start": 557.4965926698835,
+      "end": 587.4972719948837,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 587.4972719948837,
+      "end": 617.4979513198837,
+      "reps": []
+    },
+    {
+      "name": "Double-under",
+      "start": 617.4979513198837,
+      "end": 647.4986306448841,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 647.4986306448841,
+      "end": 677.499309969884,
+      "reps": []
+    },
+    {
+      "name": "Run",
+      "start": 677.499309969884,
+      "end": 707.4999892948842,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 707.4999892948842,
+      "end": 737.5006686198844,
+      "reps": []
+    },
+    {
+      "name": "Run",
+      "start": 737.5006686198844,
+      "end": 767.5013479448846,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 767.5013479448846,
+      "end": 796.4914799890521,
+      "reps": []
+    }
+  ]
+}

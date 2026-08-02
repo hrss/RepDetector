@@ -1,0 +1,169 @@
+{
+  "schema_version": "v1",
+  "session_id": "2026-07-31-12-47-52",
+  "device": "garmin",
+  "device_model": null,
+  "wrist": "left",
+  "crown": null,
+  "native_sample_rate_hz": 25,
+  "n_samples": 19875,
+  "duration_sec": 794.96,
+  "canonical_frame_version": "v1",
+  "user_id": null,
+  "workout_id": null,
+  "source_format": "fit",
+  "source_file": "C:\\Users\\herna\\workspace\\RepDetector\\data\\raw\\didi\\2026-07-31-12-47-52.fit",
+  "ingested_at": "2026-08-02T02:03:51+00:00",
+  "segments": [
+    {
+      "name": "Setup",
+      "start": 0.0,
+      "end": 30.0,
+      "reps": []
+    },
+    {
+      "name": "Air squat",
+      "start": 30.0,
+      "end": 60.0,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 60.0,
+      "end": 90.0,
+      "reps": []
+    },
+    {
+      "name": "Push-up",
+      "start": 90.0,
+      "end": 120.0,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 120.0,
+      "end": 150.0,
+      "reps": []
+    },
+    {
+      "name": "Sit-up",
+      "start": 150.0,
+      "end": 180.0,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 180.0,
+      "end": 210.0,
+      "reps": []
+    },
+    {
+      "name": "Burpee",
+      "start": 210.0,
+      "end": 255.0,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 255.0,
+      "end": 285.0,
+      "reps": []
+    },
+    {
+      "name": "Walking lunge",
+      "start": 285.0,
+      "end": 330.0,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 330.0,
+      "end": 360.0,
+      "reps": []
+    },
+    {
+      "name": "Box jump",
+      "start": 360.0,
+      "end": 405.0,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 405.0,
+      "end": 435.0,
+      "reps": []
+    },
+    {
+      "name": "KB swing",
+      "start": 435.0,
+      "end": 465.0,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 465.0,
+      "end": 495.0,
+      "reps": []
+    },
+    {
+      "name": "KB swing",
+      "start": 495.0,
+      "end": 525.0,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 525.0,
+      "end": 555.0,
+      "reps": []
+    },
+    {
+      "name": "Wall ball",
+      "start": 555.0,
+      "end": 585.0,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 585.0,
+      "end": 615.0,
+      "reps": []
+    },
+    {
+      "name": "Double-under",
+      "start": 615.0,
+      "end": 645.0,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 645.0,
+      "end": 675.0,
+      "reps": []
+    },
+    {
+      "name": "Run",
+      "start": 675.0,
+      "end": 705.0,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 705.0,
+      "end": 735.0,
+      "reps": []
+    },
+    {
+      "name": "Run",
+      "start": 735.0,
+      "end": 765.0,
+      "reps": []
+    },
+    {
+      "name": "REST",
+      "start": 765.0,
+      "end": 795.0,
+      "reps": []
+    }
+  ]
+}

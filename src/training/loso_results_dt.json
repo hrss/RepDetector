@@ -1,0 +1,689 @@
+{
+    "fold_results": [
+        {
+            "session_id": "2026-07-30-19-04-55",
+            "accuracy": 0.29245283018867924,
+            "f1_macro": 0.3585170751975747,
+            "class_dist": {
+                "Air Squat": 73,
+                "REST": 898,
+                "Push-up": 75,
+                "Sit-up": 75,
+                "Burpee": 112,
+                "Walking lunge": 113,
+                "Box jump": 112,
+                "KB swing ": 150,
+                "Wall ball": 75,
+                "Double-under": 75,
+                "Run": 150
+            }
+        },
+        {
+            "session_id": "2026-07-31-12-04-32",
+            "accuracy": 0.512041884816754,
+            "f1_macro": 0.44286564300448633,
+            "class_dist": {
+                "Air Squat": 73,
+                "REST": 900,
+                "Push-up": 75,
+                "Sit-up": 75,
+                "Burpee": 112,
+                "Walking lunge": 113,
+                "Box jump": 112,
+                "KB swing ": 150,
+                "Wall ball": 75,
+                "Double-under": 75,
+                "Run": 150
+            }
+        },
+        {
+            "session_id": "2026-07-31-12-47-52",
+            "accuracy": 0.5435010482180294,
+            "f1_macro": 0.38807860765655794,
+            "class_dist": {
+                "Air Squat": 73,
+                "REST": 898,
+                "Push-up": 75,
+                "Sit-up": 75,
+                "Burpee": 112,
+                "Walking lunge": 113,
+                "Box jump": 112,
+                "KB swing ": 150,
+                "Wall ball": 75,
+                "Double-under": 75,
+                "Run": 150
+            }
+        },
+        {
+            "session_id": "23B31284-45A9-4822-ACC9-CB7E75FB7DCC",
+            "accuracy": 0.5042235217673814,
+            "f1_macro": 0.4965894118471058,
+            "class_dist": {
+                "REST": 6090,
+                "Air Squat": 900,
+                "Push-up": 900,
+                "Sit-up": 900,
+                "Burpee": 1200,
+                "Walking lunge": 900,
+                "Box jump": 900,
+                "KB swing ": 1800,
+                "Wall ball": 900,
+                "Double-under": 900
+            }
+        },
+        {
+            "session_id": "263204A4-F8E9-47E6-8E80-3CA3474454A0",
+            "accuracy": 0.5266788131181677,
+            "f1_macro": 0.5454797887864945,
+            "class_dist": {
+                "REST": 7268,
+                "Air Squat": 600,
+                "Push-up": 600,
+                "Sit-up": 600,
+                "Burpee": 900,
+                "Walking lunge": 900,
+                "Box jump": 900,
+                "KB swing ": 1200,
+                "Wall ball": 600,
+                "Double-under": 600,
+                "Run": 1200
+            }
+        },
+        {
+            "session_id": "597D0EC3-5898-4D36-B15E-209CEE65F307",
+            "accuracy": 0.523915890010013,
+            "f1_macro": 0.49952899761506037,
+            "class_dist": {
+                "REST": 6082,
+                "Air Squat": 600,
+                "Push-up": 600,
+                "Sit-up": 600,
+                "Burpee": 900,
+                "Walking lunge": 900,
+                "Box jump": 900,
+                "KB swing ": 1201,
+                "Wall ball": 600,
+                "Double-under": 600
+            }
+        },
+        {
+            "session_id": "5E150B30-957D-4B1C-888A-04659B2F1750",
+            "accuracy": 0.3986607142857143,
+            "f1_macro": 0.37834553680312094,
+            "class_dist": {
+                "REST": 5659,
+                "Air Squat": 607,
+                "Push-up": 672,
+                "Sit-up": 638,
+                "Burpee": 969,
+                "Walking lunge": 916,
+                "Box jump": 895,
+                "KB swing ": 1302,
+                "Wall ball": 640,
+                "Double-under": 646,
+                "Run": 496
+            }
+        },
+        {
+            "session_id": "788A8F28-AEB8-4125-87EE-91FBFCCA13DE",
+            "accuracy": 0.43925901852453686,
+            "f1_macro": 0.43254644669908854,
+            "class_dist": {
+                "REST": 7284,
+                "Air Squat": 600,
+                "Push-up": 600,
+                "Sit-up": 600,
+                "Burpee": 901,
+                "Walking lunge": 900,
+                "Box jump": 900,
+                "KB swing ": 1200,
+                "Wall ball": 600,
+                "Double-under": 600,
+                "Run": 1200
+            }
+        },
+        {
+            "session_id": "DF956554-F3FA-4E4D-81D1-141E642AACF2",
+            "accuracy": 0.49189927776693343,
+            "f1_macro": 0.45529780119344854,
+            "class_dist": {
+                "REST": 7269,
+                "Air Squat": 600,
+                "Push-up": 600,
+                "Sit-up": 600,
+                "Burpee": 900,
+                "Walking lunge": 900,
+                "Box jump": 900,
+                "KB swing ": 1200,
+                "Wall ball": 600,
+                "Double-under": 600,
+                "Run": 1200
+            }
+        }
+    ],
+    "sweep_results": {
+        "2": [
+            {
+                "session_id": "2026-07-30-19-04-55",
+                "recall": 0.8695652173913043,
+                "precision": 0.030303030303030304,
+                "ft_per_min": 8.809648662821186,
+                "med_latency": 0.3999999999999986,
+                "correct_class": 4,
+                "wrong_class": 16,
+                "n_true": 23,
+                "n_emitted": 132
+            },
+            {
+                "session_id": "2026-07-31-12-04-32",
+                "recall": 0.6521739130434783,
+                "precision": 0.10126582278481013,
+                "ft_per_min": 5.028810895756941,
+                "med_latency": 1.1999999999999886,
+                "correct_class": 8,
+                "wrong_class": 7,
+                "n_true": 23,
+                "n_emitted": 79
+            },
+            {
+                "session_id": "2026-07-31-12-47-52",
+                "recall": 0.5217391304347826,
+                "precision": 0.0375,
+                "ft_per_min": 5.348715259570006,
+                "med_latency": 0.8000000000000114,
+                "correct_class": 3,
+                "wrong_class": 9,
+                "n_true": 23,
+                "n_emitted": 80
+            },
+            {
+                "session_id": "23B31284-45A9-4822-ACC9-CB7E75FB7DCC",
+                "recall": 1.0,
+                "precision": 0.019230769230769232,
+                "ft_per_min": 18.01227085952305,
+                "med_latency": 0.07499999999997442,
+                "correct_class": 5,
+                "wrong_class": 15,
+                "n_true": 20,
+                "n_emitted": 260
+            },
+            {
+                "session_id": "263204A4-F8E9-47E6-8E80-3CA3474454A0",
+                "recall": 1.0,
+                "precision": 0.03474903474903475,
+                "ft_per_min": 17.661316081191952,
+                "med_latency": 0.44999999999998863,
+                "correct_class": 9,
+                "wrong_class": 15,
+                "n_true": 24,
+                "n_emitted": 259
+            },
+            {
+                "session_id": "597D0EC3-5898-4D36-B15E-209CEE65F307",
+                "recall": 0.9,
+                "precision": 0.0196078431372549,
+                "ft_per_min": 16.433514946252394,
+                "med_latency": 0.32500000000001705,
+                "correct_class": 4,
+                "wrong_class": 14,
+                "n_true": 20,
+                "n_emitted": 204
+            },
+            {
+                "session_id": "5E150B30-957D-4B1C-888A-04659B2F1750",
+                "recall": 1.0,
+                "precision": 0.048034934497816595,
+                "ft_per_min": 15.536069449482756,
+                "med_latency": 0.125,
+                "correct_class": 11,
+                "wrong_class": 11,
+                "n_true": 22,
+                "n_emitted": 229
+            },
+            {
+                "session_id": "788A8F28-AEB8-4125-87EE-91FBFCCA13DE",
+                "recall": 0.9166666666666666,
+                "precision": 0.011029411764705883,
+                "ft_per_min": 18.76876876876877,
+                "med_latency": -0.32499999999998863,
+                "correct_class": 3,
+                "wrong_class": 19,
+                "n_true": 24,
+                "n_emitted": 272
+            },
+            {
+                "session_id": "DF956554-F3FA-4E4D-81D1-141E642AACF2",
+                "recall": 1.0,
+                "precision": 0.011450381679389313,
+                "ft_per_min": 17.88577154308617,
+                "med_latency": -0.3999999999999915,
+                "correct_class": 3,
+                "wrong_class": 21,
+                "n_true": 24,
+                "n_emitted": 262
+            }
+        ],
+        "3": [
+            {
+                "session_id": "2026-07-30-19-04-55",
+                "recall": 0.2608695652173913,
+                "precision": 0.0,
+                "ft_per_min": 4.0901940220241215,
+                "med_latency": 1.4000000000000057,
+                "correct_class": 0,
+                "wrong_class": 6,
+                "n_true": 23,
+                "n_emitted": 58
+            },
+            {
+                "session_id": "2026-07-31-12-04-32",
+                "recall": 0.13043478260869565,
+                "precision": 0.03225806451612903,
+                "ft_per_min": 2.2001047668936615,
+                "med_latency": 2.0,
+                "correct_class": 1,
+                "wrong_class": 2,
+                "n_true": 23,
+                "n_emitted": 31
+            },
+            {
+                "session_id": "2026-07-31-12-47-52",
+                "recall": 0.08695652173913043,
+                "precision": 0.0,
+                "ft_per_min": 1.9664394336654432,
+                "med_latency": -0.9999999999999716,
+                "correct_class": 0,
+                "wrong_class": 2,
+                "n_true": 23,
+                "n_emitted": 27
+            },
+            {
+                "session_id": "23B31284-45A9-4822-ACC9-CB7E75FB7DCC",
+                "recall": 0.85,
+                "precision": 0.08333333333333333,
+                "ft_per_min": 7.730266243878642,
+                "med_latency": 0.5499999999999545,
+                "correct_class": 10,
+                "wrong_class": 7,
+                "n_true": 20,
+                "n_emitted": 120
+            },
+            {
+                "session_id": "263204A4-F8E9-47E6-8E80-3CA3474454A0",
+                "recall": 0.8333333333333334,
+                "precision": 0.06766917293233082,
+                "ft_per_min": 8.492462626275278,
+                "med_latency": 0.6249999999999645,
+                "correct_class": 9,
+                "wrong_class": 11,
+                "n_true": 24,
+                "n_emitted": 133
+            },
+            {
+                "session_id": "597D0EC3-5898-4D36-B15E-209CEE65F307",
+                "recall": 0.8,
+                "precision": 0.07476635514018691,
+                "ft_per_min": 8.040053011338536,
+                "med_latency": 1.5749999999999602,
+                "correct_class": 8,
+                "wrong_class": 8,
+                "n_true": 20,
+                "n_emitted": 107
+            },
+            {
+                "session_id": "5E150B30-957D-4B1C-888A-04659B2F1750",
+                "recall": 0.9545454545454546,
+                "precision": 0.07692307692307693,
+                "ft_per_min": 8.180828840548891,
+                "med_latency": -0.15000000000000568,
+                "correct_class": 10,
+                "wrong_class": 11,
+                "n_true": 22,
+                "n_emitted": 130
+            },
+            {
+                "session_id": "788A8F28-AEB8-4125-87EE-91FBFCCA13DE",
+                "recall": 0.7916666666666666,
+                "precision": 0.03546099290780142,
+                "ft_per_min": 9.15915915915916,
+                "med_latency": 0.14999999999997726,
+                "correct_class": 5,
+                "wrong_class": 14,
+                "n_true": 24,
+                "n_emitted": 141
+            },
+            {
+                "session_id": "DF956554-F3FA-4E4D-81D1-141E642AACF2",
+                "recall": 0.9166666666666666,
+                "precision": 0.013793103448275862,
+                "ft_per_min": 9.243486973947896,
+                "med_latency": 0.6999999999999886,
+                "correct_class": 2,
+                "wrong_class": 20,
+                "n_true": 24,
+                "n_emitted": 145
+            }
+        ],
+        "5": [
+            {
+                "session_id": "2026-07-30-19-04-55",
+                "recall": 0.08695652173913043,
+                "precision": 0.05,
+                "ft_per_min": 1.415836392239119,
+                "med_latency": -2.2000000000000064,
+                "correct_class": 1,
+                "wrong_class": 1,
+                "n_true": 23,
+                "n_emitted": 20
+            },
+            {
+                "session_id": "2026-07-31-12-04-32",
+                "recall": 0.08695652173913043,
+                "precision": 0.0,
+                "ft_per_min": 1.1000523834468308,
+                "med_latency": -1.8000000000000114,
+                "correct_class": 0,
+                "wrong_class": 2,
+                "n_true": 23,
+                "n_emitted": 16
+            },
+            {
+                "session_id": "2026-07-31-12-47-52",
+                "recall": 0.0,
+                "precision": 0.0,
+                "ft_per_min": 1.6518091242789723,
+                "med_latency": NaN,
+                "correct_class": 0,
+                "wrong_class": 0,
+                "n_true": 23,
+                "n_emitted": 21
+            },
+            {
+                "session_id": "23B31284-45A9-4822-ACC9-CB7E75FB7DCC",
+                "recall": 0.45,
+                "precision": 0.14285714285714285,
+                "ft_per_min": 3.0020451432538415,
+                "med_latency": 0.0,
+                "correct_class": 7,
+                "wrong_class": 2,
+                "n_true": 20,
+                "n_emitted": 49
+            },
+            {
+                "session_id": "263204A4-F8E9-47E6-8E80-3CA3474454A0",
+                "recall": 0.5833333333333334,
+                "precision": 0.18181818181818182,
+                "ft_per_min": 3.0813359971441274,
+                "med_latency": 1.4249999999999758,
+                "correct_class": 10,
+                "wrong_class": 4,
+                "n_true": 24,
+                "n_emitted": 55
+            },
+            {
+                "session_id": "597D0EC3-5898-4D36-B15E-209CEE65F307",
+                "recall": 0.25,
+                "precision": 0.05405405405405406,
+                "ft_per_min": 2.827271388602562,
+                "med_latency": 0.5999999999999659,
+                "correct_class": 2,
+                "wrong_class": 3,
+                "n_true": 20,
+                "n_emitted": 37
+            },
+            {
+                "session_id": "5E150B30-957D-4B1C-888A-04659B2F1750",
+                "recall": 0.8636363636363636,
+                "precision": 0.2631578947368421,
+                "ft_per_min": 2.852032072851907,
+                "med_latency": -0.35000000000002274,
+                "correct_class": 15,
+                "wrong_class": 4,
+                "n_true": 22,
+                "n_emitted": 57
+            },
+            {
+                "session_id": "788A8F28-AEB8-4125-87EE-91FBFCCA13DE",
+                "recall": 0.5833333333333334,
+                "precision": 0.06349206349206349,
+                "ft_per_min": 3.6786786786786787,
+                "med_latency": 1.374999999999993,
+                "correct_class": 4,
+                "wrong_class": 10,
+                "n_true": 24,
+                "n_emitted": 63
+            },
+            {
+                "session_id": "DF956554-F3FA-4E4D-81D1-141E642AACF2",
+                "recall": 0.20833333333333334,
+                "precision": 0.0,
+                "ft_per_min": 3.306613226452906,
+                "med_latency": 1.0999999999999943,
+                "correct_class": 0,
+                "wrong_class": 5,
+                "n_true": 24,
+                "n_emitted": 49
+            }
+        ],
+        "8": [
+            {
+                "session_id": "2026-07-30-19-04-55",
+                "recall": 0.0,
+                "precision": 0.0,
+                "ft_per_min": 0.6292606187729418,
+                "med_latency": NaN,
+                "correct_class": 0,
+                "wrong_class": 0,
+                "n_true": 23,
+                "n_emitted": 8
+            },
+            {
+                "session_id": "2026-07-31-12-04-32",
+                "recall": 0.0,
+                "precision": 0.0,
+                "ft_per_min": 0.6286013619696176,
+                "med_latency": NaN,
+                "correct_class": 0,
+                "wrong_class": 0,
+                "n_true": 23,
+                "n_emitted": 8
+            },
+            {
+                "session_id": "2026-07-31-12-47-52",
+                "recall": 0.0,
+                "precision": 0.0,
+                "ft_per_min": 0.6292606187729418,
+                "med_latency": NaN,
+                "correct_class": 0,
+                "wrong_class": 0,
+                "n_true": 23,
+                "n_emitted": 8
+            },
+            {
+                "session_id": "23B31284-45A9-4822-ACC9-CB7E75FB7DCC",
+                "recall": 0.2,
+                "precision": 0.17647058823529413,
+                "ft_per_min": 0.9756646715574985,
+                "med_latency": 0.4499999999999744,
+                "correct_class": 3,
+                "wrong_class": 1,
+                "n_true": 20,
+                "n_emitted": 17
+            },
+            {
+                "session_id": "263204A4-F8E9-47E6-8E80-3CA3474454A0",
+                "recall": 0.20833333333333334,
+                "precision": 0.23809523809523808,
+                "ft_per_min": 1.2024725842513668,
+                "med_latency": 2.5,
+                "correct_class": 5,
+                "wrong_class": 0,
+                "n_true": 24,
+                "n_emitted": 21
+            },
+            {
+                "session_id": "597D0EC3-5898-4D36-B15E-209CEE65F307",
+                "recall": 0.15,
+                "precision": 0.07692307692307693,
+                "ft_per_min": 0.8835223089383006,
+                "med_latency": -0.8500000000000227,
+                "correct_class": 1,
+                "wrong_class": 2,
+                "n_true": 20,
+                "n_emitted": 13
+            },
+            {
+                "session_id": "5E150B30-957D-4B1C-888A-04659B2F1750",
+                "recall": 0.36363636363636365,
+                "precision": 0.28,
+                "ft_per_min": 1.2759090852232216,
+                "med_latency": 0.07499999999997442,
+                "correct_class": 7,
+                "wrong_class": 1,
+                "n_true": 22,
+                "n_emitted": 25
+            },
+            {
+                "session_id": "788A8F28-AEB8-4125-87EE-91FBFCCA13DE",
+                "recall": 0.125,
+                "precision": 0.14285714285714285,
+                "ft_per_min": 0.8258258258258258,
+                "med_latency": -0.25,
+                "correct_class": 2,
+                "wrong_class": 1,
+                "n_true": 24,
+                "n_emitted": 14
+            },
+            {
+                "session_id": "DF956554-F3FA-4E4D-81D1-141E642AACF2",
+                "recall": 0.08333333333333333,
+                "precision": 0.0,
+                "ft_per_min": 2.029058116232465,
+                "med_latency": 0.10000000000000142,
+                "correct_class": 0,
+                "wrong_class": 2,
+                "n_true": 24,
+                "n_emitted": 29
+            }
+        ],
+        "10": [
+            {
+                "session_id": "2026-07-30-19-04-55",
+                "recall": 0.0,
+                "precision": 0.0,
+                "ft_per_min": 0.5506030414263241,
+                "med_latency": NaN,
+                "correct_class": 0,
+                "wrong_class": 0,
+                "n_true": 23,
+                "n_emitted": 7
+            },
+            {
+                "session_id": "2026-07-31-12-04-32",
+                "recall": 0.043478260869565216,
+                "precision": 0.0,
+                "ft_per_min": 0.4714510214772132,
+                "med_latency": -2.0,
+                "correct_class": 0,
+                "wrong_class": 1,
+                "n_true": 23,
+                "n_emitted": 7
+            },
+            {
+                "session_id": "2026-07-31-12-47-52",
+                "recall": 0.0,
+                "precision": 0.0,
+                "ft_per_min": 0.47194546407970633,
+                "med_latency": NaN,
+                "correct_class": 0,
+                "wrong_class": 0,
+                "n_true": 23,
+                "n_emitted": 6
+            },
+            {
+                "session_id": "23B31284-45A9-4822-ACC9-CB7E75FB7DCC",
+                "recall": 0.05,
+                "precision": 0.09090909090909091,
+                "ft_per_min": 0.7505112858134604,
+                "med_latency": 0.25,
+                "correct_class": 1,
+                "wrong_class": 0,
+                "n_true": 20,
+                "n_emitted": 11
+            },
+            {
+                "session_id": "263204A4-F8E9-47E6-8E80-3CA3474454A0",
+                "recall": 0.08333333333333333,
+                "precision": 0.15384615384615385,
+                "ft_per_min": 0.8266999016728147,
+                "med_latency": 2.2250000000000085,
+                "correct_class": 2,
+                "wrong_class": 0,
+                "n_true": 24,
+                "n_emitted": 13
+            },
+            {
+                "session_id": "597D0EC3-5898-4D36-B15E-209CEE65F307",
+                "recall": 0.05,
+                "precision": 0.0,
+                "ft_per_min": 0.7068178471506406,
+                "med_latency": -0.6499999999999773,
+                "correct_class": 0,
+                "wrong_class": 1,
+                "n_true": 20,
+                "n_emitted": 9
+            },
+            {
+                "session_id": "5E150B30-957D-4B1C-888A-04659B2F1750",
+                "recall": 0.2727272727272727,
+                "precision": 0.3157894736842105,
+                "ft_per_min": 0.9756951828177577,
+                "med_latency": -0.20000000000001705,
+                "correct_class": 6,
+                "wrong_class": 0,
+                "n_true": 22,
+                "n_emitted": 19
+            },
+            {
+                "session_id": "788A8F28-AEB8-4125-87EE-91FBFCCA13DE",
+                "recall": 0.08333333333333333,
+                "precision": 0.07692307692307693,
+                "ft_per_min": 0.8258258258258258,
+                "med_latency": 0.32499999999998863,
+                "correct_class": 1,
+                "wrong_class": 1,
+                "n_true": 24,
+                "n_emitted": 13
+            },
+            {
+                "session_id": "DF956554-F3FA-4E4D-81D1-141E642AACF2",
+                "recall": 0.125,
+                "precision": 0.0,
+                "ft_per_min": 1.503006012024048,
+                "med_latency": -1.1999999999999886,
+                "correct_class": 0,
+                "wrong_class": 3,
+                "n_true": 24,
+                "n_emitted": 23
+            }
+        ]
+    },
+    "config": {
+        "sample_rate": 20,
+        "window_size_sec": 2.5,
+        "step_size_sec": 0.5,
+        "lowpass_cutoff": 3.0,
+        "filter_order": 4,
+        "max_depth": 15,
+        "min_samples_split": 5,
+        "dwell_sweep": [
+            2,
+            3,
+            5,
+            8,
+            10
+        ],
+        "default_dwell": 5.0,
+        "tolerance_sec": 3.0
+    }
+}
