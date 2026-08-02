@@ -1,7 +1,9 @@
-
 import os
 import json
 import glob
+from pathlib import Path
+import re
+
 import numpy as np
 import pandas as pd
 import torch
@@ -21,7 +23,7 @@ from src.models.cnn.cnn_model import SixAxisCNN
 
 # --- CONFIGURATION ---
 CONFIG = {
-    'sample_rate': 20,
+    'sample_rate': 25,
     'window_size_sec': 2.5,
     'step_size_sec': 0.5,
     'lowpass_cutoff': 3.0,
@@ -39,8 +41,7 @@ CONFIG = {
 class ExerciseLabel(Enum):
     AIR_SQUAT = "Air Squat"
     BURPEE = "Burpee"
-    KB_SWING_RUSSIAN = "KB swing (Russian)"
-    KB_SWING_AMERICAN = "KB swing (American)"
+    KB_SWING = "KB swing"
     WALL_BALL = "Wall ball"
     PUSH_UP = "Push-up"
     REST = "REST"
@@ -49,37 +50,72 @@ class ExerciseLabel(Enum):
     BOX_JUMP = "Box jump"
     DOUBLE_UNDER = "Double-under"
     RUN = "Run"
+    RUN_ALL_OUT = "Run All Out"
     # Low support/Null handled separately
 
 LABEL_MAP = {
     "rest": ExerciseLabel.REST,
     "air squat": ExerciseLabel.AIR_SQUAT,
+    "air_squat": ExerciseLabel.AIR_SQUAT,
     "burpee": ExerciseLabel.BURPEE,
-    "kb swing (russian)": ExerciseLabel.KB_SWING_RUSSIAN,
-    "kb swing (american)": ExerciseLabel.KB_SWING_AMERICAN,
+    "kb swing": ExerciseLabel.KB_SWING,
+    "kb_swing": ExerciseLabel.KB_SWING,
+    "kb swing (russian)": ExerciseLabel.KB_SWING,
+    "kb swing (american)": ExerciseLabel.KB_SWING,
     "wall ball": ExerciseLabel.WALL_BALL,
+    "wall_ball_shot": ExerciseLabel.WALL_BALL,
     "push-up": ExerciseLabel.PUSH_UP,
+    "chest_to_wall_hspu": ExerciseLabel.PUSH_UP,
     "sit-up": ExerciseLabel.SIT_UP,
+    "sit_up": ExerciseLabel.SIT_UP,
     "walking lunge": ExerciseLabel.WALKING_LUNGE,
+    "sandbag_lunges": ExerciseLabel.WALKING_LUNGE,
     "box jump": ExerciseLabel.BOX_JUMP,
+    "box_jump": ExerciseLabel.BOX_JUMP,
     "double-under": ExerciseLabel.DOUBLE_UNDER,
+    "double_under": ExerciseLabel.DOUBLE_UNDER,
     "run": ExerciseLabel.RUN,
+    "run all out": ExerciseLabel.RUN_ALL_OUT,
 }
 
 IGNORE_LABELS = ["null", "setup"]
 
 def normalize_label(label_str):
-    if pd.isna(label_str):
+    if not label_str or pd.isna(label_str):
         return None
     ls = label_str.strip().lower()
     if ls in IGNORE_LABELS:
         return None
+    
+    # Direct match
     if ls in LABEL_MAP:
         return LABEL_MAP[ls].value
     
-    # Check for variants of REST
+    # Substring matches for variants
+    if "kb swing" in ls:
+        return ExerciseLabel.KB_SWING.value
     if "rest" in ls:
         return ExerciseLabel.REST.value
+    if "wall ball" in ls:
+        return ExerciseLabel.WALL_BALL.value
+    if "lunge" in ls:
+        return ExerciseLabel.WALKING_LUNGE.value
+    if "box jump" in ls:
+        return ExerciseLabel.BOX_JUMP.value
+    if "double under" in ls or "double-under" in ls:
+        return ExerciseLabel.DOUBLE_UNDER.value
+    if "push up" in ls or "push-up" in ls:
+        return ExerciseLabel.PUSH_UP.value
+    if "sit up" in ls or "sit-up" in ls:
+        return ExerciseLabel.SIT_UP.value
+    if "air squat" in ls:
+        return ExerciseLabel.AIR_SQUAT.value
+    if "burpee" in ls:
+        return ExerciseLabel.BURPEE.value
+    if "run all out" in ls:
+        return ExerciseLabel.RUN_ALL_OUT.value
+    if "run" in ls:
+        return ExerciseLabel.RUN.value
         
     raise ValueError(f"Unmapped label: {label_str}")
 
@@ -260,7 +296,7 @@ def evaluate_transitions(gt_transitions, pred_states, tolerance_sec=3.0):
         'total_gt': len(gt_transitions),
         'total_emitted': len(pred_states)
     }
-    
+
     if not gt_transitions:
         results['false'] = len(pred_states)
         return results
@@ -275,37 +311,46 @@ def evaluate_transitions(gt_transitions, pred_states, tolerance_sec=3.0):
             dist = abs(ps['time'] - gt['time'])
             if dist <= tolerance_sec:
                 matches.append((i, j, dist))
-                
+
     # 2. Sort by distance (nearest-first)
     matches.sort(key=lambda x: x[2])
-    
+
     used_gt = set()
     used_pred = set()
-    
+
     for gt_idx, pred_idx, dist in matches:
         if gt_idx not in used_gt and pred_idx not in used_pred:
             used_gt.add(gt_idx)
             used_pred.add(pred_idx)
-            
+
             # Use signed latency (ps - gt)
             results['latencies'].append(pred_states[pred_idx]['time'] - gt_transitions[gt_idx]['time'])
-            
+
             if pred_states[pred_idx]['label'] == gt_transitions[gt_idx]['to']:
                 results['matched_and_correct'] += 1
             else:
                 results['matched_but_wrong'] += 1
-                
+
     results['matched'] = results['matched_and_correct'] + results['matched_but_wrong']
     results['missed'] = len(gt_transitions) - results['matched']
     results['false'] = len(pred_states) - results['matched']
-    
+
     return results
 
 def run_loso():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
-    sessions = get_session_data("data/processed/apple")
+    project_root = Path(__file__).resolve().parents[2]
+    data_dir = project_root / "data" / "processed" / "apple"
+
+    if not data_dir.exists():
+        raise FileNotFoundError(
+            f"Processed Apple data directory was not found: {data_dir}\n"
+            "Check that the data exists and that PyCharm is running the correct project."
+        )
+
+    sessions = get_session_data(str(data_dir))
     session_ids = list(sessions.keys())
     
     all_labels = []
@@ -459,6 +504,19 @@ def run_loso():
         
         acc = accuracy_score(y_test, y_pred_fold)
         f1 = f1_score(y_test, y_pred_fold, average='macro')
+
+        fold_plot_dir = project_root / "src" / "training" / "loso_fold_plots"
+
+        plot_loso_fold_results(
+            held_out_id=held_out_id,
+            test_df_scaled=test_df_scaled,
+            window_times=t_test,
+            expected_labels=y_test_labels,
+            predicted_labels=y_pred_labels,
+            accuracy=acc,
+            f1_macro=f1,
+            output_dir=fold_plot_dir,
+        )
         
         # BUG 4: Majority baseline
         rest_labels = [l for l in le_fold.classes_ if "REST" in l.upper()]
@@ -616,6 +674,160 @@ def run_loso():
     with open("loso_results.json", "w") as f:
         json.dump(results_to_save, f, default=json_serialize, indent=4)
     print(f"Saved fold results to loso_results.json")
+
+
+def _safe_filename(value):
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", str(value))
+
+def _draw_label_ribbon(ax, y_pos, labels, times, label_name, color_map):
+    if len(labels) == 0:
+        return
+
+    start_time = times[0]
+    current_label = labels[0]
+
+    for i in range(1, len(labels)):
+        if labels[i] != current_label:
+            end_time = times[i]
+            ax.barh(
+                y_pos,
+                end_time - start_time,
+                left=start_time,
+                height=0.35,
+                color=color_map[current_label],
+                edgecolor="none",
+            )
+            start_time = end_time
+            current_label = labels[i]
+
+    ax.barh(
+        y_pos,
+        times[-1] - start_time,
+        left=start_time,
+        height=0.35,
+        color=color_map[current_label],
+        edgecolor="none",
+    )
+
+    ax.text(
+        times[0],
+        y_pos + 0.28,
+        label_name,
+        va="bottom",
+        ha="left",
+        fontsize=10,
+        fontweight="bold",
+    )
+
+def plot_loso_fold_results(
+        held_out_id,
+        test_df_scaled,
+        window_times,
+        expected_labels,
+        predicted_labels,
+        accuracy,
+        f1_macro,
+        output_dir,
+):
+    """
+    Saves a per-fold visualization comparing expected labels against predictions.
+    The labels are plotted at the model window midpoint timestamps.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    window_times = np.asarray(window_times)
+    expected_labels = np.asarray(expected_labels)
+    predicted_labels = np.asarray(predicted_labels)
+
+    all_classes = sorted(set(expected_labels) | set(predicted_labels))
+    cmap = plt.get_cmap("tab20")
+    color_map = {
+        cls: cmap(i % cmap.N)
+        for i, cls in enumerate(all_classes)
+    }
+
+    for cls in all_classes:
+        if "REST" in cls.upper():
+            color_map[cls] = "#d9d9d9"
+
+    fig, (ax_signal, ax_ribbon) = plt.subplots(
+        2,
+        1,
+        figsize=(18, 7),
+        sharex=True,
+        gridspec_kw={"height_ratios": [1.4, 1]},
+    )
+
+    if "rel_time" in test_df_scaled.columns and "acc_z_filt" in test_df_scaled.columns:
+        ax_signal.plot(
+            test_df_scaled["rel_time"],
+            test_df_scaled["acc_z_filt"],
+            color="black",
+            linewidth=0.8,
+            alpha=0.75,
+            label="acc_z_filt",
+        )
+        ax_signal.legend(loc="upper right")
+
+    ax_signal.set_title(
+        f"LOSO Fold: {held_out_id} | Accuracy={accuracy:.4f} | Macro-F1={f1_macro:.4f}"
+    )
+    ax_signal.set_ylabel("Scaled accel Z")
+    ax_signal.grid(True, alpha=0.25)
+
+    _draw_label_ribbon(
+        ax_ribbon,
+        1.0,
+        expected_labels,
+        window_times,
+        "Expected",
+        color_map,
+    )
+    _draw_label_ribbon(
+        ax_ribbon,
+        0.0,
+        predicted_labels,
+        window_times,
+        "Predicted",
+        color_map,
+    )
+
+    mismatch_mask = expected_labels != predicted_labels
+    if np.any(mismatch_mask):
+        ax_ribbon.scatter(
+            window_times[mismatch_mask],
+            np.full(np.sum(mismatch_mask), -0.35),
+            marker="x",
+            color="red",
+            s=14,
+            alpha=0.7,
+            label="Mismatch",
+        )
+
+    ax_ribbon.set_ylim(-0.7, 1.6)
+    ax_ribbon.set_yticks([])
+    ax_ribbon.set_xlabel("Relative time (seconds)")
+    ax_ribbon.set_title("Expected vs Predicted Labels")
+    ax_ribbon.grid(True, axis="x", alpha=0.25)
+
+    handles = [
+        plt.Line2D([0], [0], color=color_map[cls], lw=8, label=cls)
+        for cls in all_classes
+    ]
+    fig.legend(
+        handles=handles,
+        loc="lower center",
+        ncol=min(len(handles), 5),
+        bbox_to_anchor=(0.5, -0.03),
+    )
+
+    save_path = output_dir / f"loso_fold_{_safe_filename(held_out_id)}.png"
+    plt.tight_layout(rect=(0, 0.08, 1, 1))
+    plt.savefig(save_path, dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+    print(f"Saved LOSO fold plot to {save_path}")
+
 
 if __name__ == "__main__":
     run_loso()

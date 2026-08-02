@@ -85,20 +85,33 @@ def generate_dashboard(section_dir, apply_filter=False, cutoff_hz=3.0):
                   row=3, col=1)
 
     # 5. Overlay Labels
-    for round_data in metadata.get("roundResults", []):
-        for exercise in round_data.get("exerciseResults", []):
+    all_exercise_results = []
+    if "exercises" in metadata:
+        all_exercise_results = metadata["exercises"]
+    elif "roundResults" in metadata:
+        for round_data in metadata["roundResults"]:
+            all_exercise_results.extend(round_data.get("exerciseResults", []))
+            # Also add round rest if present
+            if "restingTimeStart" in round_data and "endTime" in round_data:
+                 fig.add_vrect(
+                    x0=round_data["restingTimeStart"], x1=round_data["endTime"],
+                    fillcolor="gray", opacity=0.2, layer="below", line_width=0,
+                    annotation_text="Rest", annotation_position="top left", row="all", col=1
+                )
+
+    for exercise in all_exercise_results:
+        start = exercise.get("startTime") or exercise.get("start")
+        end = exercise.get("endTime") or exercise.get("end")
+        name = exercise.get("name", "Unknown")
+        result = exercise.get("result", 0)
+        
+        if start is not None and end is not None:
             fig.add_vrect(
-                x0=exercise["startTime"], x1=exercise["endTime"],
+                x0=start, x1=end,
                 fillcolor="green", opacity=0.15, layer="below", line_width=0,
-                annotation_text=f"{exercise['name']} ({exercise['result']} reps)",
+                annotation_text=f"{name} ({result} reps)",
                 annotation_position="top left", row="all", col=1
             )
-
-        fig.add_vrect(
-            x0=round_data["restingTimeStart"], x1=round_data["endTime"],
-            fillcolor="gray", opacity=0.2, layer="below", line_width=0,
-            annotation_text="Rest", annotation_position="top left", row="all", col=1
-        )
 
     # 6. UI Polish (Update Title based on filter flag)
     filter_status = f" | Filtered: {cutoff_hz}Hz" if apply_filter else " | RAW"
