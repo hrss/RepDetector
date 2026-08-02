@@ -99,11 +99,24 @@ def generate_dashboard(section_dir, apply_filter=False, cutoff_hz=3.0):
                     annotation_text="Rest", annotation_position="top left", row="all", col=1
                 )
 
+    current_time = 0.0
     for exercise in all_exercise_results:
         start = exercise.get("startTime") or exercise.get("start")
         end = exercise.get("endTime") or exercise.get("end")
         name = exercise.get("name", "Unknown")
         result = exercise.get("result", 0)
+        
+        if start is None or end is None:
+            duration = 0.0
+            if "endConditionValues" in exercise and exercise["endConditionValues"]:
+                duration = float(exercise["endConditionValues"][0])
+            elif "duration" in exercise:
+                duration = float(exercise["duration"])
+            
+            start = current_time
+            end = current_time + duration
+        
+        current_time = end
         
         if start is not None and end is not None:
             fig.add_vrect(

@@ -122,12 +122,25 @@ def scan_inventory(data_dir):
                  for r in meta["roundResults"]:
                     segments.extend(r.get("exerciseResults", []))
 
+            current_time = 0.0
             for seg in segments:
-                name = seg.get('name')
+                name = seg.get('name') or seg.get('canonicalName')
                 start = seg.get('start') or seg.get('startTime')
                 end = seg.get('end') or seg.get('endTime')
                 
-                if name and start is not None and end is not None:
+                if start is None or end is None:
+                    duration = 0.0
+                    if "endConditionValues" in seg and seg["endConditionValues"]:
+                        duration = float(seg["endConditionValues"][0])
+                    elif "duration" in seg:
+                        duration = float(seg["duration"])
+                    
+                    start = current_time
+                    end = current_time + duration
+                
+                current_time = end
+                
+                if name:
                     norm_name = normalize_label(name)
                     if norm_name is None:
                         continue

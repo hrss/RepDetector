@@ -114,6 +114,89 @@ def normalize_label(label_str):
         
     raise ValueError(f"Unmapped label: {label_str}")
 
+def load_workout_plan(plan_path):
+    """Loads a workout plan from JSON and returns a list of exercise segments."""
+    if not os.path.exists(plan_path):
+        return None
+    with open(plan_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    plan_segments = []
+    # Check various locations for exercises in the schema
+    if "exercises" in data:
+        plan_segments = data["exercises"]
+    elif "roundResults" in data:
+        for r in data["roundResults"]:
+            plan_segments.extend(r.get("exerciseResults", []))
+    elif "workout" in data and isinstance(data["workout"], dict):
+        w = data["workout"]
+        if "exercises" in w:
+            plan_segments = w["exercises"]
+        elif "roundResults" in w:
+            for r in w.get("roundResults", []):
+                plan_segments.extend(r.get("exerciseResults", []))
+                
+    # Normalize segments to have name, start, end
+    normalized_plan = []
+    current_time = 0.0
+    for seg in plan_segments:
+        name = seg.get('name') or seg.get('canonicalName')
+        
+        # Try to get start/end directly
+        start = seg.get('start') or seg.get('startTime')
+        end = seg.get('end') or seg.get('endTime')
+        
+        # If not present, try to derive from duration
+        if start is None or end is None:
+            duration = 0.0
+            if "endConditionValues" in seg and seg["endConditionValues"]:
+                duration = float(seg["endConditionValues"][0])
+            elif "duration" in seg:
+                duration = float(seg["duration"])
+            
+            start = current_time
+            end = current_time + duration
+            
+        current_time = end
+            
+        if name:
+            norm_name = normalize_label(name)
+            if norm_name: # might be None for 'Setup'
+                normalized_plan.append({
+                    'name': norm_name,
+                    'start': start,
+                    'end': end
+                })
+    return normalized_plan
+
+def guide_predictions(all_preds, window_times, plan, label_encoder):
+    """Adjusts predictions based on a workout plan."""
+    if not plan:
+        return all_preds
+    
+    guided_preds = []
+    class_to_idx = {cls: idx for idx, cls in enumerate(label_encoder.classes_)}
+    rest_idx = class_to_idx.get("REST")
+    
+    for pred, t in zip(all_preds, window_times):
+        # Find if there is a planned exercise for this time
+        planned_label = None
+        for seg in plan:
+            if seg['start'] <= t <= seg['end']:
+                planned_label = seg['name']
+                break
+        
+        if planned_label and planned_label in class_to_idx:
+            planned_idx = class_to_idx[planned_label]
+            if pred != planned_idx and pred != rest_idx:
+                guided_preds.append(planned_idx)
+            else:
+                guided_preds.append(pred)
+        else:
+            guided_preds.append(pred)
+            
+    return guided_preds
+
 def get_session_data(data_dir):
     parquet_files = glob.glob(os.path.join(data_dir, "**", "*.parquet"), recursive=True)
     sessions = {}
@@ -127,6 +210,45 @@ def get_session_data(data_dir):
         df, meta = load_raw_section_data(prefix, CONFIG)
         if df is None:
             continue
+            
+        # --- Robust label extraction for inference ---
+        if (df['label'] == 'Rest').all() or df['label'].isnull().all():
+            all_segments = []
+            if "exercises" in meta:
+                all_segments = meta["exercises"]
+            elif "workout" in meta and isinstance(meta["workout"], dict):
+                w = meta["workout"]
+                if "exercises" in w:
+                    all_segments = w["exercises"]
+                elif "roundResults" in w:
+                    for r in w.get("roundResults", []):
+                        all_segments.extend(r.get("exerciseResults", []))
+            elif "roundResults" in meta:
+                for r in meta.get("roundResults", []):
+                    all_segments.extend(r.get("exerciseResults", []))
+            
+            current_time = 0.0
+            for seg in all_segments:
+                name = seg.get('name') or seg.get('canonicalName')
+                start = seg.get('start') or seg.get('startTime')
+                end = seg.get('end') or seg.get('endTime')
+                
+                if start is None or end is None:
+                    duration = 0.0
+                    if "endConditionValues" in seg and seg["endConditionValues"]:
+                        duration = float(seg["endConditionValues"][0])
+                    elif "duration" in seg:
+                        duration = float(seg["duration"])
+                    
+                    start = current_time
+                    end = current_time + duration
+                
+                current_time = end
+                
+                if name:
+                    mask = (df['rel_time'] >= start) & (df['rel_time'] <= end)
+                    df.loc[mask, 'label'] = name
+        # ---------------------------------------------
             
         before_counts.update(df['label'].values)
         df['norm_label'] = df['label'].apply(normalize_label)
@@ -379,6 +501,14 @@ def run_loso_dt():
         
         # Evaluate Layer A
         y_pred_fold = model.predict(X_test)
+        
+        # [NEW] Plan-based Guidance for Inference
+        project_root = Path(__file__).resolve().parents[2]
+        plan_path = project_root / "workout.json"
+        plan = load_workout_plan(plan_path)
+        if plan:
+            print(f"  [GUIDANCE] Applying workout plan to guide inference for session {held_out_id}")
+            y_pred_fold = guide_predictions(y_pred_fold, t_test, plan, le_fold)
         
         y_test_labels = le_fold.inverse_transform(y_test)
         y_pred_labels = le_fold.inverse_transform(y_pred_fold)
