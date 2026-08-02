@@ -17,6 +17,7 @@ import joblib
 
 from src.training.data_loader import load_raw_section_data
 from src.core.data_utils import extract_features
+from src.training.decoders import WodDecoder, RestPolicy
 
 # --- CONFIGURATION ---
 # Decision Tree usually works better with the features at 20Hz as per decision_tree.py
@@ -169,33 +170,68 @@ def load_workout_plan(plan_path):
                 })
     return normalized_plan
 
-def guide_predictions(all_preds, window_times, plan, label_encoder):
-    """Adjusts predictions based on a workout plan."""
-    if not plan:
-        return all_preds
+def calculate_wod_metrics(y_true_labels, y_pred_labels, times, step_size_sec, tolerance_sec=5.0):
+    """
+    Calculates detailed WOD metrics as requested.
+    """
+    T = len(y_true_labels)
+    correct_mask = y_true_labels == y_pred_labels
     
-    guided_preds = []
-    class_to_idx = {cls: idx for idx, cls in enumerate(label_encoder.classes_)}
-    rest_idx = class_to_idx.get("REST")
+    acc = accuracy_score(y_true_labels, y_pred_labels)
+    precision, recall, f1, _ = precision_recall_fscore_support(y_true_labels, y_pred_labels, average='macro', zero_division=0)
     
-    for pred, t in zip(all_preds, window_times):
-        # Find if there is a planned exercise for this time
-        planned_label = None
-        for seg in plan:
-            if seg['start'] <= t <= seg['end']:
-                planned_label = seg['name']
-                break
-        
-        if planned_label and planned_label in class_to_idx:
-            planned_idx = class_to_idx[planned_label]
-            if pred != planned_idx and pred != rest_idx:
-                guided_preds.append(planned_idx)
-            else:
-                guided_preds.append(pred)
-        else:
-            guided_preds.append(pred)
+    # Transitions
+    def find_transitions(labels):
+        trans = []
+        for i in range(1, len(labels)):
+            if labels[i] != labels[i-1]:
+                trans.append({'time': i * step_size_sec, 'from': labels[i-1], 'to': labels[i], 'idx': i})
+        return trans
+
+    gt_trans = find_transitions(y_true_labels)
+    pred_trans = find_transitions(y_pred_labels)
+    
+    false_transitions = 0
+    premature_transitions = 0
+    latencies = []
+    
+    matched_gt = set()
+    for pt in pred_trans:
+        found_match = False
+        for i, gt in enumerate(gt_trans):
+            if i in matched_gt: continue
+            if pt['from'] == gt['from'] and pt['to'] == gt['to']:
+                latency = pt['time'] - gt['time']
+                if abs(latency) <= 15.0:
+                    matched_gt.add(i)
+                    latencies.append(latency)
+                    found_match = True
+                    if latency < -tolerance_sec:
+                        premature_transitions += 1
+                    break
+        if not found_match:
+            false_transitions += 1
             
-    return guided_preds
+    session_duration_min = (T * step_size_sec) / 60.0
+    ft_per_min = false_transitions / session_duration_min if session_duration_min > 0 else 0
+    premature_rate = premature_transitions / len(pred_trans) if len(pred_trans) > 0 else 0
+    unrecoverable = 1 if not correct_mask[-1] else 0
+    misattributed_sec = np.sum(~correct_mask) * step_size_sec
+    
+    return {
+        'accuracy': acc,
+        'precision': precision,
+        'recall': recall,
+        'f1': f1,
+        'false_trans_per_min': ft_per_min,
+        'median_latency': np.median(latencies) if latencies else 0,
+        'p90_latency': np.percentile(latencies, 90) if latencies else 0,
+        'premature_rate': premature_rate,
+        'unrecoverable': unrecoverable,
+        'misattributed_sec': misattributed_sec,
+        'n_gt_trans': len(gt_trans),
+        'n_pred_trans': len(pred_trans)
+    }
 
 def get_session_data(data_dir):
     parquet_files = glob.glob(os.path.join(data_dir, "**", "*.parquet"), recursive=True)
@@ -435,7 +471,7 @@ def run_loso_dt():
     pooled_y_true = []
     pooled_y_pred = []
     sweep_results = {dwell: [] for dwell in CONFIG['dwell_sweep']}
-    fold_train_classes = []
+    variant_aggregate_results = {}
     
     for held_out_id in session_ids:
         print(f"\n{'='*20} FOLD: Held out {held_out_id} {'='*20}")
@@ -444,37 +480,22 @@ def run_loso_dt():
         train_dfs = [sessions[sid] for sid in train_sessions]
         test_df = sessions[held_out_id]
         
+        # We need ALL classes for the global pooled metrics later
+        # But we only train on classes present in the train set.
         train_classes_in_fold = set()
         for df in train_dfs:
             train_classes_in_fold.update(df['norm_label'].unique())
-        test_classes_in_fold = set(test_df['norm_label'].unique())
-        common_classes = sorted(list(train_classes_in_fold.intersection(test_classes_in_fold)))
         
-        train_dfs = [df[df['norm_label'].isin(common_classes)].copy() for df in train_dfs]
-        test_df = test_df[test_df['norm_label'].isin(common_classes)].copy()
-        
-        if len(test_df) == 0:
-            print(f"  WARNING: No windows left in test set after filtering! Skipping fold.")
-            continue
-            
+        # Ensure we have common classes or at least all train classes
         le_fold = LabelEncoder()
-        le_fold.fit(common_classes)
+        le_fold.fit(sorted(list(train_classes_in_fold)))
         
-        # Scaling is less critical for Trees but extract_features output might benefit if using distance-based parts
+        # Scaling
         scaler = StandardScaler()
         sensors = ['acc_x_filt', 'acc_y_filt', 'acc_z_filt', 'gyro_x_filt', 'gyro_y_filt', 'gyro_z_filt']
         
         train_data_full = pd.concat(train_dfs)
         scaler.fit(train_data_full[sensors])
-        for df in train_dfs:
-            df[sensors] = scaler.transform(df[sensors])
-        test_df_scaled = test_df.copy()
-        test_df_scaled[sensors] = scaler.transform(test_df_scaled[sensors])
-        
-        train_classes = set()
-        for df in train_dfs:
-            train_classes.update(df['norm_label'].unique())
-        fold_train_classes.append(train_classes)
         
         X_train_list, y_train_list = [], []
         for df in train_dfs:
@@ -484,10 +505,24 @@ def run_loso_dt():
         
         X_train = np.concatenate(X_train_list)
         y_train = np.concatenate(y_train_list)
-        X_test, y_test, t_test = create_windows_dt(test_df_scaled, CONFIG, le_fold)
+        
+        # Test data windows - handle unknown labels by dropping them for Layer A evaluation if needed
+        # but WodDecoder handles string labels too.
+        # For simple accuracy we need labels to be in le_fold.
+        test_df_scaled = test_df.copy()
+        test_df_scaled[sensors] = scaler.transform(test_df_scaled[sensors])
+        
+        # Pre-filter test_df to only include classes model knows about for initial predict
+        test_df_valid = test_df_scaled[test_df_scaled['norm_label'].isin(le_fold.classes_)].copy()
+        if len(test_df_valid) == 0:
+            print(f"  [FOLD] Skipping: No test data with labels known to train set.")
+            continue
+            
+        X_test, y_test, t_test = create_windows_dt(test_df_valid, CONFIG, le_fold)
+        y_test_labels = le_fold.inverse_transform(y_test)
         
         print(f"Train windows: {len(X_train)}, Test windows: {len(X_test)}")
-        class_dist = Counter(le_fold.inverse_transform(y_test))
+        class_dist = Counter(y_test_labels)
         print(f"Test Class Distribution: {dict(class_dist)}")
         
         # Train Decision Tree
@@ -499,46 +534,120 @@ def run_loso_dt():
         )
         model.fit(X_train, y_train)
         
-        # Evaluate Layer A
-        y_pred_fold = model.predict(X_test)
-        
-        # [NEW] Plan-based Guidance for Inference
-        project_root = Path(__file__).resolve().parents[2]
-        plan_path = project_root / "workout.json"
-        plan = load_workout_plan(plan_path)
-        if plan:
-            print(f"  [GUIDANCE] Applying workout plan to guide inference for session {held_out_id}")
-            y_pred_fold = guide_predictions(y_pred_fold, t_test, plan, le_fold)
-        
-        y_test_labels = le_fold.inverse_transform(y_test)
-        y_pred_labels = le_fold.inverse_transform(y_pred_fold)
-        
-        pooled_y_true.extend(le.transform(y_test_labels))
-        pooled_y_pred.extend(le.transform(y_pred_labels))
-        
-        acc = accuracy_score(y_test, y_pred_fold)
-        f1 = f1_score(y_test, y_pred_fold, average='macro')
+        # Probabilities for WOD decoders
+        all_probs = model.predict_proba(X_test)
 
+        # 5. [NEW] Revisable decoders
+        # Load workout plan
+        plan_path = project_root / "workout.json"
+        wod_sequence = []
+        try:
+            with open(plan_path, 'r', encoding='utf-8') as f:
+                plan_data = json.load(f)
+                rounds = plan_data.get('rounds', 1)
+                exs = plan_data.get('exercises', [])
+                for ex in exs:
+                    name = ex.get('canonicalName') or ex.get('name')
+                    # Map to training labels
+                    if name == "CHEST_TO_WALL_HSPU": name = "Push-up"
+                    elif name == "AIR_SQUAT": name = "Air Squat"
+                    elif name == "DOUBLE_UNDER": name = "Double-under"
+                    elif name == "BURPEE": name = "Burpee"
+                    elif name == "KB_SWING": name = "KB swing"
+                    elif name == "WALL_BALL_SHOT": name = "Wall ball"
+                    elif name == "SIT_UP": name = "Sit-up"
+                    elif name == "SANDBAG_LUNGES": name = "Walking lunge"
+                    elif name == "BOX_JUMP": name = "Box jump"
+                    elif name == "RUN": name = "Run"
+                    
+                    if name in le_fold.classes_:
+                        wod_sequence.append(name)
+                    elif name != "Setup":
+                         print(f"  [WOD] Exercise '{name}' not in fold classes, skipping WOD decoders.")
+                         wod_sequence = []
+                         break
+                wod_sequence = wod_sequence * rounds
+        except Exception as e:
+            print(f"  [WOD] Could not load workout plan: {e}")
+            wod_sequence = []
+
+        decoder = None
+        if wod_sequence:
+            decoder = WodDecoder(
+                workout_sequence=wod_sequence,
+                label_encoder=le_fold,
+                confidence_threshold=0.8,
+                dwell_seconds=CONFIG['default_dwell'],
+                step_size_sec=CONFIG['step_size_sec'],
+                rollback_window_sec=15.0
+            )
+
+        variants = [
+            {'name': 'baseline', 'type': 'baseline'},
+        ]
+        if decoder:
+            variants.extend([
+                {'name': 'greedy_wod_off', 'type': 'greedy', 'rollback': False, 'policy': RestPolicy.OFF},
+                {'name': 'greedy_wod_rollback_off', 'type': 'greedy', 'rollback': True, 'policy': RestPolicy.OFF},
+                {'name': 'greedy_wod_rollback_prefer', 'type': 'greedy', 'rollback': True, 'policy': RestPolicy.PREFER_REST},
+                {'name': 'greedy_wod_rollback_require', 'type': 'greedy', 'rollback': True, 'policy': RestPolicy.REQUIRE_REST},
+                {'name': 'viterbi', 'type': 'viterbi'}
+            ])
+
+        fold_variant_results = {}
         fold_plot_dir = project_root / "src" / "training" / "loso_fold_plots_dt"
-        plot_loso_fold_results(
-            held_out_id=held_out_id,
-            test_df_scaled=test_df_scaled,
-            window_times=t_test,
-            expected_labels=y_test_labels,
-            predicted_labels=y_pred_labels,
-            accuracy=acc,
-            f1_macro=f1,
-            output_dir=fold_plot_dir,
-        )
         
-        rest_labels = [l for l in le_fold.classes_ if "REST" in l.upper()]
-        if rest_labels:
-            rest_idx = le_fold.transform([rest_labels[0]])[0]
-            y_baseline = np.full_like(y_test, rest_idx)
-            baseline_acc = accuracy_score(y_test, y_baseline)
-            delta = acc - baseline_acc
-            print(f"Fold Macro-F1: {f1:.4f}")
-            print(f"Fold Accuracy: {acc:.4f} (Baseline: {baseline_acc:.4f}, Delta: {delta:+.4f})")
+        for var in variants:
+            v_name = var['name']
+            if var['type'] == 'baseline':
+                y_pred_idx = decoder.decode_greedy_baseline(all_probs) if decoder else np.argmax(all_probs, axis=1)
+                rollback_info = []
+            elif var['type'] == 'greedy':
+                decoder.rest_policy = var['policy']
+                y_pred_idx, rollback_info = decoder.decode_greedy_wod(all_probs, use_rollback=var['rollback'])
+            elif var['type'] == 'viterbi':
+                y_pred_idx = decoder.decode_viterbi(all_probs)
+                rollback_info = []
+            
+            y_pred_labels = le_fold.inverse_transform(y_pred_idx)
+            metrics = calculate_wod_metrics(y_test_labels, y_pred_labels, t_test, CONFIG['step_size_sec'])
+            metrics['rollback_count'] = len(rollback_info)
+            
+            fold_variant_results[v_name] = {
+                'metrics': metrics,
+                'labels': y_pred_labels
+            }
+            
+            if v_name not in variant_aggregate_results:
+                variant_aggregate_results[v_name] = []
+            variant_aggregate_results[v_name].append(metrics)
+
+            # Plot this variant
+            plot_loso_fold_results(
+                held_out_id=held_out_id,
+                test_df_scaled=test_df_valid,
+                window_times=t_test,
+                expected_labels=y_test_labels,
+                predicted_labels=y_pred_labels,
+                accuracy=metrics['accuracy'],
+                f1_macro=metrics['f1'],
+                output_dir=fold_plot_dir,
+                variant_name=v_name
+            )
+
+        # Use 'greedy_wod_rollback_prefer' as primary
+        primary_var = 'greedy_wod_rollback_prefer' if 'greedy_wod_rollback_prefer' in fold_variant_results else 'baseline'
+        primary_metrics = fold_variant_results[primary_var]['metrics']
+        primary_labels = fold_variant_results[primary_var]['labels']
+
+        pooled_y_true.extend(le.transform(y_test_labels))
+        pooled_y_pred.extend(le.transform(primary_labels))
+
+        acc = primary_metrics['accuracy']
+        f1 = primary_metrics['f1']
+        
+        print(f"Fold primary variant ({primary_var}) Macro-F1: {f1:.4f}")
+        print(f"Fold Accuracy: {acc:.4f}")
         
         fold_results.append({
             'session_id': held_out_id,
@@ -552,7 +661,7 @@ def run_loso_dt():
         session_duration_min = (t_test[-1] - t_test[0]) / 60.0
         
         for dwell in CONFIG['dwell_sweep']:
-            pred_states = dwell_decode(y_pred_labels, t_test, dwell, CONFIG['step_size_sec'])
+            pred_states = dwell_decode(primary_labels, t_test, dwell, CONFIG['step_size_sec'])
             res = evaluate_transitions(gt_transitions, pred_states, CONFIG['tolerance_sec'])
             
             recall = res['matched'] / res['total_gt'] if res['total_gt'] > 0 else 0
@@ -576,7 +685,19 @@ def run_loso_dt():
     print("\n\n" + "="*50)
     print("FINAL LOSO SUMMARY (Decision Tree)")
     print("="*50)
-    
+
+    # Variant Summary
+    print("\nDECODER VARIANT COMPARISON (Averaged over folds):")
+    print(f"{'Variant':<30} | {'Acc':<6} | {'Macro-F1':<8} | {'FT/min':<6} | {'Misattr(s)':<10} | {'Rollbacks'}")
+    print("-" * 80)
+    for v_name, v_metrics in variant_aggregate_results.items():
+        avg_acc = np.mean([m['accuracy'] for m in v_metrics])
+        avg_f1 = np.mean([m['f1'] for m in v_metrics])
+        avg_ft = np.mean([m['false_trans_per_min'] for m in v_metrics])
+        avg_mis = np.mean([m['misattributed_sec'] for m in v_metrics])
+        total_rollbacks = sum([m.get('rollback_count', 0) for m in v_metrics])
+        print(f"{v_name:<30} | {avg_acc:<6.4f} | {avg_f1:<8.4f} | {avg_ft:<6.2f} | {avg_mis:<10.1f} | {total_rollbacks}")
+
     accs = [r['accuracy'] for r in fold_results]
     f1s = [r['f1_macro'] for r in fold_results]
     
@@ -632,37 +753,165 @@ def _safe_filename(value):
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", str(value))
 
 def _draw_label_ribbon(ax, y_pos, labels, times, label_name, color_map):
-    if len(labels) == 0: return
-    start_time = times[0]
-    current_label = labels[0]
-    for i in range(1, len(labels)):
-        if labels[i] != current_label:
-            ax.barh(y_pos, times[i] - start_time, left=start_time, height=0.35, color=color_map[current_label])
-            start_time = times[i]
-            current_label = labels[i]
-    ax.barh(y_pos, times[-1] - start_time, left=start_time, height=0.35, color=color_map[current_label])
-    ax.text(times[0], y_pos + 0.28, label_name, va="bottom", ha="left", fontsize=10, fontweight="bold")
+    """
+    Draws a horizontal colored ribbon representing label sequences.
+    """
+    if len(labels) == 0:
+        return
 
-def plot_loso_fold_results(held_out_id, test_df_scaled, window_times, expected_labels, predicted_labels, accuracy, f1_macro, output_dir):
+    # Convert to numpy for faster processing if not already
+    labels = np.asarray(labels)
+    times = np.asarray(times)
+
+    # Calculate step size
+    if len(times) > 1:
+        dt = times[1] - times[0]
+    else:
+        dt = 0.5
+
+    # Find contiguous blocks of the same label
+    n = len(labels)
+    if n == 0:
+        return
+
+    starts = np.where(labels[1:] != labels[:-1])[0] + 1
+    starts = np.concatenate(([0], starts))
+    ends = np.concatenate((starts[1:], [n]))
+
+    for s, e in zip(starts, ends):
+        label = labels[s]
+        t_start = times[s] - dt / 2
+        t_end = times[min(e, n - 1)] + dt / 2
+        color = color_map.get(label, "#333333")
+
+        ax.barh(
+            y_pos,
+            t_end - t_start,
+            left=t_start,
+            height=0.6,
+            color=color,
+            alpha=0.8,
+            edgecolor="none",
+        )
+
+    ax.text(
+        times[0],
+        y_pos + 0.35,
+        label_name,
+        va="bottom",
+        ha="left",
+        fontsize=10,
+        fontweight="bold",
+    )
+
+def plot_loso_fold_results(
+        held_out_id,
+        test_df_scaled,
+        window_times,
+        expected_labels,
+        predicted_labels,
+        accuracy,
+        f1_macro,
+        output_dir,
+        variant_name="baseline"
+):
+    """
+    Saves a per-fold visualization comparing expected labels against predictions.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    window_times = np.asarray(window_times)
+    expected_labels = np.asarray(expected_labels)
+    predicted_labels = np.asarray(predicted_labels)
+
     all_classes = sorted(set(expected_labels) | set(predicted_labels))
     cmap = plt.get_cmap("tab20")
-    color_map = {cls: cmap(i % cmap.N) for i, cls in enumerate(all_classes)}
+    color_map = {
+        cls: cmap(i % cmap.N)
+        for i, cls in enumerate(all_classes)
+    }
+
     for cls in all_classes:
-        if "REST" in cls.upper(): color_map[cls] = "#d9d9d9"
-    fig, (ax_signal, ax_ribbon) = plt.subplots(2, 1, figsize=(18, 7), sharex=True, gridspec_kw={"height_ratios": [1.4, 1]})
+        if "REST" in cls.upper():
+            color_map[cls] = "#d9d9d9"
+
+    fig, (ax_signal, ax_ribbon) = plt.subplots(
+        2,
+        1,
+        figsize=(18, 7),
+        sharex=True,
+        gridspec_kw={"height_ratios": [1.4, 1]},
+    )
+
     if "rel_time" in test_df_scaled.columns and "acc_z_filt" in test_df_scaled.columns:
-        ax_signal.plot(test_df_scaled["rel_time"], test_df_scaled["acc_z_filt"], color="black", linewidth=0.8, alpha=0.75)
-    ax_signal.set_title(f"LOSO DT Fold: {held_out_id} | Acc={accuracy:.4f} | F1={f1_macro:.4f}")
+        ax_signal.plot(
+            test_df_scaled["rel_time"],
+            test_df_scaled["acc_z_filt"],
+            color="black",
+            linewidth=0.8,
+            alpha=0.75,
+            label="acc_z_filt",
+        )
+        ax_signal.legend(loc="upper right")
+
+    ax_signal.set_title(
+        f"LOSO DT Fold: {held_out_id} | Var: {variant_name} | Acc={accuracy:.4f} | Macro-F1={f1_macro:.4f}"
+    )
     ax_signal.set_ylabel("Scaled accel Z")
-    _draw_label_ribbon(ax_ribbon, 1.0, expected_labels, window_times, "Expected", color_map)
-    _draw_label_ribbon(ax_ribbon, 0.0, predicted_labels, window_times, "Predicted", color_map)
+    ax_signal.grid(True, alpha=0.25)
+
+    _draw_label_ribbon(
+        ax_ribbon,
+        1.0,
+        expected_labels,
+        window_times,
+        "Expected",
+        color_map,
+    )
+    _draw_label_ribbon(
+        ax_ribbon,
+        0.0,
+        predicted_labels,
+        window_times,
+        "Predicted",
+        color_map,
+    )
+
+    mismatch_mask = expected_labels != predicted_labels
+    if np.any(mismatch_mask):
+        ax_ribbon.scatter(
+            window_times[mismatch_mask],
+            np.full(np.sum(mismatch_mask), -0.35),
+            marker="x",
+            color="red",
+            s=14,
+            alpha=0.7,
+            label="Mismatch",
+        )
+
     ax_ribbon.set_ylim(-0.7, 1.6)
     ax_ribbon.set_yticks([])
     ax_ribbon.set_xlabel("Relative time (seconds)")
-    plt.tight_layout()
-    plt.savefig(output_dir / f"loso_fold_{_safe_filename(held_out_id)}.png", dpi=160)
+    ax_ribbon.set_title("Expected vs Predicted Labels")
+    ax_ribbon.grid(True, axis="x", alpha=0.25)
+
+    handles = [
+        plt.Line2D([0], [0], color=color_map[cls], lw=8, label=cls)
+        for cls in all_classes
+    ]
+    fig.legend(
+        handles=handles,
+        loc="lower center",
+        ncol=min(len(handles), 5),
+        bbox_to_anchor=(0.5, -0.03),
+    )
+
+    save_path = output_dir / f"loso_fold_{_safe_filename(held_out_id)}_{variant_name}.png"
+    plt.tight_layout(rect=(0, 0.08, 1, 1))
+    plt.savefig(save_path, dpi=160, bbox_inches="tight")
     plt.close(fig)
+
+    print(f"Saved LOSO DT fold plot ({variant_name}) to {save_path}")
 
 if __name__ == "__main__":
     run_loso_dt()

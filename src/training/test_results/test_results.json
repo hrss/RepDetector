@@ -1,0 +1,17 @@
+[
+    {
+        "session_id": "14624AEB-E58A-4780-80A7-5BC7E2A2FF23",
+        "cnn_baseline_acc": 0.672514619883041,
+        "cnn_baseline_f1": 0.5161693678769639,
+        "dt_baseline_acc": 0.8084795321637427,
+        "dt_baseline_f1": 0.7463089973886927,
+        "cnn_rollback_acc": 0.6615497076023392,
+        "cnn_rollback_f1": 0.5078006552158625,
+        "dt_rollback_acc": 0.48391812865497075,
+        "dt_rollback_f1": 0.3837607258808224,
+        "cnn_viterbi_acc": 0.6710526315789473,
+        "cnn_viterbi_f1": 0.5161804075373169,
+        "dt_viterbi_acc": 0.8245614035087719,
+        "dt_viterbi_f1": 0.7510957739778495
+    }
+]
