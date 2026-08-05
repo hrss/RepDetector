@@ -18,6 +18,7 @@ from enum import Enum
 from collections import Counter
 import joblib
 
+from src.core.exercises import canonicalize_label
 from src.training.data_loader import load_raw_section_data
 from src.models.cnn.cnn_model import SixAxisCNN
 from src.training.decoders import WodDecoder, RestPolicy
@@ -38,101 +39,7 @@ CONFIG = {
     'weighted_loss': True # Added for BUG 4
 }
 
-# 1. Label Normalization
-class ExerciseLabel(Enum):
-    AIR_SQUAT = "Air Squat"
-    BURPEE = "Burpee"
-    KB_SWING = "KB swing"
-    WALL_BALL = "Wall ball"
-    PUSH_UP = "Push-up"
-    REST = "REST"
-    SIT_UP = "Sit-up"
-    WALKING_LUNGE = "Walking lunge"
-    BOX_JUMP = "Box jump"
-    DOUBLE_UNDER = "Double-under"
-    RUN = "Run"
-    RUN_ALL_OUT = "Run All Out"
-    # Low support/Null handled separately
-
-LABEL_MAP = {
-    "rest": ExerciseLabel.REST,
-    "air squat": ExerciseLabel.AIR_SQUAT,
-    "air_squat": ExerciseLabel.AIR_SQUAT,
-    "burpee": ExerciseLabel.BURPEE,
-    "kb swing": ExerciseLabel.KB_SWING,
-    "kb_swing": ExerciseLabel.KB_SWING,
-    "kb swing (russian)": ExerciseLabel.KB_SWING,
-    "kb swing (american)": ExerciseLabel.KB_SWING,
-    "wall ball": ExerciseLabel.WALL_BALL,
-    "wall_ball_shot": ExerciseLabel.WALL_BALL,
-    "push-up": ExerciseLabel.PUSH_UP,
-    "chest_to_wall_hspu": ExerciseLabel.PUSH_UP,
-    "sit-up": ExerciseLabel.SIT_UP,
-    "sit_up": ExerciseLabel.SIT_UP,
-    "walking lunge": ExerciseLabel.WALKING_LUNGE,
-    "sandbag_lunges": ExerciseLabel.WALKING_LUNGE,
-    "box jump": ExerciseLabel.BOX_JUMP,
-    "box_jump": ExerciseLabel.BOX_JUMP,
-    "double-under": ExerciseLabel.DOUBLE_UNDER,
-    "double_under": ExerciseLabel.DOUBLE_UNDER,
-    "run": ExerciseLabel.RUN,
-    "run all out": ExerciseLabel.RUN_ALL_OUT,
-}
-
 IGNORE_LABELS = ["null", "setup"]
-
-CANONICAL_TO_LABEL = {
-    "PUSH_UP": "Push-up",
-    "AIR_SQUAT": "Air Squat",
-    "DOUBLE_UNDER": "Double-under",
-    "BURPEE": "Burpee",
-    "KB_SWING": "KB swing",
-    "WALL_BALL": "Wall ball",
-    "SIT_UP": "Sit-up",
-    "WALKING_LUNGE": "Walking lunge",
-    "BOX_JUMP": "Box jump",
-    "RUN": "Run",
-    "RUN_ALL_OUT": "Run All Out",
-}
-
-def normalize_label(label_str):
-    if not label_str or pd.isna(label_str):
-        return None
-    ls = label_str.strip().lower()
-    if ls in IGNORE_LABELS:
-        return None
-    
-    # Direct match
-    if ls in LABEL_MAP:
-        return LABEL_MAP[ls].value
-    
-    # Substring matches for variants
-    if "kb swing" in ls:
-        return ExerciseLabel.KB_SWING.value
-    if "rest" in ls:
-        return ExerciseLabel.REST.value
-    if "wall ball" in ls:
-        return ExerciseLabel.WALL_BALL.value
-    if "lunge" in ls:
-        return ExerciseLabel.WALKING_LUNGE.value
-    if "box jump" in ls:
-        return ExerciseLabel.BOX_JUMP.value
-    if "double under" in ls or "double-under" in ls:
-        return ExerciseLabel.DOUBLE_UNDER.value
-    if "push up" in ls or "push-up" in ls:
-        return ExerciseLabel.PUSH_UP.value
-    if "sit up" in ls or "sit-up" in ls:
-        return ExerciseLabel.SIT_UP.value
-    if "air squat" in ls:
-        return ExerciseLabel.AIR_SQUAT.value
-    if "burpee" in ls:
-        return ExerciseLabel.BURPEE.value
-    if "run all out" in ls:
-        return ExerciseLabel.RUN_ALL_OUT.value
-    if "run" in ls:
-        return ExerciseLabel.RUN.value
-        
-    raise ValueError(f"Unmapped label: {label_str}")
 
 def load_workout_plan(plan_path):
     """Loads a workout plan from JSON and returns a list of exercise segments."""
@@ -162,20 +69,11 @@ def load_workout_plan(plan_path):
     # Map and handle rounds
     base_sequence = []
     for seg in plan_segments:
-        name = seg.get('name')
-        canon = seg.get('canonicalName')
+        name = seg.get('canonicalName') or seg.get('name')
+        norm_name = canonicalize_label(name)
         
-        norm_name = None
-        if canon in CANONICAL_TO_LABEL:
-            norm_name = CANONICAL_TO_LABEL[canon]
-        elif name:
-            try:
-                norm_name = normalize_label(name)
-            except ValueError:
-                pass
-        
-        if not norm_name and (canon or name):
-            raise ValueError(f"LOUD FAIL: Unmapped exercise name='{name}', canon='{canon}'")
+        if not norm_name and name:
+            raise ValueError(f"LOUD FAIL: Unmapped exercise name='{name}'")
         
         if norm_name:
             base_sequence.append(norm_name)
@@ -318,7 +216,7 @@ def get_session_data(data_dir):
         before_counts.update(df['label'].values)
         
         # Normalize labels
-        df['norm_label'] = df['label'].apply(normalize_label)
+        df['norm_label'] = df['label'].apply(canonicalize_label)
         
         # Record after counts (excluding None/NaN)
         after_counts.update([l for l in df['norm_label'].values if pd.notna(l)])
@@ -340,7 +238,7 @@ def get_session_data(data_dir):
             norm = "IGNORED"
         else:
             try:
-                norm = normalize_label(cls)
+                norm = canonicalize_label(cls)
                 if norm is None:
                     norm = "IGNORED"
             except:

@@ -55,7 +55,7 @@ def test_and_plot_section(section_dir, model, label_encoder, config):
         # Step by 1 frame for a dense, high-resolution prediction map
         for i in range(len(df)):
             if i < window_pts:
-                predictions_raw.append("Rest")  # Padding for the first 1-second window
+                predictions_raw.append("REST")  # Padding for the first 1-second window
                 time_tracker.append(df['rel_time'].iloc[i])
                 continue
 

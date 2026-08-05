@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import joblib
 from collections import Counter
 
+from src.core.exercises import canonicalize_label
 from src.training.data_loader import load_raw_section_data
 from src.models.cnn.cnn_model import SixAxisCNN
 from src.core.data_utils import extract_features
@@ -41,76 +42,6 @@ DT_CONFIG = {
     'max_depth': 15,
     'min_samples_split': 5
 }
-
-# --- LABEL NORMALIZATION (Common for both) ---
-LABEL_MAP = {
-    "rest": "REST",
-    "air squat": "Air Squat",
-    "air_squat": "Air Squat",
-    "burpee": "Burpee",
-    "kb swing": "KB swing",
-    "kb_swing": "KB swing",
-    "kb swing (russian)": "KB swing",
-    "kb swing (american)": "KB swing",
-    "wall ball": "Wall ball",
-    "wall_ball_shot": "Wall ball",
-    "push-up": "Push-up",
-    "push up": "Push-up",
-    "chest_to_wall_hspu": "Push-up",
-    "sit-up": "Sit-up",
-    "sit up": "Sit-up",
-    "sit_up": "Sit-up",
-    "walking lunge": "Walking lunge",
-    "sandbag_lunges": "Walking lunge",
-    "box jump": "Box jump",
-    "box_jump": "Box jump",
-    "double-under": "Double-under",
-    "double_under": "Double-under",
-    "double under": "Double-under",
-    "run": "Run",
-    "run all out": "Run All Out",
-}
-
-IGNORE_LABELS = ["null", "setup"]
-
-CANONICAL_TO_LABEL = {
-    "PUSH_UP": "Push-up",
-    "AIR_SQUAT": "Air Squat",
-    "DOUBLE_UNDER": "Double-under",
-    "BURPEE": "Burpee",
-    "KB_SWING": "KB swing",
-    "WALL_BALL": "Wall ball",
-    "SIT_UP": "Sit-up",
-    "WALKING_LUNGE": "Walking lunge",
-    "BOX_JUMP": "Box jump",
-    "RUN": "Run",
-    "RUN_ALL_OUT": "Run All Out",
-}
-
-def normalize_label(label_str):
-    if not label_str or pd.isna(label_str):
-        return None
-    ls = label_str.strip().lower()
-    if ls in IGNORE_LABELS:
-        return None
-    
-    if ls in LABEL_MAP:
-        return LABEL_MAP[ls]
-    
-    if "kb swing" in ls: return "KB swing"
-    if "rest" in ls: return "REST"
-    if "wall ball" in ls: return "Wall ball"
-    if "lunge" in ls: return "Walking lunge"
-    if "box jump" in ls: return "Box jump"
-    if "double under" in ls or "double-under" in ls: return "Double-under"
-    if "push up" in ls or "push-up" in ls: return "Push-up"
-    if "sit up" in ls or "sit-up" in ls: return "Sit-up"
-    if "air squat" in ls: return "Air Squat"
-    if "burpee" in ls: return "Burpee"
-    if "run all out" in ls: return "Run All Out"
-    if "run" in ls: return "Run"
-    
-    return None
 
 def load_workout_plan(plan_path):
     """Loads a workout plan from JSON and returns a list of exercise labels."""
@@ -142,10 +73,10 @@ def load_workout_plan(plan_path):
         canon = seg.get('canonicalName')
         
         norm_name = None
-        if canon in CANONICAL_TO_LABEL:
-            norm_name = CANONICAL_TO_LABEL[canon]
+        if canon:
+             norm_name = canon
         elif name:
-            norm_name = normalize_label(name)
+            norm_name = canonicalize_label(name)
         
         if not norm_name and (canon or name):
             raise ValueError(f"LOUD FAIL: Unmapped exercise name='{name}', canon='{canon}'")
@@ -203,7 +134,7 @@ def get_session_data(data_dir, config):
                     mask = (df['rel_time'] >= start) & (df['rel_time'] <= end)
                     df.loc[mask, 'label'] = name
         
-        df['norm_label'] = df['label'].apply(normalize_label)
+        df['norm_label'] = df['label'].apply(canonicalize_label)
         df = df.dropna(subset=['norm_label']).reset_index(drop=True)
         sessions[session_id] = df
         

@@ -64,15 +64,16 @@ def extract_features(window):
     gyro_z_min = np.min(gyro_z)
 
     # --- 4 FFT FEATURES (The Repetition Cadence) ---
-    # These help distinguish between fast/slow movements and identify periodic patterns
+    # We pad to 64 to match the Garmin's Radix-2 FFT implementation
+    n_fft = 64
     
     # FFT for Accel SMV
-    acc_fft = np.abs(np.fft.rfft(acc_smv - acc_smv_mean))
+    acc_fft = np.abs(np.fft.rfft(acc_smv - acc_smv_mean, n=n_fft))
     acc_dom_freq_idx = np.argmax(acc_fft[1:]) + 1  # Skip DC component
     acc_max_power = acc_fft[acc_dom_freq_idx]
 
     # FFT for Gyro SMV
-    gyro_fft = np.abs(np.fft.rfft(gyro_smv - gyro_smv_mean))
+    gyro_fft = np.abs(np.fft.rfft(gyro_smv - gyro_smv_mean, n=n_fft))
     gyro_dom_freq_idx = np.argmax(gyro_fft[1:]) + 1  # Skip DC component
     gyro_max_power = gyro_fft[gyro_dom_freq_idx]
 

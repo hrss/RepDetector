@@ -6,86 +6,7 @@ import matplotlib.pyplot as plt
 from collections import Counter
 from enum import Enum
 
-# Reusing the logic from loso_eval.py to keep labels consistent
-class ExerciseLabel(Enum):
-    AIR_SQUAT = "Air Squat"
-    BURPEE = "Burpee"
-    KB_SWING = "KB swing"
-    WALL_BALL = "Wall ball"
-    PUSH_UP = "Push-up"
-    REST = "REST"
-    SIT_UP = "Sit-up"
-    WALKING_LUNGE = "Walking lunge"
-    BOX_JUMP = "Box jump"
-    DOUBLE_UNDER = "Double-under"
-    RUN = "Run"
-    RUN_ALL_OUT = "Run All Out"
-
-LABEL_MAP = {
-    "rest": ExerciseLabel.REST,
-    "air squat": ExerciseLabel.AIR_SQUAT,
-    "air_squat": ExerciseLabel.AIR_SQUAT,
-    "burpee": ExerciseLabel.BURPEE,
-    "kb swing": ExerciseLabel.KB_SWING,
-    "kb_swing": ExerciseLabel.KB_SWING,
-    "kb swing (russian)": ExerciseLabel.KB_SWING,
-    "kb swing (american)": ExerciseLabel.KB_SWING,
-    "wall ball": ExerciseLabel.WALL_BALL,
-    "wall_ball_shot": ExerciseLabel.WALL_BALL,
-    "push-up": ExerciseLabel.PUSH_UP,
-    "chest_to_wall_hspu": ExerciseLabel.PUSH_UP,
-    "sit-up": ExerciseLabel.SIT_UP,
-    "sit_up": ExerciseLabel.SIT_UP,
-    "walking lunge": ExerciseLabel.WALKING_LUNGE,
-    "sandbag_lunges": ExerciseLabel.WALKING_LUNGE,
-    "box jump": ExerciseLabel.BOX_JUMP,
-    "box_jump": ExerciseLabel.BOX_JUMP,
-    "double-under": ExerciseLabel.DOUBLE_UNDER,
-    "double_under": ExerciseLabel.DOUBLE_UNDER,
-    "run": ExerciseLabel.RUN,
-    "run all out": ExerciseLabel.RUN_ALL_OUT,
-}
-
-IGNORE_LABELS = ["null", "setup"]
-
-def normalize_label(label_str):
-    if not label_str or pd.isna(label_str):
-        return None
-    ls = label_str.strip().lower()
-    if ls in IGNORE_LABELS:
-        return None
-    
-    # Direct match
-    if ls in LABEL_MAP:
-        return LABEL_MAP[ls].value
-    
-    # Substring matches for variants
-    if "kb swing" in ls:
-        return ExerciseLabel.KB_SWING.value
-    if "rest" in ls:
-        return ExerciseLabel.REST.value
-    if "wall ball" in ls:
-        return ExerciseLabel.WALL_BALL.value
-    if "lunge" in ls:
-        return ExerciseLabel.WALKING_LUNGE.value
-    if "box jump" in ls:
-        return ExerciseLabel.BOX_JUMP.value
-    if "double under" in ls or "double-under" in ls:
-        return ExerciseLabel.DOUBLE_UNDER.value
-    if "push up" in ls or "push-up" in ls:
-        return ExerciseLabel.PUSH_UP.value
-    if "sit up" in ls or "sit-up" in ls:
-        return ExerciseLabel.SIT_UP.value
-    if "air squat" in ls:
-        return ExerciseLabel.AIR_SQUAT.value
-    if "burpee" in ls:
-        return ExerciseLabel.BURPEE.value
-    if "run all out" in ls:
-        return ExerciseLabel.RUN_ALL_OUT.value
-    if "run" in ls:
-        return ExerciseLabel.RUN.value
-        
-    return label_str # Keep unknown labels as they are for inventory visibility
+from src.core.exercises import canonicalize_label
 
 def scan_inventory(data_dir):
     meta_files = glob.glob(os.path.join(data_dir, "**", "*.meta.json"), recursive=True)
@@ -141,7 +62,7 @@ def scan_inventory(data_dir):
                 current_time = end
                 
                 if name:
-                    norm_name = normalize_label(name)
+                    norm_name = canonicalize_label(name)
                     if norm_name is None:
                         continue
                         

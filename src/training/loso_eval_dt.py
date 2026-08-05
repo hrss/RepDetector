@@ -15,16 +15,17 @@ from enum import Enum
 from collections import Counter
 import joblib
 
+from src.core.exercises import canonicalize_label
 from src.training.data_loader import load_raw_section_data
 from src.core.data_utils import extract_features
 from src.training.decoders import WodDecoder, RestPolicy
 
 # --- CONFIGURATION ---
-# Decision Tree usually works better with the features at 20Hz as per decision_tree.py
+# Decision Tree usually works better with the features at 25Hz as per device requirement
 CONFIG = {
-    'sample_rate': 20,
-    'window_size_sec': 2.5,
-    'step_size_sec': 0.5,
+    'sample_rate': 25,
+    'window_size_sec': 2.0,  # 50 samples at 25Hz
+    'step_size_sec': 0.4,    # 10 samples at 25Hz
     'lowpass_cutoff': 3.0,
     'filter_order': 4,
     'max_depth': 15,
@@ -34,86 +35,7 @@ CONFIG = {
     'tolerance_sec': 3.0,
 }
 
-# 1. Label Normalization
-class ExerciseLabel(Enum):
-    AIR_SQUAT = "Air Squat"
-    BURPEE = "Burpee"
-    KB_SWING = "KB swing"
-    WALL_BALL = "Wall ball"
-    PUSH_UP = "Push-up"
-    REST = "REST"
-    SIT_UP = "Sit-up"
-    WALKING_LUNGE = "Walking lunge"
-    BOX_JUMP = "Box jump"
-    DOUBLE_UNDER = "Double-under"
-    RUN = "Run"
-    RUN_ALL_OUT = "Run All Out"
-
-LABEL_MAP = {
-    "rest": ExerciseLabel.REST,
-    "air squat": ExerciseLabel.AIR_SQUAT,
-    "air_squat": ExerciseLabel.AIR_SQUAT,
-    "burpee": ExerciseLabel.BURPEE,
-    "kb swing": ExerciseLabel.KB_SWING,
-    "kb_swing": ExerciseLabel.KB_SWING,
-    "kb swing (russian)": ExerciseLabel.KB_SWING,
-    "kb swing (american)": ExerciseLabel.KB_SWING,
-    "wall ball": ExerciseLabel.WALL_BALL,
-    "wall_ball_shot": ExerciseLabel.WALL_BALL,
-    "push-up": ExerciseLabel.PUSH_UP,
-    "chest_to_wall_hspu": ExerciseLabel.PUSH_UP,
-    "sit-up": ExerciseLabel.SIT_UP,
-    "sit_up": ExerciseLabel.SIT_UP,
-    "walking lunge": ExerciseLabel.WALKING_LUNGE,
-    "sandbag_lunges": ExerciseLabel.WALKING_LUNGE,
-    "box jump": ExerciseLabel.BOX_JUMP,
-    "box_jump": ExerciseLabel.BOX_JUMP,
-    "double-under": ExerciseLabel.DOUBLE_UNDER,
-    "double_under": ExerciseLabel.DOUBLE_UNDER,
-    "run": ExerciseLabel.RUN,
-    "run all out": ExerciseLabel.RUN_ALL_OUT,
-}
-
 IGNORE_LABELS = ["null", "setup"]
-
-def normalize_label(label_str):
-    if not label_str or pd.isna(label_str):
-        return None
-    ls = label_str.strip().lower()
-    if ls in IGNORE_LABELS:
-        return None
-    
-    # Direct match
-    if ls in LABEL_MAP:
-        return LABEL_MAP[ls].value
-    
-    # Substring matches for variants
-    if "kb swing" in ls:
-        return ExerciseLabel.KB_SWING.value
-    if "rest" in ls:
-        return ExerciseLabel.REST.value
-    if "wall ball" in ls:
-        return ExerciseLabel.WALL_BALL.value
-    if "lunge" in ls:
-        return ExerciseLabel.WALKING_LUNGE.value
-    if "box jump" in ls:
-        return ExerciseLabel.BOX_JUMP.value
-    if "double under" in ls or "double-under" in ls:
-        return ExerciseLabel.DOUBLE_UNDER.value
-    if "push up" in ls or "push-up" in ls:
-        return ExerciseLabel.PUSH_UP.value
-    if "sit up" in ls or "sit-up" in ls:
-        return ExerciseLabel.SIT_UP.value
-    if "air squat" in ls:
-        return ExerciseLabel.AIR_SQUAT.value
-    if "burpee" in ls:
-        return ExerciseLabel.BURPEE.value
-    if "run all out" in ls:
-        return ExerciseLabel.RUN_ALL_OUT.value
-    if "run" in ls:
-        return ExerciseLabel.RUN.value
-        
-    raise ValueError(f"Unmapped label: {label_str}")
 
 def load_workout_plan(plan_path):
     """Loads a workout plan from JSON and returns a list of exercise segments."""
@@ -121,7 +43,7 @@ def load_workout_plan(plan_path):
         return None
     with open(plan_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    
+
     plan_segments = []
     # Check various locations for exercises in the schema
     if "exercises" in data:
@@ -136,17 +58,17 @@ def load_workout_plan(plan_path):
         elif "roundResults" in w:
             for r in w.get("roundResults", []):
                 plan_segments.extend(r.get("exerciseResults", []))
-                
+
     # Normalize segments to have name, start, end
     normalized_plan = []
     current_time = 0.0
     for seg in plan_segments:
         name = seg.get('name') or seg.get('canonicalName')
-        
+
         # Try to get start/end directly
         start = seg.get('start') or seg.get('startTime')
         end = seg.get('end') or seg.get('endTime')
-        
+
         # If not present, try to derive from duration
         if start is None or end is None:
             duration = 0.0
@@ -154,14 +76,14 @@ def load_workout_plan(plan_path):
                 duration = float(seg["endConditionValues"][0])
             elif "duration" in seg:
                 duration = float(seg["duration"])
-            
+
             start = current_time
             end = current_time + duration
-            
+
         current_time = end
-            
+
         if name:
-            norm_name = normalize_label(name)
+            norm_name = canonicalize_label(name)
             if norm_name: # might be None for 'Setup'
                 normalized_plan.append({
                     'name': norm_name,
@@ -176,10 +98,10 @@ def calculate_wod_metrics(y_true_labels, y_pred_labels, times, step_size_sec, to
     """
     T = len(y_true_labels)
     correct_mask = y_true_labels == y_pred_labels
-    
+
     acc = accuracy_score(y_true_labels, y_pred_labels)
     precision, recall, f1, _ = precision_recall_fscore_support(y_true_labels, y_pred_labels, average='macro', zero_division=0)
-    
+
     # Transitions
     def find_transitions(labels):
         trans = []
@@ -190,11 +112,11 @@ def calculate_wod_metrics(y_true_labels, y_pred_labels, times, step_size_sec, to
 
     gt_trans = find_transitions(y_true_labels)
     pred_trans = find_transitions(y_pred_labels)
-    
+
     false_transitions = 0
     premature_transitions = 0
     latencies = []
-    
+
     matched_gt = set()
     for pt in pred_trans:
         found_match = False
@@ -211,13 +133,13 @@ def calculate_wod_metrics(y_true_labels, y_pred_labels, times, step_size_sec, to
                     break
         if not found_match:
             false_transitions += 1
-            
+
     session_duration_min = (T * step_size_sec) / 60.0
     ft_per_min = false_transitions / session_duration_min if session_duration_min > 0 else 0
     premature_rate = premature_transitions / len(pred_trans) if len(pred_trans) > 0 else 0
     unrecoverable = 1 if not correct_mask[-1] else 0
     misattributed_sec = np.sum(~correct_mask) * step_size_sec
-    
+
     return {
         'accuracy': acc,
         'precision': precision,
@@ -236,17 +158,17 @@ def calculate_wod_metrics(y_true_labels, y_pred_labels, times, step_size_sec, to
 def get_session_data(data_dir):
     parquet_files = glob.glob(os.path.join(data_dir, "**", "*.parquet"), recursive=True)
     sessions = {}
-    
+
     before_counts = Counter()
     after_counts = Counter()
-    
+
     for p in parquet_files:
         session_id = os.path.basename(p).split('.')[0]
         prefix = p.replace(".parquet", "")
         df, meta = load_raw_section_data(prefix, CONFIG)
         if df is None:
             continue
-            
+
         # --- Robust label extraction for inference ---
         if (df['label'] == 'Rest').all() or df['label'].isnull().all():
             all_segments = []
@@ -262,36 +184,36 @@ def get_session_data(data_dir):
             elif "roundResults" in meta:
                 for r in meta.get("roundResults", []):
                     all_segments.extend(r.get("exerciseResults", []))
-            
+
             current_time = 0.0
             for seg in all_segments:
                 name = seg.get('name') or seg.get('canonicalName')
                 start = seg.get('start') or seg.get('startTime')
                 end = seg.get('end') or seg.get('endTime')
-                
+
                 if start is None or end is None:
                     duration = 0.0
                     if "endConditionValues" in seg and seg["endConditionValues"]:
                         duration = float(seg["endConditionValues"][0])
                     elif "duration" in seg:
                         duration = float(seg["duration"])
-                    
+
                     start = current_time
                     end = current_time + duration
-                
+
                 current_time = end
-                
+
                 if name:
                     mask = (df['rel_time'] >= start) & (df['rel_time'] <= end)
                     df.loc[mask, 'label'] = name
         # ---------------------------------------------
-            
+
         before_counts.update(df['label'].values)
-        df['norm_label'] = df['label'].apply(normalize_label)
+        df['norm_label'] = df['label'].apply(canonicalize_label)
         after_counts.update([l for l in df['norm_label'].values if pd.notna(l)])
         df = df.dropna(subset=['norm_label']).reset_index(drop=True)
         sessions[session_id] = df
-        
+
     print("\n--- Label Normalization Summary ---")
     all_classes = sorted([str(k) for k in (set(before_counts.keys()) | set(after_counts.keys())) if k is not None])
     print(f"{'Original Label':<25} | {'Normalized':<25} | {'Count'}")
@@ -302,58 +224,58 @@ def get_session_data(data_dir):
             norm = "IGNORED"
         else:
             try:
-                norm = normalize_label(cls)
+                norm = canonicalize_label(cls)
                 if norm is None:
                     norm = "IGNORED"
             except:
                 norm = "ERROR"
-        
+
         count = 0
         for k, v in before_counts.items():
             if str(k) == cls:
                 count = v
                 break
         print(f"{str(cls):<25} | {str(norm):<25} | {count}")
-    
+
     print("\n--- Final Class Distribution ---")
     for cls, count in after_counts.most_common():
         print(f"{cls:<25}: {count}")
-        
+
     return sessions
 
 def create_windows_dt(df, config, label_encoder):
     window_pts = int(config['window_size_sec'] * config['sample_rate'])
     step_pts = int(config['step_size_sec'] * config['sample_rate'])
-    
+
     sensors = ['acc_x_filt', 'acc_y_filt', 'acc_z_filt', 'gyro_x_filt', 'gyro_y_filt', 'gyro_z_filt']
     signals = df[sensors].values
     labels = df['norm_label'].values
     times = df['rel_time'].values
-    
+
     X_features = []
     window_labels = []
     window_times = []
-    
+
     for i in range(0, len(df) - window_pts, step_pts):
         window_data = signals[i : i + window_pts]
         mid_idx = i + window_pts // 2
-        
+
         # Extract features for Decision Tree
         feat = extract_features(window_data)
         X_features.append(feat)
         window_labels.append(labels[mid_idx])
         window_times.append(times[mid_idx])
-        
+
     X_features = np.array(X_features)
     encoded_labels = label_encoder.transform(window_labels)
-    
+
     return X_features, encoded_labels, window_times
 
 def get_transitions(labels, times):
     transitions = []
     if len(labels) == 0:
         return transitions
-        
+
     current_label = labels[0]
     for i in range(1, len(labels)):
         if labels[i] != current_label:
@@ -369,20 +291,20 @@ def dwell_decode(predictions, times, dwell_seconds, step_size_sec):
     dwell_steps = int(dwell_seconds / step_size_sec)
     if dwell_steps < 1:
         dwell_steps = 1
-        
+
     decoded_states = []
     if len(predictions) == 0:
         return decoded_states
-        
+
     current_state = predictions[0]
     candidate = None
     candidate_count = 0
-    last_transition_time = times[0] - dwell_seconds 
-    
+    last_transition_time = times[0] - dwell_seconds
+
     for i in range(len(predictions)):
         pred = predictions[i]
         time = times[i]
-        
+
         if pred != current_state:
             if pred == candidate:
                 candidate_count += 1
@@ -392,7 +314,7 @@ def dwell_decode(predictions, times, dwell_seconds, step_size_sec):
         else:
             candidate = None
             candidate_count = 0
-            
+
         if candidate_count >= dwell_steps:
             if (time - last_transition_time) >= (dwell_seconds - 1e-6):
                 current_state = candidate
@@ -400,7 +322,7 @@ def dwell_decode(predictions, times, dwell_seconds, step_size_sec):
                 last_transition_time = time
                 candidate = None
                 candidate_count = 0
-                
+
     return decoded_states
 
 def evaluate_transitions(gt_transitions, pred_states, tolerance_sec=3.0):
@@ -458,73 +380,73 @@ def run_loso_dt():
 
     sessions = get_session_data(str(data_dir))
     session_ids = list(sessions.keys())
-    
+
     all_labels = []
     for df in sessions.values():
         all_labels.extend(df['norm_label'].unique())
-    
+
     le = LabelEncoder()
     le.fit(sorted(list(set(all_labels))))
     num_classes = len(le.classes_)
-    
+
     fold_results = []
     pooled_y_true = []
     pooled_y_pred = []
     sweep_results = {dwell: [] for dwell in CONFIG['dwell_sweep']}
     variant_aggregate_results = {}
-    
+
     for held_out_id in session_ids:
         print(f"\n{'='*20} FOLD: Held out {held_out_id} {'='*20}")
-        
+
         train_sessions = [sid for sid in session_ids if sid != held_out_id]
         train_dfs = [sessions[sid] for sid in train_sessions]
         test_df = sessions[held_out_id]
-        
+
         # We need ALL classes for the global pooled metrics later
         # But we only train on classes present in the train set.
         train_classes_in_fold = set()
         for df in train_dfs:
             train_classes_in_fold.update(df['norm_label'].unique())
-        
+
         # Ensure we have common classes or at least all train classes
         le_fold = LabelEncoder()
         le_fold.fit(sorted(list(train_classes_in_fold)))
-        
+
         # Scaling
         scaler = StandardScaler()
         sensors = ['acc_x_filt', 'acc_y_filt', 'acc_z_filt', 'gyro_x_filt', 'gyro_y_filt', 'gyro_z_filt']
-        
+
         train_data_full = pd.concat(train_dfs)
         scaler.fit(train_data_full[sensors])
-        
+
         X_train_list, y_train_list = [], []
         for df in train_dfs:
             X, y, _ = create_windows_dt(df, CONFIG, le_fold)
             X_train_list.append(X)
             y_train_list.append(y)
-        
+
         X_train = np.concatenate(X_train_list)
         y_train = np.concatenate(y_train_list)
-        
+
         # Test data windows - handle unknown labels by dropping them for Layer A evaluation if needed
         # but WodDecoder handles string labels too.
         # For simple accuracy we need labels to be in le_fold.
         test_df_scaled = test_df.copy()
         test_df_scaled[sensors] = scaler.transform(test_df_scaled[sensors])
-        
+
         # Pre-filter test_df to only include classes model knows about for initial predict
         test_df_valid = test_df_scaled[test_df_scaled['norm_label'].isin(le_fold.classes_)].copy()
         if len(test_df_valid) == 0:
             print(f"  [FOLD] Skipping: No test data with labels known to train set.")
             continue
-            
+
         X_test, y_test, t_test = create_windows_dt(test_df_valid, CONFIG, le_fold)
         y_test_labels = le_fold.inverse_transform(y_test)
-        
+
         print(f"Train windows: {len(X_train)}, Test windows: {len(X_test)}")
         class_dist = Counter(y_test_labels)
         print(f"Test Class Distribution: {dict(class_dist)}")
-        
+
         # Train Decision Tree
         model = DecisionTreeClassifier(
             max_depth=CONFIG['max_depth'],
@@ -533,7 +455,7 @@ def run_loso_dt():
             class_weight='balanced'
         )
         model.fit(X_train, y_train)
-        
+
         # Probabilities for WOD decoders
         all_probs = model.predict_proba(X_test)
 
@@ -548,18 +470,8 @@ def run_loso_dt():
                 exs = plan_data.get('exercises', [])
                 for ex in exs:
                     name = ex.get('canonicalName') or ex.get('name')
-                    # Map to training labels
-                    if name == "CHEST_TO_WALL_HSPU": name = "Push-up"
-                    elif name == "AIR_SQUAT": name = "Air Squat"
-                    elif name == "DOUBLE_UNDER": name = "Double-under"
-                    elif name == "BURPEE": name = "Burpee"
-                    elif name == "KB_SWING": name = "KB swing"
-                    elif name == "WALL_BALL_SHOT": name = "Wall ball"
-                    elif name == "SIT_UP": name = "Sit-up"
-                    elif name == "SANDBAG_LUNGES": name = "Walking lunge"
-                    elif name == "BOX_JUMP": name = "Box jump"
-                    elif name == "RUN": name = "Run"
-                    
+                    name = canonicalize_label(name)
+
                     if name in le_fold.classes_:
                         wod_sequence.append(name)
                     elif name != "Setup":
@@ -596,7 +508,7 @@ def run_loso_dt():
 
         fold_variant_results = {}
         fold_plot_dir = project_root / "src" / "training" / "loso_fold_plots_dt"
-        
+
         for var in variants:
             v_name = var['name']
             if var['type'] == 'baseline':
@@ -608,16 +520,16 @@ def run_loso_dt():
             elif var['type'] == 'viterbi':
                 y_pred_idx = decoder.decode_viterbi(all_probs)
                 rollback_info = []
-            
+
             y_pred_labels = le_fold.inverse_transform(y_pred_idx)
             metrics = calculate_wod_metrics(y_test_labels, y_pred_labels, t_test, CONFIG['step_size_sec'])
             metrics['rollback_count'] = len(rollback_info)
-            
+
             fold_variant_results[v_name] = {
                 'metrics': metrics,
                 'labels': y_pred_labels
             }
-            
+
             if v_name not in variant_aggregate_results:
                 variant_aggregate_results[v_name] = []
             variant_aggregate_results[v_name].append(metrics)
@@ -645,30 +557,30 @@ def run_loso_dt():
 
         acc = primary_metrics['accuracy']
         f1 = primary_metrics['f1']
-        
+
         print(f"Fold primary variant ({primary_var}) Macro-F1: {f1:.4f}")
         print(f"Fold Accuracy: {acc:.4f}")
-        
+
         fold_results.append({
             'session_id': held_out_id,
             'accuracy': acc,
             'f1_macro': f1,
             'class_dist': dict(class_dist)
         })
-        
+
         # Evaluate Layer B
         gt_transitions = get_transitions(y_test_labels, t_test)
         session_duration_min = (t_test[-1] - t_test[0]) / 60.0
-        
+
         for dwell in CONFIG['dwell_sweep']:
             pred_states = dwell_decode(primary_labels, t_test, dwell, CONFIG['step_size_sec'])
             res = evaluate_transitions(gt_transitions, pred_states, CONFIG['tolerance_sec'])
-            
+
             recall = res['matched'] / res['total_gt'] if res['total_gt'] > 0 else 0
             precision = res['matched_and_correct'] / res['total_emitted'] if res['total_emitted'] > 0 else 0
             false_trans_per_min = res['false'] / session_duration_min
             med_latency = np.median(res['latencies']) if res['latencies'] else np.nan
-            
+
             sweep_results[dwell].append({
                 'session_id': held_out_id,
                 'recall': recall,
@@ -700,17 +612,17 @@ def run_loso_dt():
 
     accs = [r['accuracy'] for r in fold_results]
     f1s = [r['f1_macro'] for r in fold_results]
-    
+
     print(f"\nLayer A (Per-window):")
     print(f"Pooled Accuracy: {accuracy_score(pooled_y_true, pooled_y_pred):.4f}")
     print(f"Pooled Macro-F1: {f1_score(pooled_y_true, pooled_y_pred, average='macro'):.4f}")
-    
+
     p, r, f, s = precision_recall_fscore_support(pooled_y_true, pooled_y_pred, labels=range(num_classes))
     print(f"\n{'Class':<25} | {'Prec':<6} | {'Recall':<6} | {'F1':<6} | {'Support'}")
     print("-" * 60)
     for i, class_name in enumerate(le.classes_):
         print(f"{class_name:<25} | {p[i]:<6.4f} | {r[i]:<6.4f} | {f[i]:<6.4f} | {s[i]}")
-    
+
     print(f"\nLayer B (Transition Detection) Sweep:")
     print(f"{'Dwell (s)':<10} | {'Recall':<10} | {'Precision':<10} | {'FT/min':<10} | {'Med Lat':<8}")
     print("-" * 60)
@@ -732,7 +644,7 @@ def run_loso_dt():
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
     plt.savefig("loso_confusion_matrix_dt.png")
-    
+
     # Save JSON
     results_to_save = {
         'fold_results': fold_results,

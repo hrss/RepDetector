@@ -47,6 +47,7 @@ from canonicalize import (
     apple_imubin_spec,
     canonicalize_dataframe,
 )
+from src.core.exercises import canonicalize_label
 from session_io import Rep, Segment, SessionMeta, write_session
 
 # ---------------------------------------------------------------------------
@@ -249,7 +250,7 @@ def parse_workout_json(
                 if start_sec <= t <= end_sec:
                     reps.append(Rep(t=t))
 
-            segments.append(Segment(name=name, start=start_sec, end=end_sec, reps=reps))
+            segments.append(Segment(name=canonicalize_label(name), start=start_sec, end=end_sec, reps=reps))
 
     if dropped > 0:
         warnings.warn(

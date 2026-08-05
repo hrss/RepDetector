@@ -17,9 +17,9 @@ from src.visualization.inference_viz import plot_classification_results
 
 # --- CONFIGURATION ---
 CONFIG = {
-    'sample_rate': 20,
-    'window_size_sec': 2.5,
-    'step_size_sec': 0.5,
+    'sample_rate': 25,
+    'window_size_sec': 2.0,  # 50 samples at 25Hz
+    'step_size_sec': 0.4,    # 10 samples at 25Hz
     'lowpass_cutoff': 3.0,
     'filter_order': 4,
     'max_depth': 15,

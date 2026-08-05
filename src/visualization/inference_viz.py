@@ -32,7 +32,7 @@ def plot_classification_results(res_df, metadata, label_encoder, save_name):
     cmap = plt.get_cmap('tab10')
     colors = [cmap(i) for i in np.linspace(0, 1, len(unique_classes))]
     color_map = {cls: col for cls, col in zip(unique_classes, colors)}
-    color_map['Rest'] = '#e0e0e0'  # Override 'Rest' to be gray
+    color_map['REST'] = '#e0e0e0'  # Override 'REST' to be gray
 
     # Top Plot: The Signal Context
     ax1.plot(res_df['time'], res_df['acc_z'], color='black', alpha=0.7, linewidth=1, label='Accel Z (Filtered)')

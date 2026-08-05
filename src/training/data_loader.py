@@ -66,6 +66,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from sklearn.preprocessing import LabelEncoder
+from src.core.exercises import canonicalize_label
 from src.core.filtering import apply_butterworth
 from src.core.data_utils import extract_features
 from collections import Counter
@@ -122,13 +123,13 @@ def load_raw_section_data(section_path, config):
         df[f'{col}_filt'] = apply_butterworth(df[col], config['lowpass_cutoff'], config['sample_rate'])
 
     # Assign Labels (Handle multiple metadata schemas)
-    df['label'] = 'Rest'
+    df['label'] = 'REST'
 
     # Schema A: New 'segments' list
     if "segments" in metadata:
         for seg in metadata["segments"]:
             mask = (df['rel_time'] >= seg['start']) & (df['rel_time'] <= seg['end'])
-            df.loc[mask, 'label'] = seg['name']
+            df.loc[mask, 'label'] = canonicalize_label(seg['name'])
 
     # Schema B: Legacy 'roundResults' (direct or nested in 'workout')
     round_results = []
@@ -143,7 +144,7 @@ def load_raw_section_data(section_path, config):
             end = ex.get('endTime') or ex.get('end')
             if start is not None and end is not None:
                 mask = (df['rel_time'] >= start) & (df['rel_time'] <= end)
-                df.loc[mask, 'label'] = ex['name']
+                df.loc[mask, 'label'] = canonicalize_label(ex['name'])
 
     return df, metadata
 
