@@ -24,8 +24,8 @@ from src.training.decoders import WodDecoder, RestPolicy
 # Decision Tree usually works better with the features at 25Hz as per device requirement
 CONFIG = {
     'sample_rate': 25,
-    'window_size_sec': 2.0,  # 50 samples at 25Hz
-    'step_size_sec': 0.4,    # 10 samples at 25Hz
+    'window_size_sec': 2.5,   # was 2.0  -> 62 samples at 25 Hz, floor back to 0.4 Hz
+    'step_size_sec': 0.5,     # was 0.4  -> 12 samples, keeps ~4 windows/sec
     'lowpass_cutoff': 3.0,
     'filter_order': 4,
     'max_depth': 15,
@@ -209,9 +209,8 @@ def get_session_data(data_dir):
         # ---------------------------------------------
 
         before_counts.update(df['label'].values)
-        df['norm_label'] = df['label'].apply(canonicalize_label)
+        df = apply_labels(df)
         after_counts.update([l for l in df['norm_label'].values if pd.notna(l)])
-        df = df.dropna(subset=['norm_label']).reset_index(drop=True)
         sessions[session_id] = df
 
     print("\n--- Label Normalization Summary ---")
@@ -242,6 +241,22 @@ def get_session_data(data_dir):
         print(f"{cls:<25}: {count}")
 
     return sessions
+
+
+def apply_labels(df, strict=True):
+    df = df.copy()
+    df['norm_label'] = df['label'].apply(
+        lambda x: canonicalize_label(x, strict=strict, display=True)  # noqa: F821
+    )
+    # canonicalize_label returns None for setup/null/transition -> DROP them.
+    # Under the broken version these became REST and were used as training data.
+    n_before = len(df)
+    df = df.dropna(subset=['norm_label']).reset_index(drop=True)
+    n_dropped = n_before - len(df)
+    if n_dropped:
+        print(f"    dropped {n_dropped} rows with ignore labels (setup/null/etc)")
+    return df
+
 
 def create_windows_dt(df, config, label_encoder):
     window_pts = int(config['window_size_sec'] * config['sample_rate'])
@@ -329,6 +344,7 @@ def evaluate_transitions(gt_transitions, pred_states, tolerance_sec=3.0):
     results = {
         'matched_and_correct': 0,
         'matched_but_wrong': 0,
+        'matched': 0,
         'missed': 0,
         'false': 0,
         'latencies': [],
@@ -371,6 +387,28 @@ def evaluate_transitions(gt_transitions, pred_states, tolerance_sec=3.0):
 
     return results
 
+def build_wod_sequence(plan_data, le_fold):
+    sequence = []
+    missing = []
+    for ex in plan_data.get('exercises', []):
+        raw = ex.get('canonicalName') or ex.get('name')
+        name = canonicalize_label(raw, strict=False, display=True)  # noqa: F821
+        if name is None:
+            continue                      # Setup/null entries in the plan
+        if name in le_fold.classes_:
+            sequence.append(name)
+        else:
+            missing.append((raw, name))
+
+    if missing:
+        print(f"  [WOD] WARNING: {len(missing)} planned exercise(s) not in this "
+              f"fold's classes -> decoders DISABLED: {missing}")
+        print(f"        fold classes: {list(le_fold.classes_)}")
+        return []
+
+    return sequence * plan_data.get('rounds', 1)
+
+
 def run_loso_dt():
     project_root = Path(__file__).resolve().parents[2]
     data_dir = project_root / "data" / "processed" / "apple"
@@ -412,13 +450,6 @@ def run_loso_dt():
         le_fold = LabelEncoder()
         le_fold.fit(sorted(list(train_classes_in_fold)))
 
-        # Scaling
-        scaler = StandardScaler()
-        sensors = ['acc_x_filt', 'acc_y_filt', 'acc_z_filt', 'gyro_x_filt', 'gyro_y_filt', 'gyro_z_filt']
-
-        train_data_full = pd.concat(train_dfs)
-        scaler.fit(train_data_full[sensors])
-
         X_train_list, y_train_list = [], []
         for df in train_dfs:
             X, y, _ = create_windows_dt(df, CONFIG, le_fold)
@@ -428,14 +459,8 @@ def run_loso_dt():
         X_train = np.concatenate(X_train_list)
         y_train = np.concatenate(y_train_list)
 
-        # Test data windows - handle unknown labels by dropping them for Layer A evaluation if needed
-        # but WodDecoder handles string labels too.
-        # For simple accuracy we need labels to be in le_fold.
-        test_df_scaled = test_df.copy()
-        test_df_scaled[sensors] = scaler.transform(test_df_scaled[sensors])
-
         # Pre-filter test_df to only include classes model knows about for initial predict
-        test_df_valid = test_df_scaled[test_df_scaled['norm_label'].isin(le_fold.classes_)].copy()
+        test_df_valid = test_df[test_df['norm_label'].isin(le_fold.classes_)].copy()
         if len(test_df_valid) == 0:
             print(f"  [FOLD] Skipping: No test data with labels known to train set.")
             continue
@@ -447,6 +472,12 @@ def run_loso_dt():
         class_dist = Counter(y_test_labels)
         print(f"Test Class Distribution: {dict(class_dist)}")
 
+        # Fit on TRAIN FEATURES only, apply to both. This is what gets exported
+        # as the 's' block in model_data.json.
+        feat_scaler = StandardScaler()
+        X_train_s = feat_scaler.fit_transform(X_train)
+        X_test_s = feat_scaler.transform(X_test)
+
         # Train Decision Tree
         model = DecisionTreeClassifier(
             max_depth=CONFIG['max_depth'],
@@ -454,34 +485,23 @@ def run_loso_dt():
             random_state=42,
             class_weight='balanced'
         )
-        model.fit(X_train, y_train)
+        model.fit(X_train_s, y_train)
 
         # Probabilities for WOD decoders
-        all_probs = model.predict_proba(X_test)
+        all_probs = model.predict_proba(X_test_s)
 
         # 5. [NEW] Revisable decoders
         # Load workout plan
         plan_path = project_root / "workout.json"
         wod_sequence = []
-        try:
-            with open(plan_path, 'r', encoding='utf-8') as f:
-                plan_data = json.load(f)
-                rounds = plan_data.get('rounds', 1)
-                exs = plan_data.get('exercises', [])
-                for ex in exs:
-                    name = ex.get('canonicalName') or ex.get('name')
-                    name = canonicalize_label(name)
-
-                    if name in le_fold.classes_:
-                        wod_sequence.append(name)
-                    elif name != "Setup":
-                         print(f"  [WOD] Exercise '{name}' not in fold classes, skipping WOD decoders.")
-                         wod_sequence = []
-                         break
-                wod_sequence = wod_sequence * rounds
-        except Exception as e:
-            print(f"  [WOD] Could not load workout plan: {e}")
-            wod_sequence = []
+        if os.path.exists(plan_path):
+            try:
+                with open(plan_path, 'r', encoding='utf-8') as f:
+                    plan_data = json.load(f)
+                    wod_sequence = build_wod_sequence(plan_data, le_fold)
+            except Exception as e:
+                print(f"  [WOD] Could not load workout plan: {e}")
+                wod_sequence = []
 
         decoder = None
         if wod_sequence:
@@ -511,6 +531,8 @@ def run_loso_dt():
 
         for var in variants:
             v_name = var['name']
+            y_pred_idx = []
+            rollback_info = []
             if var['type'] == 'baseline':
                 y_pred_idx = decoder.decode_greedy_baseline(all_probs) if decoder else np.argmax(all_probs, axis=1)
                 rollback_info = []

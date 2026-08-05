@@ -1,3 +1,41 @@
+
+
+"""
+Label canonicalization — FIXED.
+
+Replaces the SYNONYM_TO_CANONICAL construction and canonicalize_label() at the
+bottom of src/core/exercises.py. Keep EXERCISES_DATA exactly as it is and paste
+this below it (or import EXERCISES_DATA from wherever it lives).
+
+WHAT WAS BROKEN
+---------------
+1. "setup" / "null" returned "REST" instead of None, so setup periods (walking
+   to the rig, picking up equipment, adjusting the watch) became REST training
+   data. This both inflated the majority class and taught the model that real
+   motion is REST.
+
+2. The substring heuristic `if canonical.lower() in ls.replace(" ", "_")`
+   scanned a ~170-key dict and took the FIRST match, so results depended on dict
+   insertion order. Concretely: "chest_to_wall_hspu" hit HSPU (defined earlier)
+   instead of CHEST_TO_WALL_HSPU, silently moving that data out of Push-up.
+
+3. Unmapped labels fell through to `label_str.upper().replace(" ", "_")`,
+   silently minting new singleton classes instead of failing. Macro-F1 averages
+   over classes, so a 3-window junk class counts as much as a 3000-window one.
+
+WHAT THIS DOES INSTEAD
+----------------------
+  normalize text -> IGNORE (None) -> REST -> explicit override -> exact synonym
+  -> parenthetical-stripped synonym -> raise (or passthrough if strict=False)
+
+No order-dependent substring matching anywhere.
+"""
+
+from __future__ import annotations
+
+import re
+import warnings
+from typing import Optional
 import json
 import os
 import re
@@ -7,6 +45,9 @@ from whoosh.fields import ID, KEYWORD, Schema, TEXT
 from whoosh.filedb.filestore import RamStorage
 from whoosh.qparser import MultifieldParser, OrGroup
 from whoosh.query import Term
+
+
+# from .exercises import EXERCISES_DATA   # keep your existing dict
 
 EXERCISES_DATA = {
   "PULL_UP": {
@@ -337,7 +378,7 @@ EXERCISES_DATA = {
     "synonyms": [
       "double under",
       "double-unders",
-      "double-under"
+      "double-under",
       "du"
     ],
     "categories": [
@@ -1706,36 +1747,274 @@ EXERCISES_DATA = {
   }
 }
 
-# Pre-process synonyms for fast lookup
-SYNONYM_TO_CANONICAL = {}
-for canonical, info in EXERCISES_DATA.items():
-    for syn in info["synonyms"]:
-        # We store lowercase for case-insensitive matching
-        s = syn.lower().strip()
-        if s not in SYNONYM_TO_CANONICAL:
-             SYNONYM_TO_CANONICAL[s] = canonical
+# ---------------------------------------------------------------------------
+# Labels that are NOT training data. These must return None so the caller's
+# dropna(subset=['norm_label']) removes them.
+# ---------------------------------------------------------------------------
+IGNORE_LABELS = {
+    "null",
+    "setup",
+    "none",
+    "nan",
+    "",
+    "transition",
+    "unknown",
+}
 
-def canonicalize_label(label_str: str) -> str:
-    """
-    Converts a raw exercise name into its canonical uppercase form.
-    Returns "REST" for rest/null/setup, and the original label if no match found.
-    """
-    if not label_str or not isinstance(label_str, str):
-        return "REST"
-    
-    ls = label_str.strip().lower()
-    
-    if ls in ["", "rest", "null", "setup", "none"]:
-        return "REST"
-    
-    # 1. Direct synonym match
-    if ls in SYNONYM_TO_CANONICAL:
-        return SYNONYM_TO_CANONICAL[ls]
-    
-    # 2. Heuristic: if the canonical name itself is in the string
-    # (e.g. "strict PULL_UP" -> PULL_UP)
-    for canonical in EXERCISES_DATA.keys():
-        if canonical.lower() in ls.replace(" ", "_"):
-            return canonical
+# Labels that genuinely mean "at rest between work".
+REST_LABELS = {
+    "rest",
+    "resting",
+    "recovery",
+    "break",
+}
 
-    return label_str.upper().replace(" ", "_")
+REST_CANONICAL = "REST"
+
+
+# ---------------------------------------------------------------------------
+# Explicit overrides. Anything whose mapping you actually care about goes here
+# rather than relying on synonym tables or heuristics. Keys are normalized
+# (lowercase, underscores/hyphens -> spaces, collapsed whitespace).
+#
+# These reproduce the merges the ORIGINAL LABEL_MAP performed, so retraining
+# gives you back the class structure the old model had.
+# ---------------------------------------------------------------------------
+LABEL_OVERRIDES = {
+    # Handstand push-up variants were folded into Push-up for training.
+    # Remove this line if you want HSPU as its own class AND have enough data.
+    "chest to wall hspu": "PUSH_UP",
+    "chest-to-wall handstand push-up": "PUSH_UP",
+    "ctw hspu": "PUSH_UP",
+    "hspu": "PUSH_UP",
+    "handstand push up": "PUSH_UP",
+
+    # Loaded lunges were folded into the generic lunge class.
+    "sandbag lunges": "LUNGE",
+    "sandbag walking lunges": "LUNGE",
+    "sandbag lunge": "LUNGE",
+    "sb lunges": "LUNGE",
+    "walking lunge": "LUNGE",
+
+    # WALL_BALL and WALL_BALL_SHOT are the same movement.
+    "wall ball shot": "WALL_BALL",
+    "wall ball": "WALL_BALL",
+    "med ball shot": "WALL_BALL",
+    "medicine ball shot": "WALL_BALL",
+
+    # Kept as a distinct class in the original label map.
+    "run all out": "RUN_ALL_OUT",
+
+    # Rope work. Keep these separate during training even if you merge them
+    # for display — the cadences differ (single ~2 Hz, double ~3.5 Hz) and
+    # merging them forces the model to treat two frequencies as one class.
+    "single under": "SINGLE_UNDER",
+    "single unders": "SINGLE_UNDER",
+    "double under": "DOUBLE_UNDER",
+    "double unders": "DOUBLE_UNDER",
+}
+
+
+# ---------------------------------------------------------------------------
+# Canonical -> display name, so training labels match the strings the watch
+# and the deployed model_data.json use. The on-device Viterbi matches state
+# names by exact string, so this mapping is what keeps them in sync.
+# ---------------------------------------------------------------------------
+CANONICAL_TO_DISPLAY = {
+    "AIR_SQUAT": "Air Squat",
+    "PUSH_UP": "Push-up",
+    "DOUBLE_UNDER": "Double-under",
+    "SINGLE_UNDER": "Single-under",
+    "BURPEE": "Burpee",
+    "KB_SWING": "KB swing",
+    "WALL_BALL": "Wall ball",
+    "SIT_UP": "Sit-up",
+    "LUNGE": "Walking lunge",
+    "BOX_JUMP": "Box jump",
+    "RUN": "Run",
+    "RUN_ALL_OUT": "Run All Out",
+    "REST": "REST",
+}
+
+
+# ---------------------------------------------------------------------------
+# Text normalization
+# ---------------------------------------------------------------------------
+_PAREN_RE = re.compile(r"\([^)]*\)")
+# Parentheses are preserved here so the paren-stripping fallback in
+# canonicalize_label() can still see them ("kb swing (russian)" -> "kb swing").
+_NONWORD_RE = re.compile(r"[^a-z0-9 ()]+")
+_WS_RE = re.compile(r"\s+")
+
+
+def _normalize(text: str) -> str:
+    """lowercase, underscores/hyphens -> spaces, collapse whitespace.
+
+    Keeps parentheses; they are removed later only as a retry step.
+    """
+    s = text.strip().lower()
+    s = s.replace("_", " ").replace("-", " ")
+    s = _NONWORD_RE.sub(" ", s)
+    s = _WS_RE.sub(" ", s).strip()
+    # Tidy spacing around parens: "kb swing ( russian )" -> "kb swing (russian)"
+    s = s.replace("( ", "(").replace(" )", ")")
+    return s
+
+
+def _strip_parens(text: str) -> str:
+    """'kb swing (russian)' -> 'kb swing'"""
+    return _WS_RE.sub(" ", _PAREN_RE.sub(" ", text)).strip()
+
+
+# ---------------------------------------------------------------------------
+# Synonym index (built once, with collision reporting)
+# ---------------------------------------------------------------------------
+def build_synonym_index(exercises_data: dict, report_collisions: bool = False) -> dict:
+    """Map normalized synonym -> canonical. First definition wins, matching the
+    original behaviour, but collisions are surfaced instead of hidden.
+
+    Real collisions in your data include "su" (SIT_UP vs SINGLE_UNDER) and
+    "du"/"double under" (DOUBLE_UNDER vs ROPE_JUMP). Ambiguous short codes are
+    the reason LABEL_OVERRIDES exists — put anything you care about there.
+    """
+    index: dict[str, str] = {}
+    collisions: dict[str, list[str]] = {}
+
+    for canonical, info in exercises_data.items():
+        for syn in info.get("synonyms", []):
+            key = _normalize(syn)
+            if not key:
+                continue
+            if key in index:
+                if index[key] != canonical:
+                    collisions.setdefault(key, [index[key]]).append(canonical)
+                continue
+            index[key] = canonical
+
+    # A canonical name written out longhand should resolve to itself.
+    for canonical in exercises_data:
+        key = _normalize(canonical)
+        index.setdefault(key, canonical)
+
+    if report_collisions and collisions:
+        lines = [f"    {k!r}: {v}" for k, v in sorted(collisions.items())]
+        warnings.warn(
+            "Ambiguous synonyms (first definition wins):\n" + "\n".join(lines),
+            stacklevel=2,
+        )
+
+    return index
+
+
+# Build at import. Pass your real EXERCISES_DATA here.
+try:
+    SYNONYM_TO_CANONICAL = build_synonym_index(EXERCISES_DATA)  # noqa: F821
+except NameError:  # allows this file to be imported standalone for testing
+    SYNONYM_TO_CANONICAL = {}
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+def canonicalize_label(
+    label_str: Optional[str],
+    *,
+    strict: bool = True,
+    display: bool = False,
+) -> Optional[str]:
+    """Convert a raw exercise name to its canonical form.
+
+    Returns:
+        None   for ignore labels (setup/null/etc) -> caller MUST drop these rows
+        "REST" for rest labels
+        canonical name (e.g. "AIR_SQUAT"), or the display name if display=True
+
+    Args:
+        strict:  raise ValueError on an unmapped label. Use True for TRAINING so
+                 data problems fail loudly. Use False at inference/analysis time,
+                 where an unknown label returns None rather than exploding.
+        display: return "Air Squat" instead of "AIR_SQUAT", matching the strings
+                 the watch and the deployed model use.
+
+    Raises:
+        ValueError: strict=True and the label is unrecognized.
+    """
+    if label_str is None or not isinstance(label_str, str):
+        return None
+
+    norm = _normalize(label_str)
+
+    if norm in IGNORE_LABELS:
+        return None
+    if norm in REST_LABELS:
+        return _fmt(REST_CANONICAL, display)
+
+    # 1. Explicit overrides win over everything.
+    if norm in LABEL_OVERRIDES:
+        return _fmt(LABEL_OVERRIDES[norm], display)
+
+    # 2. Exact synonym match.
+    if norm in SYNONYM_TO_CANONICAL:
+        return _fmt(SYNONYM_TO_CANONICAL[norm], display)
+
+    # 3. Retry with parentheticals removed: "kb swing (russian)" -> "kb swing".
+    stripped = _strip_parens(norm)
+    if stripped != norm:
+        if stripped in IGNORE_LABELS:
+            return None
+        if stripped in REST_LABELS:
+            return _fmt(REST_CANONICAL, display)
+        if stripped in LABEL_OVERRIDES:
+            return _fmt(LABEL_OVERRIDES[stripped], display)
+        if stripped in SYNONYM_TO_CANONICAL:
+            return _fmt(SYNONYM_TO_CANONICAL[stripped], display)
+
+    # 4. Give up. NO substring heuristic, NO uppercase passthrough.
+    if strict:
+        raise ValueError(
+            f"Unmapped exercise label: {label_str!r} (normalized: {norm!r}). "
+            f"Add it to LABEL_OVERRIDES or to the synonyms of the right entry "
+            f"in EXERCISES_DATA. Refusing to invent a class for it."
+        )
+    return None
+
+
+def _fmt(canonical: str, display: bool) -> str:
+    if not display:
+        return canonical
+    return CANONICAL_TO_DISPLAY.get(canonical, canonical)
+
+
+def to_display_label(canonical: str) -> str:
+    """Canonical -> the string the watch/deployed model expects."""
+    return CANONICAL_TO_DISPLAY.get(canonical, canonical)
+
+
+def audit_labels(labels, strict: bool = False) -> dict:
+    """Run every raw label in a dataset through the mapper and summarize.
+
+    Call this BEFORE training and eyeball the output — it is the regression test
+    for this whole file. Returns {'mapped': {...}, 'ignored': [...], 'unmapped': [...]}.
+    """
+    from collections import Counter
+
+    mapped, ignored, unmapped = Counter(), Counter(), Counter()
+    for raw in labels:
+        try:
+            result = canonicalize_label(raw, strict=strict)
+        except ValueError:
+            unmapped[raw] += 1
+            continue
+        if result is None:
+            if raw is None or _normalize(str(raw)) in IGNORE_LABELS:
+                ignored[raw] += 1
+            else:
+                unmapped[raw] += 1
+        else:
+            mapped[result] += 1
+
+    return {
+        "mapped": dict(mapped.most_common()),
+        "ignored": dict(ignored.most_common()),
+        "unmapped": dict(unmapped.most_common()),
+    }

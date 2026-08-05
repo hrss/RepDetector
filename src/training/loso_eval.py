@@ -26,8 +26,8 @@ from src.training.decoders import WodDecoder, RestPolicy
 # --- CONFIGURATION ---
 CONFIG = {
     'sample_rate': 25,
-    'window_size_sec': 2.5,
-    'step_size_sec': 0.5,
+    'window_size_sec': 2.5,   # was 2.0  -> 62 samples at 25 Hz, floor back to 0.4 Hz
+    'step_size_sec': 0.5,     # was 0.4  -> 12 samples, keeps ~4 windows/sec
     'lowpass_cutoff': 3.0,
     'filter_order': 4,
     'batch_size': 32,
@@ -157,6 +157,21 @@ def calculate_wod_metrics(y_true_labels, y_pred_labels, times, step_size_sec, to
         'n_pred_trans': len(pred_trans)
     }
 
+def apply_labels(df, strict=True):
+    df = df.copy()
+    df['norm_label'] = df['label'].apply(
+        lambda x: canonicalize_label(x, strict=strict, display=True)  # noqa: F821
+    )
+    # canonicalize_label returns None for setup/null/transition -> DROP them.
+    # Under the broken version these became REST and were used as training data.
+    n_before = len(df)
+    df = df.dropna(subset=['norm_label']).reset_index(drop=True)
+    n_dropped = n_before - len(df)
+    if n_dropped:
+        print(f"    dropped {n_dropped} rows with ignore labels (setup/null/etc)")
+    return df
+
+
 def get_session_data(data_dir):
     parquet_files = glob.glob(os.path.join(data_dir, "**", "*.parquet"), recursive=True)
     sessions = {}
@@ -216,13 +231,10 @@ def get_session_data(data_dir):
         before_counts.update(df['label'].values)
         
         # Normalize labels
-        df['norm_label'] = df['label'].apply(canonicalize_label)
+        df = apply_labels(df)
         
         # Record after counts (excluding None/NaN)
         after_counts.update([l for l in df['norm_label'].values if pd.notna(l)])
-        
-        # Drop ignored labels for training/eval
-        df = df.dropna(subset=['norm_label']).reset_index(drop=True)
         
         sessions[session_id] = df
         
@@ -369,6 +381,7 @@ def evaluate_transitions(gt_transitions, pred_states, tolerance_sec=3.0):
     results = {
         'matched_and_correct': 0,
         'matched_but_wrong': 0,
+        'matched': 0,
         'missed': 0,
         'false': 0,
         'latencies': [],
@@ -450,6 +463,28 @@ def guide_predictions(all_preds, window_times, plan, label_encoder):
             
     return guided_preds
 
+def build_wod_sequence(plan_data, le_fold):
+    sequence = []
+    missing = []
+    for ex in plan_data.get('exercises', []):
+        raw = ex.get('canonicalName') or ex.get('name')
+        name = canonicalize_label(raw, strict=False, display=True)  # noqa: F821
+        if name is None:
+            continue                      # Setup/null entries in the plan
+        if name in le_fold.classes_:
+            sequence.append(name)
+        else:
+            missing.append((raw, name))
+
+    if missing:
+        print(f"  [WOD] WARNING: {len(missing)} planned exercise(s) not in this "
+              f"fold's classes -> decoders DISABLED: {missing}")
+        print(f"        fold classes: {list(le_fold.classes_)}")
+        return []
+
+    return sequence * plan_data.get('rounds', 1)
+
+
 def run_loso():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -526,6 +561,7 @@ def run_loso():
         scaler = StandardScaler()
         sensors = ['acc_x_filt', 'acc_y_filt', 'acc_z_filt', 'gyro_x_filt', 'gyro_y_filt', 'gyro_z_filt']
         
+        train_dfs = [sessions[sid].copy() for sid in train_sessions]
         train_data_full = pd.concat(train_dfs)
         scaler.fit(train_data_full[sensors])
         
@@ -615,25 +651,18 @@ def run_loso():
         
         # WOD Decoder setup
         plan_path = project_root / "workout2.json"
-        try:
-            wod_sequence = load_workout_plan(plan_path)
-            if wod_sequence is None:
+        wod_sequence = []
+        if os.path.exists(plan_path):
+            try:
+                with open(plan_path, 'r', encoding='utf-8') as f:
+                    plan_data = json.load(f)
+                    wod_sequence = build_wod_sequence(plan_data, le_fold)
+            except Exception as e:
+                print(f"  [WOD] Could not load workout plan: {e}")
                 wod_sequence = []
-        except ValueError as e:
-            print(f"  {e}")
-            wod_sequence = []
-
-        # Only evaluate WOD decoders if we have a plan and all exercises are in our fold le
-        can_run_wod = len(wod_sequence) > 0
-        if can_run_wod:
-            for name in wod_sequence:
-                if name not in le_fold.classes_:
-                    print(f"  [WOD] Skipping WOD decoders: exercise '{name}' not in this fold's classes.")
-                    can_run_wod = False
-                    break
         
         decoder = None
-        if can_run_wod:
+        if wod_sequence:
             decoder = WodDecoder(
                 workout_sequence=wod_sequence,
                 label_encoder=le_fold,
@@ -659,6 +688,8 @@ def run_loso():
         fold_plot_dir = project_root / "src" / "training" / "loso_fold_plots"
         for var in variants:
             v_name = var['name']
+            y_pred_idx = []
+            rollback_info = []
             if var['type'] == 'baseline':
                 y_pred_idx = decoder.decode_greedy_baseline(all_probs) if decoder else np.argmax(all_probs, axis=1)
                 rollback_info = []
