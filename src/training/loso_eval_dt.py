@@ -26,7 +26,7 @@ CONFIG = {
     'sample_rate': 25,
     'window_size_sec': 2.5,   # was 2.0  -> 62 samples at 25 Hz, floor back to 0.4 Hz
     'step_size_sec': 0.5,     # was 0.4  -> 12 samples, keeps ~4 windows/sec
-    'lowpass_cutoff': 3.0,
+    'lowpass_cutoff': 3,
     'filter_order': 4,
     'max_depth': 15,
     'min_samples_split': 5,
@@ -492,7 +492,7 @@ def run_loso_dt():
 
         # 5. [NEW] Revisable decoders
         # Load workout plan
-        plan_path = project_root / "workout.json"
+        plan_path = project_root / "workout2.json"
         wod_sequence = []
         if os.path.exists(plan_path):
             try:
@@ -519,10 +519,6 @@ def run_loso_dt():
         ]
         if decoder:
             variants.extend([
-                {'name': 'greedy_wod_off', 'type': 'greedy', 'rollback': False, 'policy': RestPolicy.OFF},
-                {'name': 'greedy_wod_rollback_off', 'type': 'greedy', 'rollback': True, 'policy': RestPolicy.OFF},
-                {'name': 'greedy_wod_rollback_prefer', 'type': 'greedy', 'rollback': True, 'policy': RestPolicy.PREFER_REST},
-                {'name': 'greedy_wod_rollback_require', 'type': 'greedy', 'rollback': True, 'policy': RestPolicy.REQUIRE_REST},
                 {'name': 'viterbi', 'type': 'viterbi'}
             ])
 

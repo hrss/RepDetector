@@ -6,7 +6,7 @@ class RestPolicy(Enum):
     REQUIRE_REST = "require_rest"
     PREFER_REST = "prefer_rest"
     OFF = "off"
-
+NEG = -1e18
 class WodDecoder:
     def __init__(self, workout_sequence, label_encoder, rest_label="REST",
                  confidence_threshold=0.8, dwell_seconds=5.0, step_size_sec=0.5,
@@ -157,79 +157,161 @@ class WodDecoder:
 
         return decoded, rollback_info
 
-    def decode_viterbi(self, probs, advancement_penalty=5.0, skip_penalty=100.0, self_transition_bonus=0.0):
-        """
-        Viterbi decoder over sequence positions.
-        States: S_0, S_1, ..., S_{2N} where S_{2i} is REST and S_{2i+1} is Ex_{i+1}
-        """
-        N = len(self.seq_indices)
-        num_states = 2 * N + 1
-        T = len(probs)
-        
-        # log_probs
-        log_probs = np.log(probs + 1e-12)
-        
-        # dp[t, state]
-        dp = np.full((T, num_states), -np.inf)
-        backtrack = np.zeros((T, num_states), dtype=int)
-        
-        # State mapping:
-        # even j: REST (mapped to rest_idx)
-        # odd j: Exercise (j-1)//2 (mapped to seq_indices[(j-1)//2])
-        
-        def get_class_idx(state_idx):
-            if state_idx % 2 == 0:
-                return self.rest_idx
-            else:
-                return self.seq_indices[(state_idx - 1) // 2]
 
-        # Initial state: must start at REST(0) or Ex(1)
-        dp[0, 0] = log_probs[0, self.rest_idx]
-        dp[0, 1] = log_probs[0, self.seq_indices[0]]
-        
-        for t in range(1, T):
-            for s in range(num_states):
-                class_idx = get_class_idx(s)
-                obs_log_prob = log_probs[t, class_idx]
-                
-                # Transitions to s can come from s, s-1, or s-2 (if we allow skipping REST)
-                # Advancement penalty
-                
-                # Option 1: Stay in s
-                score_stay = dp[t-1, s] + self_transition_bonus
-                
-                # Option 2: Advance from s-1
-                score_adv1 = -np.inf
-                if s > 0:
-                    score_adv1 = dp[t-1, s-1] - advancement_penalty
-                
-                # Option 3: Advance from s-2 (e.g. Ex -> Ex skipping REST)
-                score_adv2 = -np.inf
-                if s > 1:
-                    score_adv2 = dp[t-1, s-2] - advancement_penalty * 1.5
-                
-                # Forbid skips > 2
-                
-                best_prev = s
-                best_score = score_stay
-                
-                if score_adv1 > best_score:
-                    best_score = score_adv1
-                    best_prev = s - 1
-                
-                if score_adv2 > best_score:
-                    best_score = score_adv2
-                    best_prev = s - 2
-                    
-                dp[t, s] = best_score + obs_log_prob
-                backtrack[t, s] = best_prev
-                
-        # Termination: can end in any state, but usually the last ones
-        path = np.zeros(T, dtype=int)
-        path[T-1] = np.argmax(dp[T-1, :])
-        
-        for t in range(T-2, -1, -1):
-            path[t] = backtrack[t+1, path[t+1]]
-            
-        decoded = np.array([get_class_idx(s) for s in path])
-        return decoded
+
+
+
+
+    # ===========================================================================
+    #  WodDecoder method  (replaces your decode_viterbi)
+    # ===========================================================================
+    def decode_viterbi(self, probs, advancement_penalty=1.0, temperature=1.0,
+                       min_dwell_frac=0.5, default_dwell_sec=4.0):
+        """
+        Min-dwell forced alignment.
+
+        Design: emissions place the boundaries (advancement_penalty is small, ~0-2),
+        while a PER-CLASS minimum dwell prevents both fragmentation AND the low-signal
+        collapses (walking lunge -> REST). This decouples the two jobs the single
+        scalar penalty was overloaded with, so you avoid the boundary lag you get from
+        a high penalty.
+
+        temperature: LEAVE AT 1.0 for this monotonic graph. Flattening emissions here
+                     only adds boundary lag -- Viterbi's global optimality already
+                     prevents single-window runaway advances.
+
+        Needs self.class_floor = {exercise_class_idx: floor_seconds}, learned on the
+        TRAIN sessions of the fold (see wiring below). Falls back to default_dwell_sec
+        for any class without a learned floor.
+        """
+        step = self.step_size_sec
+        floor = getattr(self, "class_floor", None) or {}
+
+        # expanded plan:  REST, Ex1, REST, Ex2, ..., Ex_N, REST
+        # REST positions are skippable with dwell 0 (chippers flow straight through).
+        seq, dwell, skip = [self.rest_idx], [0], [True]
+        for ex_idx in self.seq_indices:
+            f = floor.get(ex_idx, default_dwell_sec)
+            dwell_windows = max(1, int(round(min_dwell_frac * f / step)))
+            seq.append(ex_idx);
+            dwell.append(dwell_windows);
+            skip.append(False)
+            seq.append(self.rest_idx);
+            dwell.append(0);
+            skip.append(True)
+
+        log_emis = to_log_emissions(probs, temperature=temperature)
+        # switch_penalty in forced_align_viterbi is your advancement_penalty
+        return forced_align_viterbi(log_emis, seq, dwell, skippable=skip,
+                                    switch_penalty=advancement_penalty)
+
+    # ===========================================================================
+    #  LOSO wiring  (inside run_loso_dt, per fold, AFTER le_fold is built and
+    #  BEFORE you construct/decode with the WodDecoder)
+    # ===========================================================================
+    """
+    train_pairs = [
+        (df['norm_label'].values, df['rel_time'].values)   # ground-truth ribbons
+        for df in train_dfs                                # TRAIN sessions only -> no leakage
+    ]
+    floor_by_name = learn_class_floor(train_pairs, pct=20)   # {label_string: seconds}
+
+    # map label strings -> the integer class indices the decoder uses
+    decoder.class_floor = {
+        int(le_fold.transform([name])[0]): sec
+        for name, sec in floor_by_name.items()
+        if name in le_fold.classes_
+    }
+    """
+
+    # ===========================================================================
+    #  Suggested first config to try
+    #    temperature          = 1.0     (revert -- this is what cost you 0.87 -> 0.77)
+    #    advancement_penalty  = 1.0     (sweep 0.0 .. 3.0)
+    #    min_dwell_frac       = 0.5     (0.4 .. 0.7; higher = holds longer, risks
+    #                                    over-running short segments)
+    # ===========================================================================
+
+
+# --------------------------------------------------------------------------- #
+# forced-alignment Viterbi with min-dwell + skippable positions                #
+# --------------------------------------------------------------------------- #
+def forced_align_viterbi(log_emis, seq_states, min_dwell, skippable=None,
+                         switch_penalty=0.0):
+    log_emis = np.asarray(log_emis)
+    T = log_emis.shape[0]
+    K = len(seq_states)
+    if skippable is None:
+        skippable = [False] * K
+    skip_arr = np.asarray(skippable, dtype=bool)
+
+    sizes = np.maximum(1, np.asarray(min_dwell, dtype=int))  # phases per position
+    offsets = np.zeros(K, dtype=int)
+    for k in range(1, K):
+        offsets[k] = offsets[k - 1] + sizes[k - 1]
+    S = int(offsets[-1] + sizes[-1])
+    last = sizes - 1
+    free_of = offsets + last  # free-phase state per pos
+
+    state_class = np.empty(S, dtype=int)
+    state_k = np.empty(S, dtype=int)
+    state_ph = np.empty(S, dtype=int)
+    for k in range(K):
+        for ph in range(sizes[k]):
+            s = offsets[k] + ph
+            state_class[s], state_k[s], state_ph[s] = seq_states[k], k, ph
+
+    idx = np.arange(S)
+    pred_within = np.where(state_ph > 0, idx - 1, -1)  # inside min-dwell
+    pred_self = np.where(state_ph == last[state_k], idx, -1)  # free-phase self-loop
+    pred_enter = np.where((state_ph == 0) & (state_k > 0),
+                          free_of[np.clip(state_k - 1, 0, K - 1)], -1)  # from prev position
+    prev_skip = np.zeros(S, dtype=bool)
+    m = state_k >= 1
+    prev_skip[m] = skip_arr[state_k[m] - 1]
+    pred_skip = np.where((state_ph == 0) & (state_k >= 2) & prev_skip,  # bypass skippable prev
+                         free_of[np.clip(state_k - 2, 0, K - 1)], -1)
+    preds = np.vstack([pred_within, pred_self, pred_enter, pred_skip])
+    pen = np.array([0.0, 0.0, switch_penalty, switch_penalty])[:, None]
+
+    def gather(vec, ids):
+        out = np.full(S, NEG)
+        ok = ids >= 0
+        out[ok] = vec[ids[ok]]
+        return out
+
+    dp = np.full((T, S), NEG)
+    bp = np.full((T, S), -1, dtype=int)
+    dp[0, offsets[0]] = log_emis[0, seq_states[0]]
+    if skip_arr[0] and K > 1:  # allow starting mid-first-exercise
+        dp[0, offsets[1]] = log_emis[0, seq_states[1]] - switch_penalty
+
+    for t in range(1, T):
+        prev = dp[t - 1]
+        cands = np.vstack([gather(prev, preds[j]) for j in range(4)]) - pen
+        arg = np.argmax(cands, axis=0)
+        dp[t] = cands[arg, idx] + log_emis[t, state_class]
+        bp[t] = preds[arg, idx]
+
+    # terminate in the last position's free phase (or 2nd-last if trailing REST skippable)
+    term = [free_of[K - 1]]
+    if skip_arr[K - 1] and K >= 2:
+        term.append(free_of[K - 2])
+    s = int(term[int(np.argmax([dp[T - 1, c] for c in term]))])
+
+    path = np.empty(T, dtype=int)
+    for t in range(T - 1, -1, -1):
+        path[t] = state_class[s]
+        ns = bp[t, s]
+        if ns < 0 and t > 0:
+            path[:t] = state_class[s]
+            break
+        s = ns
+    return path
+
+
+def to_log_emissions(probs, temperature=1.0, floor=1e-6):
+    """temperature > 1 flattens overconfident deep-tree probs so order/dwell
+    constraints can take effect. Try 1.5-3.0 for a depth-15 tree."""
+    p = np.clip(probs, floor, 1.0)
+    return np.log(p) / max(temperature, 1e-6)
