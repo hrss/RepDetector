@@ -19,6 +19,14 @@ from src.core.exercises import canonicalize_label
 from src.training.data_loader import load_raw_section_data
 from src.core.data_utils import extract_features
 from src.training.decoders import WodDecoder, RestPolicy
+from src.training.fixed_lag_decoder import decode_fixed_lag
+
+# NEW: device-faithful decoders.
+# Drop online_viterbi.py and fixed_lag_viterbi.py into src/training/.
+from src.training.online_viterbi import (
+    build_rest_interleaved_sequence,
+    run_online_decode,
+)
 
 # --- CONFIGURATION ---
 # Decision Tree usually works better with the features at 25Hz as per device requirement
@@ -26,16 +34,43 @@ CONFIG = {
     'sample_rate': 25,
     'window_size_sec': 2.5,   # was 2.0  -> 62 samples at 25 Hz, floor back to 0.4 Hz
     'step_size_sec': 0.5,     # was 0.4  -> 12 samples, keeps ~4 windows/sec
-    'lowpass_cutoff': 3,
+    'lowpass_cutoff': 12,
     'filter_order': 4,
     'max_depth': 15,
     'min_samples_split': 5,
     'dwell_sweep': [2, 3, 5, 8, 10],
     'default_dwell': 5.0,
     'tolerance_sec': 3.0,
+
+    # --- Device decoder params. These MUST match ViterbiDecoder.mc exactly. ---
+    'device_dwell_sec': 5.0,        # -> _dwellWindows = 10 at 0.5 s step
+    'device_transition_penalty': 3.0,
+    'device_skip_penalty': 7.0,
+    'device_alpha': 0.4,            # EMA smoothing; this is the lag knob
+    # Fixed-lag sweep, in WINDOWS. latency = lag * step_size_sec seconds.
+    # 0 == forward-only (pure on-watch), None == full offline Viterbi.
+    'lag_sweep': [0, 2, 4, 6, 8, 12, 20, None],
+    # Lag used for the PRIMARY variant (what you'd ship). 6 -> 3.0 s display lag.
+    'primary_lag': 6,
 }
 
 IGNORE_LABELS = ["null", "setup"]
+
+
+def align_probs_to_encoder(probs, model_classes, n_classes):
+    """
+    model.predict_proba columns are indexed by model.classes_, which contains ONLY
+    the classes present in y_train. If a fold's train set is missing a class, every
+    downstream column shifts and the decoder reads the wrong class probabilities.
+    Expand to a full (T, n_classes) matrix aligned to the LabelEncoder index.
+    """
+    model_classes = np.asarray(model_classes, dtype=int)
+    if len(model_classes) == n_classes and np.array_equal(model_classes, np.arange(n_classes)):
+        return probs
+    full = np.zeros((probs.shape[0], n_classes), dtype=probs.dtype)
+    full[:, model_classes] = probs
+    return full
+
 
 def load_workout_plan(plan_path):
     """Loads a workout plan from JSON and returns a list of exercise segments."""
@@ -432,6 +467,10 @@ def run_loso_dt():
     pooled_y_pred = []
     sweep_results = {dwell: [] for dwell in CONFIG['dwell_sweep']}
     variant_aggregate_results = {}
+    lag_sweep_results = {lag: [] for lag in CONFIG['lag_sweep']}
+
+    primary_lag = CONFIG['primary_lag']
+    primary_var_name = f"viterbi_lag{primary_lag}"
 
     for held_out_id in session_ids:
         print(f"\n{'='*20} FOLD: Held out {held_out_id} {'='*20}")
@@ -487,10 +526,13 @@ def run_loso_dt():
         )
         model.fit(X_train_s, y_train)
 
-        # Probabilities for WOD decoders
-        all_probs = model.predict_proba(X_test_s)
+        # Probabilities for WOD decoders.
+        # NOTE: expand to full le_fold width -- predict_proba columns follow
+        # model.classes_, not the encoder index.
+        all_probs = align_probs_to_encoder(
+            model.predict_proba(X_test_s), model.classes_, len(le_fold.classes_)
+        )
 
-        # 5. [NEW] Revisable decoders
         # Load workout plan
         plan_path = project_root / "workout2.json"
         wod_sequence = []
@@ -514,32 +556,60 @@ def run_loso_dt():
                 rollback_window_sec=15.0
             )
 
+        # Device-faithful decoder inputs
+        fold_labels = list(le_fold.classes_)
+        seq_names = build_rest_interleaved_sequence(wod_sequence) if wod_sequence else []
+        device_kw = dict(
+            dwell_seconds=CONFIG['device_dwell_sec'],
+            step_size_sec=CONFIG['step_size_sec'],
+            transition_penalty=CONFIG['device_transition_penalty'],
+            skip_penalty=CONFIG['device_skip_penalty'],
+            alpha=CONFIG['device_alpha'],
+        )
+
         variants = [
             {'name': 'baseline', 'type': 'baseline'},
         ]
-        if decoder:
-            variants.extend([
-                {'name': 'viterbi', 'type': 'viterbi'}
-            ])
+        if wod_sequence:
+            # offline full Viterbi -- the WORKOUT SUMMARY decoder (has whole session)
+            variants.append({'name': 'viterbi_offline', 'type': 'viterbi_offline'})
+            # forward-only -- exactly what the watch runs today (lag 0)
+            variants.append({'name': 'viterbi_online', 'type': 'viterbi_online'})
+            # fixed-lag sweep -- interpolates online -> offline
+            for lag in CONFIG['lag_sweep']:
+                if lag == 0:
+                    continue  # identical to viterbi_online
+                tag = 'full' if lag is None else str(lag)
+                variants.append({'name': f'viterbi_lag{tag}', 'type': 'viterbi_lag', 'lag': lag})
 
         fold_variant_results = {}
         fold_plot_dir = project_root / "src" / "training" / "loso_fold_plots_dt"
 
         for var in variants:
             v_name = var['name']
-            y_pred_idx = []
             rollback_info = []
+
             if var['type'] == 'baseline':
                 y_pred_idx = decoder.decode_greedy_baseline(all_probs) if decoder else np.argmax(all_probs, axis=1)
-                rollback_info = []
-            elif var['type'] == 'greedy':
-                decoder.rest_policy = var['policy']
-                y_pred_idx, rollback_info = decoder.decode_greedy_wod(all_probs, use_rollback=var['rollback'])
-            elif var['type'] == 'viterbi':
-                y_pred_idx = decoder.decode_viterbi(all_probs)
-                rollback_info = []
+                y_pred_labels = le_fold.inverse_transform(y_pred_idx)
 
-            y_pred_labels = le_fold.inverse_transform(y_pred_idx)
+            elif var['type'] == 'viterbi_offline':
+                y_pred_idx = decoder.decode_viterbi(all_probs)
+                y_pred_labels = le_fold.inverse_transform(y_pred_idx)
+
+            elif var['type'] == 'viterbi_online':
+                # byte-identical to ViterbiDecoder.mc: EMA, no backtrack, monotonic clamp
+                y_pred_labels = np.asarray(
+                    run_online_decode(all_probs, seq_names, fold_labels, **device_kw)
+                )
+
+            elif var['type'] == 'viterbi_lag':
+                y_pred_labels = np.asarray(
+                    decode_fixed_lag(all_probs, seq_names, fold_labels, lag=var['lag'], **device_kw)
+                )
+            else:
+                continue
+
             metrics = calculate_wod_metrics(y_test_labels, y_pred_labels, t_test, CONFIG['step_size_sec'])
             metrics['rollback_count'] = len(rollback_info)
 
@@ -552,21 +622,35 @@ def run_loso_dt():
                 variant_aggregate_results[v_name] = []
             variant_aggregate_results[v_name].append(metrics)
 
-            # Plot this variant
-            plot_loso_fold_results(
-                held_out_id=held_out_id,
-                test_df_scaled=test_df_valid,
-                window_times=t_test,
-                expected_labels=y_test_labels,
-                predicted_labels=y_pred_labels,
-                accuracy=metrics['accuracy'],
-                f1_macro=metrics['f1'],
-                output_dir=fold_plot_dir,
-                variant_name=v_name
-            )
+            if var['type'] in ('viterbi_lag', 'viterbi_online'):
+                lag = 0 if var['type'] == 'viterbi_online' else var['lag']
+                if lag in lag_sweep_results:
+                    lag_sweep_results[lag].append(metrics)
 
-        # Use 'greedy_wod_rollback_prefer' as primary
-        primary_var = 'greedy_wod_rollback_prefer' if 'greedy_wod_rollback_prefer' in fold_variant_results else 'baseline'
+            # Plot only the informative variants (the full lag sweep would spam the dir)
+            if v_name in ('baseline', 'viterbi_offline', 'viterbi_online', primary_var_name):
+                plot_loso_fold_results(
+                    held_out_id=held_out_id,
+                    test_df_scaled=test_df_valid,
+                    window_times=t_test,
+                    expected_labels=y_test_labels,
+                    predicted_labels=y_pred_labels,
+                    accuracy=metrics['accuracy'],
+                    f1_macro=metrics['f1'],
+                    output_dir=fold_plot_dir,
+                    variant_name=v_name
+                )
+
+        # PRIMARY = the shippable fixed-lag decoder.
+        # (Previously this looked for 'greedy_wod_rollback_prefer', which no longer
+        #  exists in `variants` -- so every pooled metric silently used `baseline`.)
+        if primary_var_name in fold_variant_results:
+            primary_var = primary_var_name
+        elif 'viterbi_online' in fold_variant_results:
+            primary_var = 'viterbi_online'
+        else:
+            primary_var = 'baseline'
+
         primary_metrics = fold_variant_results[primary_var]['metrics']
         primary_labels = fold_variant_results[primary_var]['labels']
 
@@ -583,6 +667,7 @@ def run_loso_dt():
             'session_id': held_out_id,
             'accuracy': acc,
             'f1_macro': f1,
+            'primary_variant': primary_var,
             'class_dist': dict(class_dist)
         })
 
@@ -618,20 +703,37 @@ def run_loso_dt():
 
     # Variant Summary
     print("\nDECODER VARIANT COMPARISON (Averaged over folds):")
-    print(f"{'Variant':<30} | {'Acc':<6} | {'Macro-F1':<8} | {'FT/min':<6} | {'Misattr(s)':<10} | {'Rollbacks'}")
-    print("-" * 80)
+    print(f"{'Variant':<30} | {'Acc':<6} | {'Macro-F1':<8} | {'FT/min':<6} | {'Misattr(s)':<10} | {'MedLat':<7}")
+    print("-" * 85)
     for v_name, v_metrics in variant_aggregate_results.items():
         avg_acc = np.mean([m['accuracy'] for m in v_metrics])
         avg_f1 = np.mean([m['f1'] for m in v_metrics])
         avg_ft = np.mean([m['false_trans_per_min'] for m in v_metrics])
         avg_mis = np.mean([m['misattributed_sec'] for m in v_metrics])
-        total_rollbacks = sum([m.get('rollback_count', 0) for m in v_metrics])
-        print(f"{v_name:<30} | {avg_acc:<6.4f} | {avg_f1:<8.4f} | {avg_ft:<6.2f} | {avg_mis:<10.1f} | {total_rollbacks}")
+        avg_lat = np.mean([m['median_latency'] for m in v_metrics])
+        print(f"{v_name:<30} | {avg_acc:<6.4f} | {avg_f1:<8.4f} | {avg_ft:<6.2f} | {avg_mis:<10.1f} | {avg_lat:<7.2f}")
+
+    # Lag sweep: how much display latency buys how much accuracy.
+    print(f"\nFIXED-LAG SWEEP (lag 0 = on-watch forward-only, full = offline Viterbi):")
+    print(f"{'Lag (win)':<10} | {'Latency(s)':<11} | {'Acc':<6} | {'Macro-F1':<8} | {'FT/min':<6} | {'Misattr(s)'}")
+    print("-" * 75)
+    for lag in CONFIG['lag_sweep']:
+        d_res = lag_sweep_results.get(lag, [])
+        if not d_res:
+            continue
+        lag_label = 'full' if lag is None else str(lag)
+        latency = 'inf' if lag is None else f"{lag * CONFIG['step_size_sec']:.1f}"
+        print(f"{lag_label:<10} | {latency:<11} | "
+              f"{np.mean([m['accuracy'] for m in d_res]):<6.4f} | "
+              f"{np.mean([m['f1'] for m in d_res]):<8.4f} | "
+              f"{np.mean([m['false_trans_per_min'] for m in d_res]):<6.2f} | "
+              f"{np.mean([m['misattributed_sec'] for m in d_res]):<10.1f}")
+    print("  -> pick L at the knee; that same L is what you port to ViterbiDecoder.mc")
 
     accs = [r['accuracy'] for r in fold_results]
     f1s = [r['f1_macro'] for r in fold_results]
 
-    print(f"\nLayer A (Per-window):")
+    print(f"\nLayer A (Per-window, primary = {primary_var_name}):")
     print(f"Pooled Accuracy: {accuracy_score(pooled_y_true, pooled_y_pred):.4f}")
     print(f"Pooled Macro-F1: {f1_score(pooled_y_true, pooled_y_pred, average='macro'):.4f}")
 
@@ -646,6 +748,8 @@ def run_loso_dt():
     print("-" * 60)
     for dwell in CONFIG['dwell_sweep']:
         d_res = sweep_results[dwell]
+        if not d_res:
+            continue
         avg_recall = np.mean([r['recall'] for r in d_res])
         avg_prec = np.mean([r['precision'] for r in d_res])
         avg_ft = np.mean([r['ft_per_min'] for r in d_res])
@@ -656,7 +760,7 @@ def run_loso_dt():
     cm = confusion_matrix(pooled_y_true, pooled_y_pred, normalize='true')
     plt.figure(figsize=(14, 12))
     sns.heatmap(cm, annot=True, fmt='.2f', xticklabels=le.classes_, yticklabels=le.classes_, cmap='turbo')
-    plt.title("Pooled LOSO Confusion Matrix - DT")
+    plt.title(f"Pooled LOSO Confusion Matrix - DT ({primary_var_name})")
     plt.ylabel("True Label")
     plt.xlabel("Predicted Label")
     plt.xticks(rotation=45, ha='right')
@@ -667,13 +771,32 @@ def run_loso_dt():
     results_to_save = {
         'fold_results': fold_results,
         'sweep_results': sweep_results,
+        'lag_sweep': {
+            ('full' if k is None else str(k)): {
+                'accuracy': float(np.mean([m['accuracy'] for m in v])),
+                'f1': float(np.mean([m['f1'] for m in v])),
+                'ft_per_min': float(np.mean([m['false_trans_per_min'] for m in v])),
+                'misattributed_sec': float(np.mean([m['misattributed_sec'] for m in v])),
+            }
+            for k, v in lag_sweep_results.items() if v
+        },
+        'variant_summary': {
+            v_name: {
+                'accuracy': float(np.mean([m['accuracy'] for m in v])),
+                'f1': float(np.mean([m['f1'] for m in v])),
+            }
+            for v_name, v in variant_aggregate_results.items()
+        },
         'config': CONFIG
     }
     def json_serialize(obj):
         if isinstance(obj, (np.int64, np.int32)): return int(obj)
         if isinstance(obj, (np.float64, np.float32)): return float(obj)
         if isinstance(obj, Counter): return dict(obj)
-        if np.isnan(obj): return None
+        try:
+            if np.isnan(obj): return None
+        except TypeError:
+            pass
         return obj
 
     with open("loso_results_dt.json", "w") as f:
