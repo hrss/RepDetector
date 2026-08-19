@@ -117,9 +117,9 @@ def _forward(probs, seq, labels, dwell_windows,
     return dp_hist, bp_hist, sub_seq
 
 
-def decode_fixed_lag(probs, seq_names, labels, lag=6, dwell_seconds=5.0,
-                     step_size_sec=0.5, transition_penalty=3.0,
-                     skip_penalty=7.0, alpha=0.4):
+def decode_fixed_lag(probs, seq_names, labels, lag=6, dwell_seconds=2.0,
+                     step_size_sec=0.5, transition_penalty=0.1,
+                     skip_penalty=0.1, alpha=1.1):
     """
     lag (windows): 0 == forward-only device decoder, None == full offline Viterbi.
     Returns per-window predicted class-name (length T).

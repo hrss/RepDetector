@@ -174,11 +174,11 @@ def canonicalize_array(
         raise ValueError(f"gyro_xyz shape {gyro_xyz.shape} != accel_xyz shape {accel_xyz.shape}")
 
     R = rotation_for(spec.device, spec.wrist, spec.crown, False)
-    R = rotation_for(spec.device, spec.wrist, spec.crown, True)
+    R_gyro = rotation_for(spec.device, spec.wrist, spec.crown, True)
 
     # Each row is a 3-vector; right-multiply by R.T to apply R to each row.
     a_canon = accel_xyz.astype(np.float64) @ R.T
-    g_canon = gyro_xyz.astype(np.float64) @ R.T
+    g_canon = gyro_xyz.astype(np.float64) @ R_gyro.T
 
     return a_canon.astype(np.float32), g_canon.astype(np.float32)
 
